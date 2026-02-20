@@ -2,6 +2,7 @@ import type {
   Driver,
   Race,
   LeaderboardEntry,
+  DetailedLeaderboardEntry,
   UserStats,
   RacePrediction,
   PointSystemSection,
@@ -50,6 +51,54 @@ export const DUMMY_LEADERBOARD: LeaderboardEntry[] = [
   { rank: 9, userId: "u9", displayName: "NahueQ22", totalPoints: 98, predictionsCount: 5 },
   { rank: 10, userId: "u10", displayName: "Manco", totalPoints: 91, predictionsCount: 4 },
 ];
+
+const DETAILED_USERS: Array<{ userId: string; displayName: string; r: (number | null)[] }> = [
+  { userId: "u1",  displayName: "Poncefifa",       r: [35, 28, 32, 31, 30] },
+  { userId: "u2",  displayName: "Joven Agustín",   r: [30, 32, 26, 29, 25] },
+  { userId: "u3",  displayName: "Guillotina",      r: [28, 25, 30, 27, 28] },
+  { userId: "u4",  displayName: "ORMA_Cachi",      r: [32, 27, null, 38, 34] },
+  { userId: "u5",  displayName: "MAYCAM_EliotGT",  r: [24, 26, 28, 25, 24] },
+  { userId: "u6",  displayName: "URT_Renzo",       r: [22, 24, 25, 24, 24] },
+  { userId: "u7",  displayName: "Playfedex",       r: [26, null, 30, 28, 28] },
+  { userId: "u8",  displayName: "Sabueso_veloz",   r: [20, 22, 21, 22, 20] },
+  { userId: "u9",  displayName: "NahueQ22",        r: [18, 20, 22, 19, 19] },
+  { userId: "u10", displayName: "Max773",          r: [22, 24, null, 22, 23] },
+  { userId: "u11", displayName: "Tetto",           r: [16, 18, 20, 16, 18] },
+  { userId: "u12", displayName: "Bonica",          r: [20, 15, 18, 14, 17] },
+  { userId: "u13", displayName: "Joystrikker",     r: [14, 16, 17, 18, 16] },
+  { userId: "u14", displayName: "DeLaCuchilla",    r: [18, 14, 15, 12, 19] },
+  { userId: "u15", displayName: "Luca_F1",         r: [12, 18, 14, 16, 14] },
+  { userId: "u16", displayName: "Pole_Sitter",     r: [16, 12, 16, 10, 15] },
+  { userId: "u17", displayName: "DRS_Enabled",     r: [10, 14, 12, 15, 12] },
+  { userId: "u18", displayName: "BoxBox_Now",      r: [14, 10, 10, 12, 14] },
+  { userId: "u19", displayName: "Grainer",         r: [8, 12, 14, 11, 10] },
+  { userId: "u20", displayName: "PitWall_Pro",     r: [12, 8, 8, 14, 8] },
+  { userId: "u21", displayName: "Apex_Legend",     r: [10, 10, 6, 8, 12] },
+  { userId: "u22", displayName: "SC_Delta",        r: [6, 8, 12, 6, 10] },
+  { userId: "u23", displayName: "Rev_Limiter",     r: [8, 6, 4, 10, 8] },
+  { userId: "u24", displayName: "Rookie_Pace",     r: [4, 4, 8, 4, 6] },
+];
+
+export const DETAILED_LEADERBOARD: DetailedLeaderboardEntry[] = DETAILED_USERS
+  .map((u) => {
+    const raceKeys = RACES_2026.map((race) => race.meetingKey);
+    const racePoints: Record<number, number | null> = {};
+    raceKeys.forEach((key, i) => {
+      racePoints[key] = u.r[i] ?? null;
+    });
+    const totalPoints = u.r.reduce((sum: number, p) => sum + (p ?? 0), 0);
+    const predictionsCount = u.r.filter((p) => p !== null).length;
+    return {
+      userId: u.userId,
+      displayName: u.displayName,
+      totalPoints,
+      predictionsCount,
+      racePoints,
+      rank: 0,
+    };
+  })
+  .sort((a, b) => b.totalPoints - a.totalPoints)
+  .map((entry, i) => ({ ...entry, rank: i + 1 }));
 
 export const DUMMY_USER_STATS: UserStats = {
   totalPoints: 127,
