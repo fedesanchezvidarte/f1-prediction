@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FileText, ChevronRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import type { RacePrediction } from "@/types";
 
@@ -40,10 +41,13 @@ export function PredictionsCard({ predictions }: PredictionsCardProps) {
             Predictions
           </p>
         </div>
-        <button className="flex items-center gap-0.5 text-[10px] font-medium text-muted transition-colors hover:text-f1-white">
+        <Link
+          href="/race-prediction"
+          className="flex items-center gap-0.5 text-[10px] font-medium text-muted transition-colors hover:text-f1-white"
+        >
           View all
           <ChevronRight size={12} />
-        </button>
+        </Link>
       </div>
 
       <div className="mt-3 flex-1 space-y-2">
@@ -72,9 +76,12 @@ export function PredictionsCard({ predictions }: PredictionsCardProps) {
               </div>
             )}
             {prediction.status === "pending" && (
-              <button className="mt-2 w-full rounded-md bg-f1-red/10 py-1.5 text-[10px] font-medium text-f1-red transition-colors hover:bg-f1-red/20">
+              <Link
+                href="/race-prediction"
+                className="mt-2 block w-full rounded-md bg-f1-red/10 py-1.5 text-center text-[10px] font-medium text-f1-red transition-colors hover:bg-f1-red/20"
+              >
                 Make Prediction
-              </button>
+              </Link>
             )}
           </div>
         ))}

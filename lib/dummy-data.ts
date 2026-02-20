@@ -6,29 +6,37 @@ import type {
   UserStats,
   RacePrediction,
   PointSystemSection,
+  FullRacePrediction,
+  SprintPrediction,
+  ChampionPrediction,
+  RaceResult,
+  SprintResult,
 } from "@/types";
 
 export const DRIVERS_2026: Driver[] = [
-  { driverNumber: 1, firstName: "Max", lastName: "Verstappen", nameAcronym: "VER", teamName: "Red Bull Racing", teamColor: "3671C6" },
-  { driverNumber: 4, firstName: "Lando", lastName: "Norris", nameAcronym: "NOR", teamName: "McLaren", teamColor: "FF8000" },
-  { driverNumber: 16, firstName: "Charles", lastName: "Leclerc", nameAcronym: "LEC", teamName: "Ferrari", teamColor: "E8002D" },
+  // Ordered by 2025 WDC standings
+  { driverNumber: 1, firstName: "Lando", lastName: "Norris", nameAcronym: "NOR", teamName: "McLaren", teamColor: "FF8000" },
+  { driverNumber: 3, firstName: "Max", lastName: "Verstappen", nameAcronym: "VER", teamName: "Red Bull Racing", teamColor: "3671C6" },
   { driverNumber: 81, firstName: "Oscar", lastName: "Piastri", nameAcronym: "PIA", teamName: "McLaren", teamColor: "FF8000" },
-  { driverNumber: 44, firstName: "Lewis", lastName: "Hamilton", nameAcronym: "HAM", teamName: "Ferrari", teamColor: "E8002D" },
   { driverNumber: 63, firstName: "George", lastName: "Russell", nameAcronym: "RUS", teamName: "Mercedes", teamColor: "27F4D2" },
-  { driverNumber: 14, firstName: "Fernando", lastName: "Alonso", nameAcronym: "ALO", teamName: "Aston Martin", teamColor: "229971" },
-  { driverNumber: 55, firstName: "Carlos", lastName: "Sainz", nameAcronym: "SAI", teamName: "Williams", teamColor: "1868DB" },
-  { driverNumber: 11, firstName: "Sergio", lastName: "Perez", nameAcronym: "PER", teamName: "Red Bull Racing", teamColor: "3671C6" },
+  { driverNumber: 16, firstName: "Charles", lastName: "Leclerc", nameAcronym: "LEC", teamName: "Ferrari", teamColor: "E8002D" },
+  { driverNumber: 44, firstName: "Lewis", lastName: "Hamilton", nameAcronym: "HAM", teamName: "Ferrari", teamColor: "E8002D" },
+  { driverNumber: 12, firstName: "Kimi", lastName: "Antonelli", nameAcronym: "ANT", teamName: "Mercedes", teamColor: "27F4D2" },
   { driverNumber: 23, firstName: "Alexander", lastName: "Albon", nameAcronym: "ALB", teamName: "Williams", teamColor: "1868DB" },
+  { driverNumber: 55, firstName: "Carlos", lastName: "Sainz", nameAcronym: "SAI", teamName: "Williams", teamColor: "1868DB" },
+  { driverNumber: 14, firstName: "Fernando", lastName: "Alonso", nameAcronym: "ALO", teamName: "Aston Martin", teamColor: "229971" },
+  { driverNumber: 27, firstName: "Nico", lastName: "Hulkenberg", nameAcronym: "HUL", teamName: "Audi", teamColor: "E0002B" },
+  { driverNumber: 6, firstName: "Isack", lastName: "Hadjar", nameAcronym: "HAD", teamName: "Red Bull Racing", teamColor: "3671C6" },
+  { driverNumber: 87, firstName: "Oliver", lastName: "Bearman", nameAcronym: "BEA", teamName: "Haas", teamColor: "B6BABD" },
+  { driverNumber: 30, firstName: "Liam", lastName: "Lawson", nameAcronym: "LAW", teamName: "Racing Bulls", teamColor: "6692FF" },
+  { driverNumber: 31, firstName: "Esteban", lastName: "Ocon", nameAcronym: "OCO", teamName: "Haas", teamColor: "B6BABD" },
   { driverNumber: 18, firstName: "Lance", lastName: "Stroll", nameAcronym: "STR", teamName: "Aston Martin", teamColor: "229971" },
   { driverNumber: 10, firstName: "Pierre", lastName: "Gasly", nameAcronym: "GAS", teamName: "Alpine", teamColor: "0093CC" },
-  { driverNumber: 31, firstName: "Esteban", lastName: "Ocon", nameAcronym: "OCO", teamName: "Haas", teamColor: "B6BABD" },
-  { driverNumber: 22, firstName: "Yuki", lastName: "Tsunoda", nameAcronym: "TSU", teamName: "Racing Bulls", teamColor: "6692FF" },
-  { driverNumber: 27, firstName: "Nico", lastName: "Hulkenberg", nameAcronym: "HUL", teamName: "Sauber", teamColor: "52E252" },
-  { driverNumber: 87, firstName: "Oliver", lastName: "Bearman", nameAcronym: "BEA", teamName: "Haas", teamColor: "B6BABD" },
-  { driverNumber: 12, firstName: "Andrea", lastName: "Kimi Antonelli", nameAcronym: "ANT", teamName: "Mercedes", teamColor: "27F4D2" },
+  { driverNumber: 5, firstName: "Gabriel", lastName: "Bortoleto", nameAcronym: "BOR", teamName: "Audi", teamColor: "E0002B" },
   { driverNumber: 43, firstName: "Franco", lastName: "Colapinto", nameAcronym: "COL", teamName: "Alpine", teamColor: "0093CC" },
-  { driverNumber: 30, firstName: "Liam", lastName: "Lawson", nameAcronym: "LAW", teamName: "Racing Bulls", teamColor: "6692FF" },
-  { driverNumber: 5, firstName: "Gabriel", lastName: "Bortoleto", nameAcronym: "BOR", teamName: "Sauber", teamColor: "52E252" },
+  { driverNumber: 11, firstName: "Sergio", lastName: "Perez", nameAcronym: "PER", teamName: "Cadillac", teamColor: "1E1E1E" },
+  { driverNumber: 77, firstName: "Valtteri", lastName: "Bottas", nameAcronym: "BOT", teamName: "Cadillac", teamColor: "1E1E1E" },
+  { driverNumber: 41, firstName: "Arvid", lastName: "Lindblad", nameAcronym: "LIN", teamName: "Racing Bulls", teamColor: "6692FF" },
 ];
 
 export const RACES_2026: Race[] = [
@@ -165,6 +173,125 @@ export const POINT_SYSTEM: PointSystemSection[] = [
     maxPoints: 40,
   },
 ];
+
+export const TEAMS_2026 = [
+  // Ordered by 2025 WCC standings + new entry
+  "McLaren",
+  "Mercedes",
+  "Red Bull Racing",
+  "Ferrari",
+  "Williams",
+  "Racing Bulls",
+  "Aston Martin",
+  "Haas",
+  "Audi",
+  "Alpine",
+  "Cadillac",
+];
+
+const d = (acronym: string) =>
+  DRIVERS_2026.find((dr) => dr.nameAcronym === acronym)!;
+
+export const DUMMY_RACE_RESULTS: Record<number, RaceResult> = {
+  1280: {
+    raceId: 1280,
+    polePosition: d("VER"),
+    raceWinner: d("VER"),
+    top10: [d("VER"), d("NOR"), d("LEC"), d("PIA"), d("HAM"), d("RUS"), d("ALO"), d("SAI"), d("PER"), d("ALB")],
+    fastestLap: d("NOR"),
+    fastestPitStop: d("RUS"),
+  },
+};
+
+export const DUMMY_SPRINT_RESULTS: Record<number, SprintResult> = {
+  1281: {
+    raceId: 1281,
+    sprintPole: d("NOR"),
+    sprintWinner: d("NOR"),
+    top8: [d("NOR"), d("VER"), d("LEC"), d("PIA"), d("HAM"), d("RUS"), d("SAI"), d("ALO")],
+    fastestLap: d("VER"),
+  },
+};
+
+export const DUMMY_FULL_PREDICTIONS: FullRacePrediction[] = [
+  {
+    raceId: 1280,
+    userId: "current",
+    status: "scored",
+    polePosition: d("VER"),
+    raceWinner: d("VER"),
+    restOfTop10: [d("LEC"), d("NOR"), d("PIA"), d("HAM"), d("RUS"), d("ALO"), d("PER"), d("SAI"), d("ALB")],
+    fastestLap: d("VER"),
+    fastestPitStop: d("HAM"),
+    pointsEarned: 32,
+  },
+  {
+    raceId: 1281,
+    userId: "current",
+    status: "submitted",
+    polePosition: d("NOR"),
+    raceWinner: d("NOR"),
+    restOfTop10: [d("VER"), d("LEC"), d("PIA"), d("RUS"), d("HAM"), d("SAI"), d("ALO"), d("PER"), d("GAS")],
+    fastestLap: d("NOR"),
+    fastestPitStop: d("PIA"),
+    pointsEarned: null,
+  },
+  {
+    raceId: 1282,
+    userId: "current",
+    status: "pending",
+    polePosition: null,
+    raceWinner: null,
+    restOfTop10: [null, null, null, null, null, null, null, null, null],
+    fastestLap: null,
+    fastestPitStop: null,
+    pointsEarned: null,
+  },
+  {
+    raceId: 1283,
+    userId: "current",
+    status: "pending",
+    polePosition: null,
+    raceWinner: null,
+    restOfTop10: [null, null, null, null, null, null, null, null, null],
+    fastestLap: null,
+    fastestPitStop: null,
+    pointsEarned: null,
+  },
+  {
+    raceId: 1284,
+    userId: "current",
+    status: "pending",
+    polePosition: null,
+    raceWinner: null,
+    restOfTop10: [null, null, null, null, null, null, null, null, null],
+    fastestLap: null,
+    fastestPitStop: null,
+    pointsEarned: null,
+  },
+];
+
+export const DUMMY_SPRINT_PREDICTIONS: SprintPrediction[] = [
+  {
+    raceId: 1281,
+    userId: "current",
+    status: "submitted",
+    sprintPole: d("NOR"),
+    sprintWinner: d("VER"),
+    restOfTop8: [d("NOR"), d("LEC"), d("PIA"), d("HAM"), d("RUS"), d("SAI"), d("ALO")],
+    fastestLap: d("NOR"),
+    pointsEarned: null,
+  },
+];
+
+export const DUMMY_CHAMPION_PREDICTION: ChampionPrediction = {
+  userId: "current",
+  status: "submitted",
+  wdcWinner: d("VER"),
+  wccWinner: "McLaren",
+  pointsEarned: null,
+  isHalfPoints: false,
+};
 
 export function getNextRace(): Race | undefined {
   const now = new Date();
