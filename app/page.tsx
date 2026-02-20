@@ -1,7 +1,19 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { F1Logo } from "@/components/F1Logo";
-import { SignOutButton } from "@/components/SignOutButton";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { UserPointsCard } from "@/components/dashboard/UserPointsCard";
+import { NextRaceCountdown } from "@/components/dashboard/NextRaceCountdown";
+import { PredictionsCard } from "@/components/dashboard/PredictionsCard";
+import { LeaderboardCard } from "@/components/dashboard/LeaderboardCard";
+import { PointSystemCard } from "@/components/dashboard/PointSystemCard";
+import { PlaceholderCard } from "@/components/dashboard/PlaceholderCard";
+import {
+  DUMMY_USER_STATS,
+  DUMMY_LEADERBOARD,
+  DUMMY_PREDICTIONS,
+  getNextRace,
+} from "@/lib/dummy-data";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -15,45 +27,63 @@ export default async function Home() {
 
   const displayName =
     user.user_metadata?.full_name || user.email?.split("@")[0] || "Driver";
+  const avatarUrl = user.user_metadata?.avatar_url;
+
+  const nextRace = getNextRace();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="flex items-center justify-between border-b border-border px-6 py-4">
-        <F1Logo />
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted">
-            Welcome,{" "}
-            <span className="font-medium text-f1-white">{displayName}</span>
-          </span>
-          <SignOutButton />
-        </div>
-      </header>
+      <Navbar displayName={displayName} avatarUrl={avatarUrl} />
 
-      <main className="flex flex-1 items-center justify-center px-4">
-        <div className="text-center">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-f1-red/10">
-            <svg
-              className="h-10 w-10 text-f1-red"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5"
-              />
-            </svg>
+      <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mx-auto max-w-5xl">
+          {/* Bento Grid */}
+          <div className="overflow-hidden rounded-2xl border border-border">
+            <div className="grid grid-cols-1 sm:grid-cols-3">
+              {/* Row 1 */}
+              {/* User Points - spans 2 cols */}
+              <div className="border-b border-border sm:col-span-2 sm:border-r">
+                <UserPointsCard stats={DUMMY_USER_STATS} />
+              </div>
+              {/* Next Race Countdown - spans 1 col */}
+              <div className="border-b border-border">
+                {nextRace ? (
+                  <NextRaceCountdown race={nextRace} />
+                ) : (
+                  <div className="flex h-full items-center justify-center p-6 text-sm text-muted">
+                    No upcoming races
+                  </div>
+                )}
+              </div>
+
+              {/* Row 2 */}
+              {/* Predictions - spans 1 col */}
+              <div className="border-b border-border sm:border-r">
+                <PredictionsCard predictions={DUMMY_PREDICTIONS} />
+              </div>
+              {/* Leaderboard - spans 2 cols */}
+              <div className="border-b border-border sm:col-span-2">
+                <LeaderboardCard entries={DUMMY_LEADERBOARD} />
+              </div>
+
+              {/* Row 3 */}
+              {/* Point System */}
+              <div className="sm:border-r">
+                <PointSystemCard />
+              </div>
+              {/* Placeholders */}
+              <div className="border-t border-border sm:border-r sm:border-t-0">
+                <PlaceholderCard />
+              </div>
+              <div className="border-t border-border sm:border-t-0">
+                <PlaceholderCard />
+              </div>
+            </div>
           </div>
-          <h2 className="text-3xl font-bold text-f1-white">
-            F1 Prediction 2026
-          </h2>
-          <p className="mt-2 text-muted">
-            The season is loading. Predictions coming soon.
-          </p>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
