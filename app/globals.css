@@ -1,26 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0d0d0d;
+  --foreground: #ededed;
+  --card: #1a1a1a;
+  --card-hover: #222222;
+  --border: #2a2a2a;
+  --border-hover: #3a3a3a;
+  --muted: #737373;
+  --input-bg: #141414;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-muted: var(--muted);
+  --color-input-bg: var(--input-bg);
+  /* oklch values enable opacity modifiers (e.g. bg-f1-red/10) to work correctly */
+  --color-f1-red: oklch(44.7% 0.183 20.5);
+  --color-f1-red-hover: oklch(39.8% 0.172 20.5);
+  --color-f1-black: oklch(25.4% 0.004 145.7);
+  --color-f1-white: oklch(100% 0 0);
+  --color-f1-purple: oklch(57.8% 0.152 302.1);
+  --color-f1-amber: oklch(76.5% 0.167 72.4);
+  --color-f1-green: oklch(63.4% 0.152 152.8);
+  --color-f1-blue: oklch(60.7% 0.148 240.4);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background-color: var(--color-f1-red);
+  color: white;
 }
