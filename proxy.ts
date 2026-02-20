@@ -2,12 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Middleware to check if the user is authenticated and redirect to the login page if not
+ * Proxy to check if the user is authenticated and redirect to the login page if not
  * Also checks if the user is on an auth page and redirects to the home page if they are
  * @param request - The incoming request
  * @returns - The response to the request
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
