@@ -55,6 +55,10 @@ export interface UserStats {
   bestRacePoints: number;
 }
 
+export interface DetailedLeaderboardEntry extends LeaderboardEntry {
+  racePoints: Record<number, number | null>;
+}
+
 export interface PointSystemRule {
   category: string;
   description: string;

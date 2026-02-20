@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Medal, ChevronRight } from "lucide-react";
 import type { LeaderboardEntry } from "@/types";
 
@@ -45,10 +46,13 @@ export function LeaderboardCard({
             Leaderboard
           </p>
         </div>
-        <button className="flex items-center gap-0.5 text-[10px] font-medium text-muted transition-colors hover:text-f1-white">
+        <Link
+          href="/leaderboard"
+          className="flex items-center gap-0.5 text-[10px] font-medium text-muted transition-colors hover:text-f1-white"
+        >
           View all
           <ChevronRight size={12} />
-        </button>
+        </Link>
       </div>
 
       <div className="mt-3 flex-1 space-y-0.5 overflow-y-auto">
