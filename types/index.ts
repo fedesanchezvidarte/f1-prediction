@@ -24,17 +24,70 @@ export interface Race {
 
 export type RaceStatus = "upcoming" | "live" | "completed";
 
+export type PredictionStatus = "pending" | "submitted" | "scored";
+
 export interface RacePrediction {
   raceId: number;
   raceName: string;
   round: number;
-  status: "pending" | "submitted" | "scored";
+  status: PredictionStatus;
   top10: Driver[];
   fastestLap?: Driver;
   polePosition?: Driver;
   fastestPitStop?: Driver;
   pointsEarned?: number;
   maxPoints: number;
+}
+
+export interface FullRacePrediction {
+  raceId: number;
+  userId: string;
+  status: PredictionStatus;
+  polePosition: Driver | null;
+  raceWinner: Driver | null;
+  /** P2 through P10 (9 slots, excluding the race winner who is P1) */
+  restOfTop10: (Driver | null)[];
+  fastestLap: Driver | null;
+  fastestPitStop: Driver | null;
+  pointsEarned: number | null;
+}
+
+export interface SprintPrediction {
+  raceId: number;
+  userId: string;
+  status: PredictionStatus;
+  sprintPole: Driver | null;
+  sprintWinner: Driver | null;
+  /** P2 through P8 (7 slots, excluding the sprint winner who is P1) */
+  restOfTop8: (Driver | null)[];
+  fastestLap: Driver | null;
+  pointsEarned: number | null;
+}
+
+export interface ChampionPrediction {
+  userId: string;
+  status: PredictionStatus;
+  wdcWinner: Driver | null;
+  wccWinner: string | null;
+  pointsEarned: number | null;
+  isHalfPoints: boolean;
+}
+
+export interface RaceResult {
+  raceId: number;
+  polePosition: Driver;
+  raceWinner: Driver;
+  top10: Driver[];
+  fastestLap: Driver;
+  fastestPitStop: Driver;
+}
+
+export interface SprintResult {
+  raceId: number;
+  sprintPole: Driver;
+  sprintWinner: Driver;
+  top8: Driver[];
+  fastestLap: Driver;
 }
 
 export interface LeaderboardEntry {

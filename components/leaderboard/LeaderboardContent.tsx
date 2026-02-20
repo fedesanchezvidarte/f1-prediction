@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Medal,
   List,
@@ -261,12 +262,15 @@ function SimpleTable({
             }`}
           >
             <RankBadge rank={entry.rank} />
-            <span className={`font-medium ${isMe ? "text-f1-white" : "text-foreground"}`}>
+            <Link
+              href={`/race-prediction?user=${entry.userId}`}
+              className={`font-medium transition-colors hover:text-f1-red ${isMe ? "text-f1-white" : "text-foreground"}`}
+            >
               {entry.displayName}
               {isMe && (
                 <span className="ml-1.5 text-[10px] text-f1-red">(You)</span>
               )}
-            </span>
+            </Link>
             <span className="text-right tabular-nums text-muted">
               {entry.predictionsCount}/{5}
             </span>
@@ -330,8 +334,9 @@ function DetailedTable({
                   <RankBadge rank={entry.rank} />
                 </td>
                 <td className="sticky left-10 z-10 bg-inherit px-2 py-2.5 sm:left-12">
-                  <span
-                    className={`font-medium whitespace-nowrap ${
+                  <Link
+                    href={`/race-prediction?user=${entry.userId}`}
+                    className={`font-medium whitespace-nowrap transition-colors hover:text-f1-red ${
                       isMe ? "text-f1-white" : "text-foreground"
                     }`}
                   >
@@ -341,7 +346,7 @@ function DetailedTable({
                         (You)
                       </span>
                     )}
-                  </span>
+                  </Link>
                 </td>
                 {races.map((race) => {
                   const pts = entry.racePoints[race.meetingKey];
