@@ -2,6 +2,8 @@
 
 This document describes the project and its requirements.
 
+**Current Vercel project:** <https://f1-prediction.vercel.app/>
+
 ## Project Overview
 
 This is a web application that allows users to predict the results of the next Formula 1 season.
