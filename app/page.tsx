@@ -13,6 +13,7 @@ import {
   DUMMY_LEADERBOARD,
   DUMMY_PREDICTIONS,
   getNextRace,
+  getPredictionCardRaces,
 } from "@/lib/dummy-data";
 
 export default async function Home() {
@@ -30,6 +31,7 @@ export default async function Home() {
   const avatarUrl = user.user_metadata?.avatar_url;
 
   const nextRace = getNextRace();
+  const predictionCardRaces = getPredictionCardRaces();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -59,7 +61,10 @@ export default async function Home() {
               {/* Row 2 */}
               {/* Predictions - spans 1 col */}
               <div className="border-b border-border sm:border-r">
-                <PredictionsCard predictions={DUMMY_PREDICTIONS} />
+                <PredictionsCard
+                  predictions={DUMMY_PREDICTIONS}
+                  races={predictionCardRaces}
+                />
               </div>
               {/* Leaderboard - spans 2 cols */}
               <div className="border-b border-border sm:col-span-2">

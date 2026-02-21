@@ -329,3 +329,26 @@ export function getRaceStatus(race: Race): "upcoming" | "live" | "completed" {
   if (now >= start && now <= end) return "live";
   return "completed";
 }
+
+/**
+ * Returns up to 3 races for the predictions card:
+ * - Slot 1: live race (if any)
+ * - Remaining slots: upcoming races (chronological)
+ * Always returns exactly 3 items; null means an empty placeholder slot.
+ */
+export function getPredictionCardRaces(): (Race | null)[] {
+  const now = new Date();
+  const live = RACES_2026.find(
+    (r) => now >= new Date(r.dateStart) && now <= new Date(r.dateEnd),
+  );
+  const upcoming = RACES_2026.filter((r) => new Date(r.dateStart) > now);
+
+  const slots: (Race | null)[] = [];
+  if (live) slots.push(live);
+  for (const r of upcoming) {
+    if (slots.length >= 3) break;
+    slots.push(r);
+  }
+  while (slots.length < 3) slots.push(null);
+  return slots;
+}

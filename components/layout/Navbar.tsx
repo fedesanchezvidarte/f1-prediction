@@ -7,7 +7,7 @@ import Link from "next/link";
 import {
   User,
   LogOut,
-  Home,
+  LayoutDashboard,
   Trophy,
   Medal,
   Globe,
@@ -52,7 +52,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
     .slice(0, 2);
 
   const navLinks = [
-    { href: "/", label: "Home", icon: <Home size={16} /> },
+    { href: "/", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
     { href: "/race-prediction", label: "Predictions", icon: <Trophy size={16} /> },
     { href: "/leaderboard", label: "Leaderboard", icon: <Medal size={16} /> },
   ];
@@ -72,25 +72,27 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
       </Link>
 
       <div className="relative flex items-center gap-3" ref={menuRef}>
-        <span className="text-sm text-muted">
-          {displayName}
-        </span>
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-card text-sm font-medium text-f1-white transition-colors hover:bg-card-hover"
+          className="group flex items-center gap-2.5 rounded-full px-1 py-0.5 transition-colors hover:bg-card-hover"
           aria-label="Open user menu"
         >
-          {avatarUrl ? (
-            <Image
-              src={avatarUrl}
-              alt={displayName}
-              width={36}
-              height={36}
-              className="h-9 w-9 rounded-full object-cover"
-            />
-          ) : (
-            <span className="text-xs">{initials}</span>
-          )}
+          <span className="text-sm text-muted transition-colors group-hover:text-f1-white">
+            {displayName}
+          </span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-card text-sm font-medium text-f1-white ring-1 ring-transparent transition-all group-hover:ring-border-hover">
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={displayName}
+                width={36}
+                height={36}
+                className="h-9 w-9 rounded-full object-cover"
+              />
+            ) : (
+              <span className="text-xs">{initials}</span>
+            )}
+          </div>
         </button>
 
         {isMenuOpen && (

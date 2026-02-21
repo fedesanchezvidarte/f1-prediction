@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Linkedin, Github } from "lucide-react";
+import { Linkedin, Github, Coffee } from "lucide-react";
 
 export function Footer() {
   return (
@@ -13,28 +13,41 @@ export function Footer() {
           <span className="text-xs text-muted">Season 2026</span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-muted">
-            &copy; {new Date().getFullYear()} F1 Prediction
-          </span>
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
           <a
-            href="https://linkedin.com"
+            href="https://buymeacoffee.com/fedesanchezvidarte"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-muted transition-colors hover:text-f1-white"
-            aria-label="LinkedIn"
+            className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted transition-colors hover:border-f1-amber/50 hover:text-f1-amber"
+            aria-label="Buy me a coffee"
           >
-            <Linkedin size={16} />
+            <Coffee size={13} />
+            <span>buy me a coffee</span>
           </a>
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted transition-colors hover:text-f1-white"
-            aria-label="GitHub"
-          >
-            <Github size={16} />
-          </a>
+
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-muted">
+              &copy; {new Date().getFullYear()} F1 Prediction
+            </span>
+            <a
+              href="https://www.linkedin.com/in/fedesanchezvidarte/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted transition-colors hover:text-f1-white"
+              aria-label="LinkedIn"
+            >
+              <Linkedin size={16} />
+            </a>
+            <a
+              href="https://github.com/fedesanchezvidarte/f1-prediction"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted transition-colors hover:text-f1-white"
+              aria-label="GitHub"
+            >
+              <Github size={16} />
+            </a>
+          </div>
         </div>
       </div>
     </footer>

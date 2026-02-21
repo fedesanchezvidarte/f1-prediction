@@ -811,15 +811,17 @@ function SprintForm({
         </div>
       </div>
 
-      <DriverSelect
-        label="Fastest Lap"
-        value={prediction.fastestLap}
-        drivers={drivers}
-        disabledDrivers={[]}
-        onChange={(d) => onChange({ fastestLap: d })}
-        disabled={!isEditable}
-        matchStatus={matchStatuses?.fastestLap}
-      />
+      <div className="grid grid-cols-1 sm:grid-cols-2">
+        <DriverSelect
+          label="Fastest Lap"
+          value={prediction.fastestLap}
+          drivers={drivers}
+          disabledDrivers={[]}
+          onChange={(d) => onChange({ fastestLap: d })}
+          disabled={!isEditable}
+          matchStatus={matchStatuses?.fastestLap}
+        />
+      </div>
     </div>
   );
 }
@@ -963,7 +965,7 @@ function ResultsDisplay({
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
           Top 10
         </span>
-        <div className="mt-1 flex flex-wrap gap-1.5">
+        <div className="mt-1 grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:gap-1.5">
           {result.top10.map((driver, i) => (
             <span
               key={driver.driverNumber}
