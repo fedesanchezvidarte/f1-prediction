@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronDown, X } from "lucide-react";
 import type { Driver } from "@/types";
 
+export type MatchStatus = "exact" | "close" | "miss" | null;
+
 interface DriverSelectProps {
   label: string;
   value: Driver | null;
@@ -12,6 +14,7 @@ interface DriverSelectProps {
   onChange: (driver: Driver | null) => void;
   disabled?: boolean;
   position?: number;
+  matchStatus?: MatchStatus;
 }
 
 export function DriverSelect({
@@ -22,6 +25,7 @@ export function DriverSelect({
   onChange,
   disabled = false,
   position,
+  matchStatus = null,
 }: DriverSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -88,7 +92,11 @@ export function DriverSelect({
         }}
         className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${
           disabled
-            ? "cursor-not-allowed border-border bg-card/50 text-muted/50"
+            ? matchStatus === "exact"
+              ? "cursor-not-allowed border-f1-green/60 bg-f1-green/5 text-muted/50"
+              : matchStatus === "close"
+                ? "cursor-not-allowed border-f1-amber/60 bg-f1-amber/5 text-muted/50"
+                : "cursor-not-allowed border-border bg-card/50 text-muted/50"
             : open
               ? "border-border-hover bg-input-bg text-f1-white"
               : "border-border bg-input-bg text-foreground hover:border-border-hover"

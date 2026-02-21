@@ -40,11 +40,14 @@ export const DRIVERS_2026: Driver[] = [
 ];
 
 export const RACES_2026: Race[] = [
-  { meetingKey: 1280, raceName: "Australian Grand Prix", officialName: "FORMULA 1 ROLEX AUSTRALIAN GRAND PRIX 2026", circuitShortName: "Melbourne", countryName: "Australia", countryCode: "AUS", location: "Albert Park", dateStart: "2026-03-13T03:30:00+00:00", dateEnd: "2026-03-15T06:00:00+00:00", round: 1, hasSprint: false },
-  { meetingKey: 1281, raceName: "Chinese Grand Prix", officialName: "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2026", circuitShortName: "Shanghai", countryName: "China", countryCode: "CHN", location: "Shanghai", dateStart: "2026-03-27T04:30:00+00:00", dateEnd: "2026-03-29T07:00:00+00:00", round: 2, hasSprint: true },
-  { meetingKey: 1282, raceName: "Japanese Grand Prix", officialName: "FORMULA 1 LENOVO JAPANESE GRAND PRIX 2026", circuitShortName: "Suzuka", countryName: "Japan", countryCode: "JPN", location: "Suzuka", dateStart: "2026-04-03T03:30:00+00:00", dateEnd: "2026-04-05T06:00:00+00:00", round: 3, hasSprint: false },
-  { meetingKey: 1283, raceName: "Bahrain Grand Prix", officialName: "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2026", circuitShortName: "Sakhir", countryName: "Bahrain", countryCode: "BHR", location: "Sakhir", dateStart: "2026-04-10T12:30:00+00:00", dateEnd: "2026-04-12T15:00:00+00:00", round: 4, hasSprint: false },
-  { meetingKey: 1284, raceName: "Saudi Arabian Grand Prix", officialName: "FORMULA 1 STC SAUDI ARABIAN GRAND PRIX 2026", circuitShortName: "Jeddah", countryName: "Saudi Arabia", countryCode: "SAU", location: "Jeddah", dateStart: "2026-04-17T14:30:00+00:00", dateEnd: "2026-04-19T17:00:00+00:00", round: 5, hasSprint: false },
+  // Round 1 & 2: completed (dates in the past)
+  { meetingKey: 1280, raceName: "Australian Grand Prix", officialName: "FORMULA 1 ROLEX AUSTRALIAN GRAND PRIX 2026", circuitShortName: "Melbourne", countryName: "Australia", countryCode: "AUS", location: "Albert Park", dateStart: "2026-02-07T03:30:00+00:00", dateEnd: "2026-02-09T06:00:00+00:00", round: 1, hasSprint: false },
+  { meetingKey: 1281, raceName: "Chinese Grand Prix", officialName: "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2026", circuitShortName: "Shanghai", countryName: "China", countryCode: "CHN", location: "Shanghai", dateStart: "2026-02-14T04:30:00+00:00", dateEnd: "2026-02-16T07:00:00+00:00", round: 2, hasSprint: true },
+  // Round 3: live right now (straddles today Feb 21, 2026)
+  { meetingKey: 1282, raceName: "Japanese Grand Prix", officialName: "FORMULA 1 LENOVO JAPANESE GRAND PRIX 2026", circuitShortName: "Suzuka", countryName: "Japan", countryCode: "JPN", location: "Suzuka", dateStart: "2026-02-20T03:30:00+00:00", dateEnd: "2026-02-22T06:00:00+00:00", round: 3, hasSprint: false },
+  // Rounds 4 & 5: upcoming
+  { meetingKey: 1283, raceName: "Bahrain Grand Prix", officialName: "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2026", circuitShortName: "Sakhir", countryName: "Bahrain", countryCode: "BHR", location: "Sakhir", dateStart: "2026-03-06T12:30:00+00:00", dateEnd: "2026-03-08T15:00:00+00:00", round: 4, hasSprint: false },
+  { meetingKey: 1284, raceName: "Saudi Arabian Grand Prix", officialName: "FORMULA 1 STC SAUDI ARABIAN GRAND PRIX 2026", circuitShortName: "Jeddah", countryName: "Saudi Arabia", countryCode: "SAU", location: "Jeddah", dateStart: "2026-03-13T14:30:00+00:00", dateEnd: "2026-03-15T17:00:00+00:00", round: 5, hasSprint: false },
 ];
 
 export const DUMMY_LEADERBOARD: LeaderboardEntry[] = [
@@ -109,12 +112,12 @@ export const DETAILED_LEADERBOARD: DetailedLeaderboardEntry[] = DETAILED_USERS
   .map((entry, i) => ({ ...entry, rank: i + 1 }));
 
 export const DUMMY_USER_STATS: UserStats = {
-  totalPoints: 127,
-  rank: 5,
+  totalPoints: 70,
+  rank: 3,
   totalUsers: 24,
-  predictionsSubmitted: 5,
+  predictionsSubmitted: 3,
   perfectPodiums: 1,
-  bestRacePoints: 32,
+  bestRacePoints: 33,
 };
 
 export const DUMMY_PREDICTIONS: RacePrediction[] = [
@@ -193,6 +196,7 @@ const d = (acronym: string) =>
   DRIVERS_2026.find((dr) => dr.nameAcronym === acronym)!;
 
 export const DUMMY_RACE_RESULTS: Record<number, RaceResult> = {
+  // Round 1: various result types — some exact, some close (driver in top10 but wrong position), some wrong
   1280: {
     raceId: 1280,
     polePosition: d("VER"),
@@ -201,9 +205,19 @@ export const DUMMY_RACE_RESULTS: Record<number, RaceResult> = {
     fastestLap: d("NOR"),
     fastestPitStop: d("RUS"),
   },
+  // Round 2: user predicted everything perfectly
+  1281: {
+    raceId: 1281,
+    polePosition: d("NOR"),
+    raceWinner: d("NOR"),
+    top10: [d("NOR"), d("VER"), d("LEC"), d("PIA"), d("RUS"), d("HAM"), d("SAI"), d("ALO"), d("PER"), d("GAS")],
+    fastestLap: d("NOR"),
+    fastestPitStop: d("PIA"),
+  },
 };
 
 export const DUMMY_SPRINT_RESULTS: Record<number, SprintResult> = {
+  // Round 2: user predicted sprint perfectly
   1281: {
     raceId: 1281,
     sprintPole: d("NOR"),
@@ -214,6 +228,8 @@ export const DUMMY_SPRINT_RESULTS: Record<number, SprintResult> = {
 };
 
 export const DUMMY_FULL_PREDICTIONS: FullRacePrediction[] = [
+  // Round 1 (Australia): completed & scored — various result types (some exact, some close, some wrong)
+  // Pole ✓, P1 ✓, P4-P7/P10 exact ✓, P2/P3 swapped (in top10, wrong pos), P8/P9 swapped, fastest lap ✗, fastest pit ✗, match podium, match top10
   {
     raceId: 1280,
     userId: "current",
@@ -223,30 +239,34 @@ export const DUMMY_FULL_PREDICTIONS: FullRacePrediction[] = [
     restOfTop10: [d("LEC"), d("NOR"), d("PIA"), d("HAM"), d("RUS"), d("ALO"), d("PER"), d("SAI"), d("ALB")],
     fastestLap: d("VER"),
     fastestPitStop: d("HAM"),
-    pointsEarned: 32,
+    pointsEarned: 17,
   },
+  // Round 2 (China): completed & scored — ALL predictions correct (perfect score)
+  // Perfect podium, perfect top10, pole ✓, fastest lap ✓, fastest pit ✓
   {
     raceId: 1281,
     userId: "current",
-    status: "submitted",
+    status: "scored",
     polePosition: d("NOR"),
     raceWinner: d("NOR"),
     restOfTop10: [d("VER"), d("LEC"), d("PIA"), d("RUS"), d("HAM"), d("SAI"), d("ALO"), d("PER"), d("GAS")],
     fastestLap: d("NOR"),
     fastestPitStop: d("PIA"),
-    pointsEarned: null,
+    pointsEarned: 33,
   },
+  // Round 3 (Japan): live event — form already submitted, awaiting results
   {
     raceId: 1282,
     userId: "current",
-    status: "pending",
-    polePosition: null,
-    raceWinner: null,
-    restOfTop10: [null, null, null, null, null, null, null, null, null],
-    fastestLap: null,
-    fastestPitStop: null,
+    status: "submitted",
+    polePosition: d("VER"),
+    raceWinner: d("VER"),
+    restOfTop10: [d("NOR"), d("LEC"), d("PIA"), d("HAM"), d("RUS"), d("SAI"), d("ALO"), d("ANT"), d("ALB")],
+    fastestLap: d("NOR"),
+    fastestPitStop: d("RUS"),
     pointsEarned: null,
   },
+  // Round 4 (Bahrain): upcoming — no prediction yet
   {
     raceId: 1283,
     userId: "current",
@@ -258,6 +278,7 @@ export const DUMMY_FULL_PREDICTIONS: FullRacePrediction[] = [
     fastestPitStop: null,
     pointsEarned: null,
   },
+  // Round 5 (Saudi Arabia): upcoming — no prediction yet
   {
     raceId: 1284,
     userId: "current",
@@ -272,15 +293,17 @@ export const DUMMY_FULL_PREDICTIONS: FullRacePrediction[] = [
 ];
 
 export const DUMMY_SPRINT_PREDICTIONS: SprintPrediction[] = [
+  // Round 2 (China): scored — ALL sprint predictions correct (perfect score: 20pts)
+  // Perfect podium, perfect top8, sprint pole ✓, fastest lap ✓
   {
     raceId: 1281,
     userId: "current",
-    status: "submitted",
+    status: "scored",
     sprintPole: d("NOR"),
-    sprintWinner: d("VER"),
-    restOfTop8: [d("NOR"), d("LEC"), d("PIA"), d("HAM"), d("RUS"), d("SAI"), d("ALO")],
-    fastestLap: d("NOR"),
-    pointsEarned: null,
+    sprintWinner: d("NOR"),
+    restOfTop8: [d("VER"), d("LEC"), d("PIA"), d("HAM"), d("RUS"), d("SAI"), d("ALO")],
+    fastestLap: d("VER"),
+    pointsEarned: 20,
   },
 ];
 

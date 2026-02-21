@@ -44,6 +44,7 @@ export default async function RacePredictionPage() {
             raceResults={DUMMY_RACE_RESULTS}
             sprintResults={DUMMY_SPRINT_RESULTS}
             isOwner={true}
+            displayName={displayName}
           />
         </div>
       </main>

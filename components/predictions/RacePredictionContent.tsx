@@ -29,9 +29,24 @@ import type {
   RaceStatus,
 } from "@/types";
 import { getRaceStatus } from "@/lib/dummy-data";
-import { DriverSelect } from "./DriverSelect";
+import { DriverSelect, type MatchStatus } from "./DriverSelect";
 
 type TabMode = "race" | "sprint" | "champion";
+
+interface RaceMatchStatuses {
+  polePosition: MatchStatus;
+  raceWinner: MatchStatus;
+  restOfTop10: MatchStatus[];
+  fastestLap: MatchStatus;
+  fastestPitStop: MatchStatus;
+}
+
+interface SprintMatchStatuses {
+  sprintPole: MatchStatus;
+  sprintWinner: MatchStatus;
+  restOfTop8: MatchStatus[];
+  fastestLap: MatchStatus;
+}
 
 interface RacePredictionContentProps {
   races: Race[];
@@ -43,6 +58,7 @@ interface RacePredictionContentProps {
   raceResults: Record<number, RaceResult>;
   sprintResults: Record<number, SprintResult>;
   isOwner: boolean;
+  displayName?: string;
   initialRaceIndex?: number;
 }
 
@@ -86,6 +102,7 @@ export function RacePredictionContent({
   raceResults,
   sprintResults,
   isOwner,
+  displayName,
   initialRaceIndex = 0,
 }: RacePredictionContentProps) {
   const [raceIndex, setRaceIndex] = useState(initialRaceIndex);
@@ -258,8 +275,88 @@ export function RacePredictionContent({
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
+  const raceMatchStatuses = useMemo((): RaceMatchStatuses | null => {
+    if (raceStatus !== "completed" || !currentResult || !currentPrediction) return null;
+    const resultTop10Numbers = currentResult.top10.map((d) => d.driverNumber);
+
+    function fieldStatus(predicted: Driver | null, actual: Driver): MatchStatus {
+      if (!predicted) return null;
+      if (predicted.driverNumber === actual.driverNumber) return "exact";
+      return null;
+    }
+
+    function positionStatus(predicted: Driver | null, actualAtPos: Driver): MatchStatus {
+      if (!predicted) return null;
+      if (predicted.driverNumber === actualAtPos.driverNumber) return "exact";
+      if (resultTop10Numbers.includes(predicted.driverNumber)) return "close";
+      return "miss";
+    }
+
+    const restStatuses: MatchStatus[] = currentPrediction.restOfTop10.map((predicted, i) =>
+      positionStatus(predicted, currentResult.top10[i + 1])
+    );
+
+    return {
+      polePosition: fieldStatus(currentPrediction.polePosition, currentResult.polePosition),
+      raceWinner: positionStatus(currentPrediction.raceWinner, currentResult.top10[0]),
+      restOfTop10: restStatuses,
+      fastestLap: fieldStatus(currentPrediction.fastestLap, currentResult.fastestLap),
+      fastestPitStop: fieldStatus(currentPrediction.fastestPitStop, currentResult.fastestPitStop),
+    };
+  }, [raceStatus, currentResult, currentPrediction]);
+
+  const sprintMatchStatuses = useMemo((): SprintMatchStatuses | null => {
+    if (raceStatus !== "completed" || !currentSprintResult || !currentSprintPred) return null;
+    const resultTop8Numbers = currentSprintResult.top8.map((d) => d.driverNumber);
+
+    function fieldStatus(predicted: Driver | null, actual: Driver): MatchStatus {
+      if (!predicted) return null;
+      if (predicted.driverNumber === actual.driverNumber) return "exact";
+      return null;
+    }
+
+    function positionStatus(predicted: Driver | null, actualAtPos: Driver): MatchStatus {
+      if (!predicted) return null;
+      if (predicted.driverNumber === actualAtPos.driverNumber) return "exact";
+      if (resultTop8Numbers.includes(predicted.driverNumber)) return "close";
+      return "miss";
+    }
+
+    const restStatuses: MatchStatus[] = currentSprintPred.restOfTop8.map((predicted, i) =>
+      positionStatus(predicted, currentSprintResult.top8[i + 1])
+    );
+
+    return {
+      sprintPole: fieldStatus(currentSprintPred.sprintPole, currentSprintResult.sprintPole),
+      sprintWinner: positionStatus(currentSprintPred.sprintWinner, currentSprintResult.top8[0]),
+      restOfTop8: restStatuses,
+      fastestLap: fieldStatus(currentSprintPred.fastestLap, currentSprintResult.fastestLap),
+    };
+  }, [raceStatus, currentSprintResult, currentSprintPred]);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-border">
+      {/* Header: back button + user identification */}
+      <div className="flex items-center justify-between border-b border-border px-4 py-2.5 sm:px-5">
+        <a
+          href="/leaderboard"
+          className="flex items-center gap-1.5 text-[11px] font-medium text-muted transition-colors hover:text-f1-white"
+        >
+          <ChevronLeft size={14} />
+          Leaderboard
+        </a>
+        {displayName && (
+          <span className="flex items-center gap-1.5 text-[11px] text-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-f1-red" />
+            {isOwner ? (
+              <span className="font-medium text-f1-white">{displayName}</span>
+            ) : (
+              <span>{displayName}&apos;s predictions</span>
+            )}
+          </span>
+        )}
+      </div>
+
       {/* Race Navigation */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
         <button
@@ -413,6 +510,7 @@ export function RacePredictionContent({
               getDisabledForPosition={(i) => getDisabledForPosition(i, "sprint")}
               getDisabledForWinner={() => getDisabledForWinner("sprint")}
               onChange={(update) => updateSprintPrediction(update)}
+              matchStatuses={sprintMatchStatuses}
             />
           ) : (
             <p className="py-8 text-center text-xs text-muted">
@@ -427,6 +525,7 @@ export function RacePredictionContent({
             getDisabledForPosition={(i) => getDisabledForPosition(i, "race")}
             getDisabledForWinner={() => getDisabledForWinner("race")}
             onChange={(update) => updateRacePrediction(update)}
+            matchStatuses={raceMatchStatuses}
           />
         ) : (
           <p className="py-8 text-center text-xs text-muted">
@@ -557,6 +656,7 @@ function RaceForm({
   getDisabledForPosition,
   getDisabledForWinner,
   onChange,
+  matchStatuses,
 }: {
   prediction: FullRacePrediction;
   drivers: Driver[];
@@ -564,6 +664,7 @@ function RaceForm({
   getDisabledForPosition: (i: number) => Driver[];
   getDisabledForWinner: () => Driver[];
   onChange: (update: Partial<FullRacePrediction>) => void;
+  matchStatuses: RaceMatchStatuses | null;
 }) {
   return (
     <div className="space-y-4">
@@ -575,6 +676,7 @@ function RaceForm({
           disabledDrivers={[]}
           onChange={(d) => onChange({ polePosition: d })}
           disabled={!isEditable}
+          matchStatus={matchStatuses?.polePosition}
         />
         <DriverSelect
           label="Race Winner (P1)"
@@ -583,6 +685,7 @@ function RaceForm({
           disabledDrivers={getDisabledForWinner()}
           onChange={(d) => onChange({ raceWinner: d })}
           disabled={!isEditable}
+          matchStatus={matchStatuses?.raceWinner}
         />
       </div>
 
@@ -608,6 +711,7 @@ function RaceForm({
                 onChange({ restOfTop10: updated });
               }}
               disabled={!isEditable}
+              matchStatus={matchStatuses?.restOfTop10[i]}
             />
           ))}
         </div>
@@ -621,6 +725,7 @@ function RaceForm({
           disabledDrivers={[]}
           onChange={(d) => onChange({ fastestLap: d })}
           disabled={!isEditable}
+          matchStatus={matchStatuses?.fastestLap}
         />
         <DriverSelect
           label="Fastest Pit Stop"
@@ -629,6 +734,7 @@ function RaceForm({
           disabledDrivers={[]}
           onChange={(d) => onChange({ fastestPitStop: d })}
           disabled={!isEditable}
+          matchStatus={matchStatuses?.fastestPitStop}
         />
       </div>
     </div>
@@ -644,6 +750,7 @@ function SprintForm({
   getDisabledForPosition,
   getDisabledForWinner,
   onChange,
+  matchStatuses,
 }: {
   prediction: SprintPrediction;
   drivers: Driver[];
@@ -651,6 +758,7 @@ function SprintForm({
   getDisabledForPosition: (i: number) => Driver[];
   getDisabledForWinner: () => Driver[];
   onChange: (update: Partial<SprintPrediction>) => void;
+  matchStatuses: SprintMatchStatuses | null;
 }) {
   return (
     <div className="space-y-4">
@@ -662,6 +770,7 @@ function SprintForm({
           disabledDrivers={[]}
           onChange={(d) => onChange({ sprintPole: d })}
           disabled={!isEditable}
+          matchStatus={matchStatuses?.sprintPole}
         />
         <DriverSelect
           label="Sprint Winner (P1)"
@@ -670,6 +779,7 @@ function SprintForm({
           disabledDrivers={getDisabledForWinner()}
           onChange={(d) => onChange({ sprintWinner: d })}
           disabled={!isEditable}
+          matchStatus={matchStatuses?.sprintWinner}
         />
       </div>
 
@@ -695,6 +805,7 @@ function SprintForm({
                 onChange({ restOfTop8: updated });
               }}
               disabled={!isEditable}
+              matchStatus={matchStatuses?.restOfTop8[i]}
             />
           ))}
         </div>
@@ -707,6 +818,7 @@ function SprintForm({
         disabledDrivers={[]}
         onChange={(d) => onChange({ fastestLap: d })}
         disabled={!isEditable}
+        matchStatus={matchStatuses?.fastestLap}
       />
     </div>
   );
