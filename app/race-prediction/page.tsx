@@ -18,7 +18,7 @@ import type {
 } from "@/types";
 
 interface PageProps {
-  searchParams: Promise<{ user?: string }>;
+  searchParams: Promise<{ user?: string; round?: string }>;
 }
 
 export default async function RacePredictionPage({ searchParams }: PageProps) {
@@ -33,6 +33,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
 
   const params = await searchParams;
   const viewingUserId = params.user ?? user.id;
+  const roundParam = params.round ? parseInt(params.round, 10) : null;
   const isOwner = viewingUserId === user.id;
 
   const fallbackName =
@@ -241,13 +242,18 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     }
   }
 
-  // Determine initial race index: navigate to the next upcoming race
+  // Determine initial race index: use round param if provided, otherwise next upcoming race
   const now = new Date();
   let initialRaceIndex = 0;
-  for (let i = 0; i < RACES_2026.length; i++) {
-    if (new Date(RACES_2026[i].dateEnd) > now) {
-      initialRaceIndex = i;
-      break;
+  if (roundParam !== null) {
+    const roundIndex = RACES_2026.findIndex((r) => r.round === roundParam);
+    if (roundIndex !== -1) initialRaceIndex = roundIndex;
+  } else {
+    for (let i = 0; i < RACES_2026.length; i++) {
+      if (new Date(RACES_2026[i].dateEnd) > now) {
+        initialRaceIndex = i;
+        break;
+      }
     }
   }
 
