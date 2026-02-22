@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Trophy,
   Medal,
+  Award,
   Globe,
   Moon,
   Sun,
@@ -61,6 +62,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
     { href: "/", label: "Dashboard", icon: <LayoutDashboard size={16} />, highlight: false },
     { href: "/race-prediction", label: "Predictions", icon: <Trophy size={16} />, highlight: true },
     { href: "/leaderboard", label: "Leaderboard", icon: <Medal size={16} />, highlight: false },
+    { href: "/achievements", label: "Achievements", icon: <Award size={16} />, highlight: false },
   ];
 
   return (

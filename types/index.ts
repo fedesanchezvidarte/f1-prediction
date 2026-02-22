@@ -132,3 +132,23 @@ export interface PointSystemSection {
   rules: PointSystemRule[];
   maxPoints: number;
 }
+
+export type AchievementCategory = "predictions" | "accuracy" | "milestones" | "special";
+
+export interface Achievement {
+  id: number;
+  slug: string;
+  name: string;
+  description: string;
+  iconUrl: string | null;
+  category: AchievementCategory;
+  threshold: number | null;
+  createdAt: string;
+}
+
+export interface UserAchievement {
+  id: number;
+  achievementId: number;
+  earnedAt: string;
+  achievement: Achievement;
+}

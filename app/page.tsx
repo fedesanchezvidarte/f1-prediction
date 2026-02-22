@@ -8,12 +8,13 @@ import { PredictionsCard } from "@/components/dashboard/PredictionsCard";
 import { LeaderboardCard } from "@/components/dashboard/LeaderboardCard";
 import { PointSystemCard } from "@/components/dashboard/PointSystemCard";
 import { PlaceholderCard } from "@/components/dashboard/PlaceholderCard";
+import { AchievementsCard } from "@/components/dashboard/AchievementsCard";
 import {
   RACES_2026,
   getNextRace,
   getPredictionCardRaces,
 } from "@/lib/dummy-data";
-import type { UserStats, LeaderboardEntry, RacePrediction } from "@/types";
+import type { UserStats, LeaderboardEntry, RacePrediction, Achievement, AchievementCategory } from "@/types";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -133,6 +134,29 @@ export default async function Home() {
     };
   });
 
+  const { data: allAchievements } = await supabase
+    .from("achievements")
+    .select("*")
+    .order("id", { ascending: true });
+
+  const { data: userAchievementRows } = await supabase
+    .from("user_achievements")
+    .select("achievement_id")
+    .eq("user_id", user.id);
+
+  const achievements: Achievement[] = (allAchievements ?? []).map((a) => ({
+    id: a.id,
+    slug: a.slug,
+    name: a.name,
+    description: a.description,
+    iconUrl: a.icon_url,
+    category: a.category as AchievementCategory,
+    threshold: a.threshold,
+    createdAt: a.created_at,
+  }));
+
+  const earnedAchievementIds = (userAchievementRows ?? []).map((ua) => ua.achievement_id);
+
   const nextRace = getNextRace();
   const predictionCardRaces = getPredictionCardRaces();
 
@@ -179,10 +203,15 @@ export default async function Home() {
               <div className="sm:border-r">
                 <PointSystemCard />
               </div>
-              {/* Placeholders */}
+              {/* Achievements */}
               <div className="border-t border-border sm:border-r sm:border-t-0">
-                <PlaceholderCard />
+                <AchievementsCard
+                  earned={earnedAchievementIds}
+                  achievements={achievements}
+                  total={achievements.length}
+                />
               </div>
+              {/* Placeholder */}
               <div className="border-t border-border sm:border-t-0">
                 <PlaceholderCard />
               </div>
