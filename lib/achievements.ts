@@ -1,4 +1,5 @@
-import type { AchievementCategory } from "@/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Achievement, AchievementCategory } from "@/types";
 
 export const ACHIEVEMENT_ICONS: Record<string, string> = {
   first_prediction: "🏁",
@@ -44,6 +45,56 @@ export const CATEGORY_LABELS: Record<AchievementCategory, string> = {
 
 export function getAchievementIcon(slug: string): string {
   return ACHIEVEMENT_ICONS[slug] ?? "🏆";
+}
+
+export const CATEGORY_COLORS_FALLBACK = {
+  bg: "bg-card",
+  text: "text-muted",
+  border: "border-border",
+};
+
+export function getCategoryColors(category: string) {
+  return (
+    CATEGORY_COLORS[category as AchievementCategory] ?? CATEGORY_COLORS_FALLBACK
+  );
+}
+
+/**
+ * Fetches all achievements and the current user's earned achievement IDs in
+ * parallel. Reuse this in any server component that needs both.
+ */
+export async function fetchAchievementsData(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<{ achievements: Achievement[]; earnedIds: number[] }> {
+  const [{ data: allAchievements }, { data: userAchievements }] =
+    await Promise.all([
+      supabase
+        .from("achievements")
+        .select("*")
+        .order("id", { ascending: true }),
+      supabase
+        .from("user_achievements")
+        .select("achievement_id")
+        .eq("user_id", userId),
+    ]);
+
+  const achievements: Achievement[] = (allAchievements ?? []).map((a) => ({
+    id: a.id,
+    slug: a.slug,
+    name: a.name,
+    description: a.description,
+    iconUrl: a.icon_url,
+    category: a.category as AchievementCategory,
+    threshold: a.threshold,
+    createdAt: a.created_at,
+  }));
+
+  const earnedIds = (userAchievements ?? []).map(
+    (ua) => ua.achievement_id as number
+  );
+
+  return { achievements, earnedIds };
 }
 
 /**

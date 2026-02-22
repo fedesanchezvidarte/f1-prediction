@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Award, Lock, Check } from "lucide-react";
 import {
   getAchievementIcon,
-  CATEGORY_COLORS,
+  getCategoryColors,
   CATEGORY_LABELS,
 } from "@/lib/achievements";
 import type { Achievement, AchievementCategory } from "@/types";
@@ -90,7 +90,7 @@ export function AchievementsContent({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((achievement) => {
           const isEarned = earnedSet.has(achievement.id);
-          const colors = CATEGORY_COLORS[achievement.category];
+          const colors = getCategoryColors(achievement.category);
 
           return (
             <div
@@ -169,6 +169,7 @@ function FilterButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors ${
         active

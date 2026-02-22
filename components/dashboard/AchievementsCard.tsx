@@ -12,11 +12,12 @@ interface AchievementsCardProps {
 }
 
 export function AchievementsCard({ earned, achievements, total }: AchievementsCardProps) {
-  const recentEarned = achievements
-    .filter((a) => earned.includes(a.id))
-    .slice(0, 3);
-
+  const earnedSet = new Set(earned);
   const earnedCount = earned.length;
+
+  const previewEarned = achievements
+    .filter((a) => earnedSet.has(a.id))
+    .slice(0, 3);
 
   return (
     <Link
@@ -38,9 +39,9 @@ export function AchievementsCard({ earned, achievements, total }: AchievementsCa
         </div>
       </div>
 
-      {recentEarned.length > 0 ? (
+      {previewEarned.length > 0 ? (
         <div className="mt-3 flex items-center gap-2">
-          {recentEarned.map((a) => (
+          {previewEarned.map((a) => (
             <div
               key={a.id}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-card text-base ring-1 ring-border"

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AchievementsContent } from "@/components/achievements/AchievementsContent";
-import type { Achievement, AchievementCategory } from "@/types";
+import { fetchAchievementsData } from "@/lib/achievements";
 
 export default async function AchievementsPage() {
   const supabase = await createClient();
@@ -28,28 +28,7 @@ export default async function AchievementsPage() {
   const displayName = profileRow?.display_name ?? fallbackName;
   const avatarUrl = profileRow?.avatar_url ?? fallbackAvatar;
 
-  const { data: allAchievements } = await supabase
-    .from("achievements")
-    .select("*")
-    .order("id", { ascending: true });
-
-  const { data: userAchievements } = await supabase
-    .from("user_achievements")
-    .select("achievement_id")
-    .eq("user_id", user.id);
-
-  const achievements: Achievement[] = (allAchievements ?? []).map((a) => ({
-    id: a.id,
-    slug: a.slug,
-    name: a.name,
-    description: a.description,
-    iconUrl: a.icon_url,
-    category: a.category as AchievementCategory,
-    threshold: a.threshold,
-    createdAt: a.created_at,
-  }));
-
-  const earnedIds = (userAchievements ?? []).map((ua) => ua.achievement_id);
+  const { achievements, earnedIds } = await fetchAchievementsData(supabase, user.id);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
