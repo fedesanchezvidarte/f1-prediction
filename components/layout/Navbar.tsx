@@ -13,6 +13,7 @@ import {
   Globe,
   Moon,
   Sun,
+  Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -23,6 +24,8 @@ interface NavbarProps {
 
 export function Navbar({ displayName, avatarUrl }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -38,6 +41,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
   }, []);
 
   async function handleSignOut() {
+    setIsSigningOut(true);
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
@@ -180,7 +184,10 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
 
             {/* Sign Out */}
             <button
-              onClick={handleSignOut}
+              onClick={() => {
+                setIsMenuOpen(false);
+                setShowSignOutModal(true);
+              }}
               className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-f1-red transition-colors hover:bg-card-hover"
             >
               <LogOut size={16} />
@@ -189,6 +196,56 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
           </div>
         )}
       </div>
+
+      {/* Sign Out Confirmation Modal */}
+      {showSignOutModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !isSigningOut && setShowSignOutModal(false)}
+          />
+          <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-f1-red/15">
+                <LogOut size={15} className="text-f1-red" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-f1-white">Sign out?</h2>
+                <p className="mt-0.5 text-[11px] text-muted">Signed in as {displayName}</p>
+              </div>
+            </div>
+            {/* Body */}
+            <div className="px-5 py-4">
+              <p className="text-xs leading-relaxed text-muted">
+                You will be redirected to the login page. Your predictions and data are safely saved.
+              </p>
+            </div>
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
+              <button
+                onClick={() => setShowSignOutModal(false)}
+                disabled={isSigningOut}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="flex items-center gap-1.5 rounded-lg bg-f1-red px-4 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-f1-red/80 disabled:opacity-50"
+              >
+                {isSigningOut ? <Loader2 size={12} className="animate-spin" /> : <LogOut size={12} />}
+                {isSigningOut ? "Signing out..." : "Sign out"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

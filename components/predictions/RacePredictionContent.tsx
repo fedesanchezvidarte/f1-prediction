@@ -237,6 +237,7 @@ export function RacePredictionContent({
   const [, startTransition] = useTransition();
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   async function handleReset() {
     if (isSaving) return;
@@ -686,7 +687,7 @@ export function RacePredictionContent({
           <div className="flex items-center gap-2">
             {isEditable && (
               <button
-                onClick={handleReset}
+                onClick={() => setShowResetModal(true)}
                 disabled={isSaving}
                 className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
               >
@@ -704,6 +705,98 @@ export function RacePredictionContent({
             </button>
           </div>
         )}
+      </div>
+
+      {/* Reset Confirmation Modal */}
+      {showResetModal && (
+        <ResetConfirmModal
+          tab={tab}
+          raceName={isChampionTab ? undefined : currentRace.raceName}
+          isSaving={isSaving}
+          onConfirm={() => {
+            setShowResetModal(false);
+            handleReset();
+          }}
+          onCancel={() => setShowResetModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------- Reset Confirmation Modal ---------- */
+
+function ResetConfirmModal({
+  tab,
+  raceName,
+  isSaving,
+  onConfirm,
+  onCancel,
+}: {
+  tab: TabMode;
+  raceName?: string;
+  isSaving: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const label =
+    tab === "champion"
+      ? "Championship"
+      : tab === "sprint"
+        ? `Sprint — ${raceName}`
+        : raceName ?? "Race";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onCancel}
+      />
+
+      {/* Modal panel */}
+      <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-f1-red/15">
+            <RotateCcw size={15} className="text-f1-red" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-f1-white">Reset prediction?</h2>
+            <p className="mt-0.5 text-[11px] text-muted">{label}</p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4">
+          <p className="text-xs leading-relaxed text-muted">
+            This will clear all your selections for this prediction and set it back to{" "}
+            <span className="font-medium text-f1-white">pending</span>. This action cannot be undone.
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
+          <button
+            onClick={onCancel}
+            disabled={isSaving}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isSaving}
+            className="flex items-center gap-1.5 rounded-lg bg-f1-red px-4 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-f1-red/80 disabled:opacity-50"
+          >
+            {isSaving ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+            {isSaving ? "Resetting..." : "Reset prediction"}
+          </button>
+        </div>
       </div>
     </div>
   );

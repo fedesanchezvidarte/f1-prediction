@@ -89,7 +89,7 @@ function RaceSlot({
       )}
       {(!prediction || prediction.status === "pending") && (
         <Link
-          href="/race-prediction"
+          href={`/race-prediction?round=${race.round}`}
           className="mt-2 block w-full rounded-md bg-f1-red/10 py-1.5 text-center text-[10px] font-medium text-f1-red transition-colors hover:bg-f1-red/20"
         >
           Make Prediction
