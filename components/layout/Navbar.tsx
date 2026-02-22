@@ -100,99 +100,116 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
         </button>
 
         {isMenuOpen && (
-          <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-lg border border-border bg-card py-1 shadow-xl">
-            {/* Navigation Links */}
-            {navLinks.map((link) => (
+          <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+            {/* User info header */}
+            <div className="border-b border-border px-3 py-2.5">
+              <p className="text-[11px] font-semibold text-f1-white truncate">{displayName}</p>
+              <p className="text-[10px] text-muted/60 mt-0.5">Season 2026</p>
+            </div>
+
+            {/* Navigation section */}
+            <div className="py-1">
+              <p className="px-3 pt-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted/40">
+                Navigate
+              </p>
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors hover:bg-card-hover ${
+                    pathname === link.href
+                      ? "font-semibold text-f1-white"
+                      : "text-muted hover:text-f1-white"
+                  }`}
+                >
+                  <span className={pathname === link.href ? "text-f1-white" : "text-muted/60"}>
+                    {link.icon}
+                  </span>
+                  {link.label}
+                  {link.highlight && pathname !== link.href && (
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-f1-red animate-pulse" />
+                  )}
+                </Link>
+              ))}
               <Link
-                key={link.href}
-                href={link.href}
+                href="/profile"
                 onClick={() => setIsMenuOpen(false)}
-                className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-card-hover ${
-                  pathname === link.href
-                    ? "font-medium text-f1-white"
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors hover:bg-card-hover ${
+                  pathname === "/profile"
+                    ? "font-semibold text-f1-white"
                     : "text-muted hover:text-f1-white"
                 }`}
               >
-                {link.icon}
-                {link.label}
-                {link.highlight && pathname !== link.href && (
-                  <span className="ml-auto h-2 w-2 rounded-full bg-f1-red animate-pulse" />
-                )}
+                <span className={pathname === "/profile" ? "text-f1-white" : "text-muted/60"}>
+                  <User size={16} />
+                </span>
+                Profile
               </Link>
-            ))}
+            </div>
 
-            <div className="my-1 border-t border-border" />
+            <div className="border-t border-border" />
 
-            {/* Profile */}
-            <Link
-              href="/profile"
-              onClick={() => setIsMenuOpen(false)}
-              className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-card-hover ${
-                pathname === "/profile"
-                  ? "font-medium text-f1-white"
-                  : "text-muted hover:text-f1-white"
-              }`}
-            >
-              <User size={16} />
-              Profile
-            </Link>
-
-            <div className="my-1 border-t border-border" />
-
-            {/* Language Selection (placeholder) */}
-            <div className="px-4 py-2">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted/50">
-                Language
+            {/* Settings section */}
+            <div className="py-1">
+              <p className="px-3 pt-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted/40">
+                Settings
               </p>
-              <div className="flex rounded-lg border border-border">
-                <button
-                  className="flex flex-1 items-center justify-center gap-1 rounded-l-lg bg-card-hover px-2 py-1.5 text-[11px] font-medium text-f1-white"
-                >
-                  <Globe size={12} />
-                  EN
-                </button>
-                <button
-                  className="flex flex-1 items-center justify-center gap-1 rounded-r-lg border-l border-border px-2 py-1.5 text-[11px] font-medium text-muted"
-                >
-                  ES
-                </button>
+
+              {/* Language */}
+              <div className="px-3 py-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-[11px] text-muted">
+                    <Globe size={12} className="text-muted/60" />
+                    Language
+                  </span>
+                  <div className="flex rounded-md border border-border overflow-hidden">
+                    <button className="px-2 py-0.5 text-[10px] font-semibold text-f1-white bg-card-hover">
+                      EN
+                    </button>
+                    <button className="px-2 py-0.5 text-[10px] font-medium text-muted border-l border-border hover:text-f1-white transition-colors">
+                      ES
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Theme */}
+              <div className="px-3 py-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-[11px] text-muted">
+                    <Moon size={12} className="text-muted/60" />
+                    Theme
+                  </span>
+                  <div className="flex rounded-md border border-border overflow-hidden">
+                    <button className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-f1-white bg-card-hover">
+                      <Moon size={9} />
+                      Dark
+                    </button>
+                    <button className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-muted border-l border-border hover:text-f1-white transition-colors">
+                      <Sun size={9} />
+                      Light
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Theme Selection (placeholder) */}
-            <div className="px-4 py-2">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted/50">
-                Theme
-              </p>
-              <div className="flex rounded-lg border border-border">
-                <button
-                  className="flex flex-1 items-center justify-center gap-1 rounded-l-lg bg-card-hover px-2 py-1.5 text-[11px] font-medium text-f1-white"
-                >
-                  <Moon size={12} />
-                  Dark
-                </button>
-                <button
-                  className="flex flex-1 items-center justify-center gap-1 rounded-r-lg border-l border-border px-2 py-1.5 text-[11px] font-medium text-muted"
-                >
-                  <Sun size={12} />
-                  Light
-                </button>
-              </div>
-            </div>
-
-            <div className="my-1 border-t border-border" />
+            <div className="border-t border-border" />
 
             {/* Sign Out */}
-            <button
-              onClick={() => {
-                setIsMenuOpen(false);
-                setShowSignOutModal(true);
-              }}
-              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-f1-red transition-colors hover:bg-card-hover"
-            >
-              <LogOut size={16} />
-              Sign out
-            </button>
+            <div className="py-1">
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  setShowSignOutModal(true);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-f1-red/80 transition-colors hover:bg-card-hover hover:text-f1-red"
+              >
+                <LogOut size={13} />
+                Sign out
+              </button>
+            </div>
           </div>
         )}
       </div>
