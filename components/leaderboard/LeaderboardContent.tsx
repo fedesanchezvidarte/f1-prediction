@@ -59,10 +59,27 @@ export function LeaderboardContent({
   const [page, setPage] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
 
+  // Number of races that have at least one scored prediction (drives the "X/N" display)
+  const totalScoredRaces = useMemo(() => {
+    const scored = new Set<number>();
+    for (const entry of entries) {
+      for (const [key, pts] of Object.entries(entry.racePoints)) {
+        if (pts !== null) scored.add(Number(key));
+      }
+    }
+    return scored.size;
+  }, [entries]);
+
   const sorted = useMemo(() => {
     if (selectedRace === "all") {
-      return [...entries].sort((a, b) => b.totalPoints - a.totalPoints);
+      // Preserve server-assigned ranks (handles ties correctly)
+      return [...entries].sort((a, b) =>
+        b.totalPoints !== a.totalPoints
+          ? b.totalPoints - a.totalPoints
+          : a.displayName.localeCompare(b.displayName)
+      );
     }
+    // For single-race filter, re-rank by that race's points
     return [...entries].sort((a, b) => {
       const aP = a.racePoints[selectedRace] ?? -1;
       const bP = b.racePoints[selectedRace] ?? -1;
@@ -70,10 +87,23 @@ export function LeaderboardContent({
     });
   }, [entries, selectedRace]);
 
-  const ranked = useMemo(
-    () => sorted.map((e, i) => ({ ...e, rank: i + 1 })),
-    [sorted]
-  );
+  // Re-assign ranks with tie support
+  const ranked = useMemo(() => {
+    const result: DetailedLeaderboardEntry[] = [];
+    let currentRank = 1;
+    for (let i = 0; i < sorted.length; i++) {
+      if (selectedRace === "all") {
+        // Use server rank (already tie-aware)
+        result.push({ ...sorted[i] });
+      } else {
+        const pts = sorted[i].racePoints[selectedRace] ?? -1;
+        const prevPts = i > 0 ? (sorted[i - 1].racePoints[selectedRace] ?? -1) : pts;
+        if (i > 0 && pts < prevPts) currentRank = i + 1;
+        result.push({ ...sorted[i], rank: currentRank });
+      }
+    }
+    return result;
+  }, [sorted, selectedRace]);
 
   const totalPages = Math.ceil(ranked.length / PAGE_SIZE);
   const pageEntries = ranked.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -178,6 +208,7 @@ export function LeaderboardContent({
           entries={pageEntries}
           currentUserId={currentUserId}
           selectedRace={selectedRace}
+          totalScoredRaces={totalScoredRaces}
         />
       ) : (
         <DetailedTable
@@ -233,10 +264,12 @@ function SimpleTable({
   entries,
   currentUserId,
   selectedRace,
+  totalScoredRaces,
 }: {
   entries: DetailedLeaderboardEntry[];
   currentUserId?: string;
   selectedRace: number | "all";
+  totalScoredRaces: number;
 }) {
   return (
     <div>
@@ -272,7 +305,7 @@ function SimpleTable({
               )}
             </Link>
             <span className="text-right tabular-nums text-muted">
-              {entry.predictionsCount}/{5}
+              {entry.predictionsCount}/{totalScoredRaces}
             </span>
             <span className="text-right text-sm font-semibold tabular-nums text-f1-white">
               {displayPoints}
@@ -300,10 +333,10 @@ function DetailedTable({
       <table className="w-full min-w-[600px] text-xs">
         <thead>
           <tr className="border-b border-border bg-card/50 text-[10px] font-semibold uppercase tracking-wider text-muted">
-            <th className="sticky left-0 z-10 bg-card/95 px-4 py-2.5 text-left backdrop-blur-sm sm:px-5">
+            <th className="sticky left-0 z-10 w-10 bg-card/95 px-4 py-2.5 text-left backdrop-blur-sm sm:px-5">
               #
             </th>
-            <th className="sticky left-10 z-10 bg-card/95 px-2 py-2.5 text-left backdrop-blur-sm sm:left-12">
+            <th className="sticky left-13 z-10 min-w-32 bg-card/95 px-2 py-2.5 pr-4 text-left backdrop-blur-sm">
               Player
             </th>
             {races.map((race) => (
@@ -330,10 +363,10 @@ function DetailedTable({
                   isMe ? "bg-f1-red/5" : "hover:bg-card-hover"
                 }`}
               >
-                <td className="sticky left-0 z-10 bg-inherit px-4 py-2.5 sm:px-5">
+                <td className="sticky left-0 z-10 w-10 bg-inherit px-4 py-2.5 sm:px-5">
                   <RankBadge rank={entry.rank} />
                 </td>
-                <td className="sticky left-10 z-10 bg-inherit px-2 py-2.5 sm:left-12">
+                <td className="sticky left-13 z-10 min-w-32 bg-inherit px-2 py-2.5 pr-4">
                   <Link
                     href={`/race-prediction?user=${entry.userId}`}
                     className={`font-medium whitespace-nowrap transition-colors hover:text-f1-red ${

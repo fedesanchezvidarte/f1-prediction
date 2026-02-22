@@ -74,7 +74,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
       <div className="relative flex items-center gap-3" ref={menuRef}>
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="group flex items-center gap-2.5 rounded-full px-1 py-0.5 transition-colors hover:bg-card-hover"
+          className="group flex items-center gap-2.5 rounded-full px-3 py-1 transition-colors hover:bg-card-hover"
           aria-label="Open user menu"
         >
           <span className="text-sm text-muted transition-colors group-hover:text-f1-white">

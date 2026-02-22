@@ -2,14 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { F1Logo } from "@/components/F1Logo";
 import { AuthFooter } from "@/components/AuthFooter";
 
-/**
- * Page to reset the password for a user
- * @returns - The forgot password page
- */
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -43,19 +40,7 @@ export default function ForgotPasswordPage() {
           <F1Logo />
           <div className="w-full space-y-4 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-f1-blue/10">
-              <svg
-                className="h-8 w-8 text-f1-blue"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
+              <Mail size={28} className="text-f1-blue" />
             </div>
             <h2 className="text-2xl font-semibold text-f1-white">
               Check your email
