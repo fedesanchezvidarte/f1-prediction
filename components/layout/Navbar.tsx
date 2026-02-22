@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 interface NavbarProps {
   displayName: string;
@@ -29,6 +30,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -173,15 +175,33 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
               <div className="px-3 py-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 text-[11px] text-muted">
-                    <Moon size={12} className="text-muted/60" />
+                    {theme === "dark" ? (
+                      <Moon size={12} className="text-muted/60" />
+                    ) : (
+                      <Sun size={12} className="text-muted/60" />
+                    )}
                     Theme
                   </span>
                   <div className="flex rounded-md border border-border overflow-hidden">
-                    <button className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-f1-white bg-card-hover">
+                    <button
+                      onClick={() => setTheme("dark")}
+                      className={`flex items-center gap-1 px-2 py-0.5 text-[10px] transition-colors ${
+                        theme === "dark"
+                          ? "font-semibold text-f1-white bg-card-hover"
+                          : "font-medium text-muted hover:text-f1-white"
+                      }`}
+                    >
                       <Moon size={9} />
                       Dark
                     </button>
-                    <button className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-muted border-l border-border hover:text-f1-white transition-colors">
+                    <button
+                      onClick={() => setTheme("light")}
+                      className={`flex items-center gap-1 px-2 py-0.5 text-[10px] border-l border-border transition-colors ${
+                        theme === "light"
+                          ? "font-semibold text-f1-white bg-card-hover"
+                          : "font-medium text-muted hover:text-f1-white"
+                      }`}
+                    >
                       <Sun size={9} />
                       Light
                     </button>

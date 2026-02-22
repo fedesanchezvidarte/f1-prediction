@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
-:root {
+/* Dark theme (default) */
+:root,
+.dark {
   --background: #0d0d0d;
   --foreground: #ededed;
   --card: #1a1a1a;
@@ -9,6 +11,20 @@
   --border-hover: #3a3a3a;
   --muted: #737373;
   --input-bg: #141414;
+  --fw: oklch(100% 0 0);
+}
+
+/* Light theme */
+.light {
+  --background: #f4f4f5;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-hover: #ececed;
+  --border: #e4e4e7;
+  --border-hover: #d4d4d8;
+  --muted: #71717a;
+  --input-bg: #fafafa;
+  --fw: oklch(9.4% 0.005 264);
 }
 
 @theme inline {
@@ -24,7 +40,8 @@
   --color-f1-red: oklch(44.7% 0.183 20.5);
   --color-f1-red-hover: oklch(39.8% 0.172 20.5);
   --color-f1-black: oklch(25.4% 0.004 145.7);
-  --color-f1-white: oklch(100% 0 0);
+  /* --fw is overridden per theme so text-f1-white adapts in light mode */
+  --color-f1-white: var(--fw);
   --color-f1-purple: oklch(57.8% 0.152 302.1);
   --color-f1-amber: oklch(76.5% 0.167 72.4);
   --color-f1-green: oklch(63.4% 0.152 152.8);
