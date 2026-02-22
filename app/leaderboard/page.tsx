@@ -44,6 +44,17 @@ export default async function LeaderboardPage() {
     (leaderboardRows ?? []).map((r) => [r.user_id, r])
   );
 
+  // Build mapping: DB race ID -> meeting key
+  const { data: dbRaces } = await supabase
+    .from("races")
+    .select("id, meeting_key")
+    .eq("season_id", 1);
+
+  const raceIdToMeetingKey = new Map<number, number>();
+  for (const r of dbRaces ?? []) {
+    raceIdToMeetingKey.set(r.id, r.meeting_key);
+  }
+
   // Fetch scored race predictions for all users (for the detailed per-race view)
   const { data: racePreds } = await supabase
     .from("race_predictions")
@@ -52,8 +63,24 @@ export default async function LeaderboardPage() {
 
   const racePointsMap: Record<string, Record<number, number | null>> = {};
   for (const pred of racePreds ?? []) {
+    const meetingKey = raceIdToMeetingKey.get(pred.race_id);
+    if (meetingKey === undefined) continue;
     if (!racePointsMap[pred.user_id]) racePointsMap[pred.user_id] = {};
-    racePointsMap[pred.user_id][pred.race_id] = pred.points_earned ?? null;
+    racePointsMap[pred.user_id][meetingKey] = pred.points_earned ?? null;
+  }
+
+  // Also include sprint prediction points in the per-race breakdown
+  const { data: sprintPreds } = await supabase
+    .from("sprint_predictions")
+    .select("user_id, race_id, points_earned")
+    .eq("status", "scored");
+
+  for (const pred of sprintPreds ?? []) {
+    const meetingKey = raceIdToMeetingKey.get(pred.race_id);
+    if (meetingKey === undefined) continue;
+    if (!racePointsMap[pred.user_id]) racePointsMap[pred.user_id] = {};
+    const existing = racePointsMap[pred.user_id][meetingKey] ?? 0;
+    racePointsMap[pred.user_id][meetingKey] = existing + (pred.points_earned ?? 0);
   }
 
   const raceKeys = RACES_2026.map((r) => r.meetingKey);

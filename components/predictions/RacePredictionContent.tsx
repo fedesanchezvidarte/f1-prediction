@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronLeft,
@@ -17,6 +18,7 @@ import {
   Eye,
   EyeOff,
   Crown,
+  Loader2,
 } from "lucide-react";
 import type {
   Race,
@@ -115,6 +117,14 @@ export function RacePredictionContent({
   const currentRace = races[raceIndex];
   const raceStatus = getRaceStatus(currentRace);
   const isChampionTab = tab === "champion";
+
+  const nextRaceIndex = useMemo(() => {
+    const now = new Date();
+    for (let i = 0; i < races.length; i++) {
+      if (new Date(races[i].dateEnd) > now) return i;
+    }
+    return -1;
+  }, [races]);
 
   const currentPrediction = predictions.find((p) => p.raceId === currentRace.meetingKey);
   const currentSprintPred = sprintPreds.find((p) => p.raceId === currentRace.meetingKey);
@@ -223,36 +233,124 @@ export function RacePredictionContent({
     );
   }
 
-  function handleReset() {
-    if (isChampionTab) {
-      setChampPred({ ...champPred, wdcWinner: null, wccWinner: null, status: "pending" });
-    } else if (tab === "sprint") {
-      updateSprintPrediction({
-        sprintPole: null,
-        sprintWinner: null,
-        restOfTop8: [null, null, null, null, null, null, null],
-        fastestLap: null,
-        status: "pending",
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function handleReset() {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const payload = isChampionTab
+        ? { type: "champion" }
+        : tab === "sprint"
+          ? { type: "sprint", raceId: currentRace.meetingKey }
+          : { type: "race", raceId: currentRace.meetingKey };
+
+      const res = await fetch("/api/predictions/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-    } else {
-      updateRacePrediction({
-        polePosition: null,
-        raceWinner: null,
-        restOfTop10: [null, null, null, null, null, null, null, null, null],
-        fastestLap: null,
-        fastestPitStop: null,
-        status: "pending",
-      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("Reset failed:", data.error);
+        return;
+      }
+
+      if (isChampionTab) {
+        setChampPred({ ...champPred, wdcWinner: null, wccWinner: null, status: "pending" });
+      } else if (tab === "sprint") {
+        updateSprintPrediction({
+          sprintPole: null,
+          sprintWinner: null,
+          restOfTop8: [null, null, null, null, null, null, null],
+          fastestLap: null,
+          status: "pending",
+        });
+      } else {
+        updateRacePrediction({
+          polePosition: null,
+          raceWinner: null,
+          restOfTop10: [null, null, null, null, null, null, null, null, null],
+          fastestLap: null,
+          fastestPitStop: null,
+          status: "pending",
+        });
+      }
+
+      startTransition(() => router.refresh());
+    } finally {
+      setIsSaving(false);
     }
   }
 
-  function handleSubmit() {
-    if (isChampionTab) {
-      setChampPred({ ...champPred, status: "submitted" });
-    } else if (tab === "sprint") {
-      updateSprintPrediction({ status: "submitted" });
-    } else {
-      updateRacePrediction({ status: "submitted" });
+  async function handleSubmit() {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      let payload: Record<string, unknown>;
+
+      if (isChampionTab) {
+        const firstRace = races[0];
+        const seasonStarted = firstRace && new Date(firstRace.dateStart) < new Date();
+        payload = {
+          type: "champion",
+          wdcDriverNumber: champPred.wdcWinner?.driverNumber ?? null,
+          wccTeamName: champPred.wccWinner,
+          isHalfPoints: seasonStarted,
+        };
+      } else if (tab === "sprint" && currentSprintPred) {
+        payload = {
+          type: "sprint",
+          raceId: currentRace.meetingKey,
+          sprintPoleDriverNumber: currentSprintPred.sprintPole?.driverNumber ?? null,
+          top8: [
+            currentSprintPred.sprintWinner?.driverNumber ?? null,
+            ...currentSprintPred.restOfTop8.map((d) => d?.driverNumber ?? null),
+          ],
+          fastestLapDriverNumber: currentSprintPred.fastestLap?.driverNumber ?? null,
+        };
+      } else if (currentPrediction) {
+        payload = {
+          type: "race",
+          raceId: currentRace.meetingKey,
+          polePositionDriverNumber: currentPrediction.polePosition?.driverNumber ?? null,
+          top10: [
+            currentPrediction.raceWinner?.driverNumber ?? null,
+            ...currentPrediction.restOfTop10.map((d) => d?.driverNumber ?? null),
+          ],
+          fastestLapDriverNumber: currentPrediction.fastestLap?.driverNumber ?? null,
+          fastestPitStopDriverNumber: currentPrediction.fastestPitStop?.driverNumber ?? null,
+        };
+      } else {
+        return;
+      }
+
+      const res = await fetch("/api/predictions/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("Submit failed:", data.error);
+        return;
+      }
+
+      if (isChampionTab) {
+        setChampPred({ ...champPred, status: "submitted" });
+      } else if (tab === "sprint") {
+        updateSprintPrediction({ status: "submitted" });
+      } else {
+        updateRacePrediction({ status: "submitted" });
+      }
+
+      startTransition(() => router.refresh());
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -376,24 +474,33 @@ export function RacePredictionContent({
         </button>
 
         <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
-          {races.map((race, i) => (
-            <button
-              key={race.meetingKey}
-              onClick={() => {
-                setRaceIndex(i);
-                if (tab === "champion") setTab("race");
-                if (tab === "sprint" && !race.hasSprint) setTab("race");
-              }}
-              className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors sm:px-2.5 ${
-                !isChampionTab && raceIndex === i
-                  ? "bg-f1-red text-white"
-                  : "text-muted hover:bg-card-hover hover:text-f1-white"
-              }`}
-            >
-              <span className="hidden sm:inline">R{race.round}</span>
-              <span className="sm:hidden">{race.round}</span>
-            </button>
-          ))}
+          {races.map((race, i) => {
+            const isSelected = !isChampionTab && raceIndex === i;
+            const isNextRace = i === nextRaceIndex;
+            return (
+              <button
+                key={race.meetingKey}
+                onClick={() => {
+                  setRaceIndex(i);
+                  if (tab === "champion") setTab("race");
+                  if (tab === "sprint" && !race.hasSprint) setTab("race");
+                }}
+                className={`relative rounded-md px-2 py-1 text-[10px] font-medium transition-colors sm:px-2.5 ${
+                  isSelected
+                    ? "bg-f1-red text-white"
+                    : isNextRace
+                      ? "bg-f1-red/15 text-f1-red ring-1 ring-f1-red/40"
+                      : "text-muted hover:bg-card-hover hover:text-f1-white"
+                }`}
+              >
+                {isNextRace && !isSelected && (
+                  <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-f1-red animate-pulse" />
+                )}
+                <span className="hidden sm:inline">R{race.round}</span>
+                <span className="sm:hidden">{race.round}</span>
+              </button>
+            );
+          })}
           <button
             onClick={() => setTab("champion")}
             className={`flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium transition-colors sm:px-2.5 ${
@@ -562,7 +669,8 @@ export function RacePredictionContent({
             {isEditable && (
               <button
                 onClick={handleReset}
-                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white"
+                disabled={isSaving}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
               >
                 <RotateCcw size={12} />
                 Reset
@@ -570,11 +678,11 @@ export function RacePredictionContent({
             )}
             <button
               onClick={handleSubmit}
-              disabled={!isEditable}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[11px] font-semibold transition-colors ${submitConfig.color}`}
+              disabled={!isEditable || isSaving}
+              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[11px] font-semibold transition-colors ${submitConfig.color} ${isSaving ? "opacity-70" : ""}`}
             >
-              <Send size={12} />
-              {submitConfig.label}
+              {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+              {isSaving ? "Saving..." : submitConfig.label}
             </button>
           </div>
         )}
