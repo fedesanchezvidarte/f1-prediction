@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   Eye,
   EyeOff,
+  Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
@@ -45,10 +46,13 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [nameInput, setNameInput] = useState(profile.displayName);
   const [saving, setSaving] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [deleteEmailConfirm, setDeleteEmailConfirm] = useState("");
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -101,6 +105,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
   }
 
   async function handleSignOut() {
+    setIsSigningOut(true);
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
@@ -141,6 +146,25 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
     setError(null);
 
     const supabase = createClient();
+
+    if (authProvider === "email") {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: profile.email,
+        password: deletePassword,
+      });
+      if (signInError) {
+        setError("Incorrect password. Please try again.");
+        setDeleteLoading(false);
+        return;
+      }
+    } else {
+      if (deleteEmailConfirm.trim().toLowerCase() !== profile.email.toLowerCase()) {
+        setError("Email address does not match. Please try again.");
+        setDeleteLoading(false);
+        return;
+      }
+    }
+
     const { error: deleteError } = await supabase.rpc("delete_own_account");
 
     if (deleteError) {
@@ -336,7 +360,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         )}
 
         <button
-          onClick={handleSignOut}
+          onClick={() => setShowSignOutModal(true)}
           className="flex w-full items-center gap-3 border-b border-border px-5 py-3.5 transition-colors hover:bg-card-hover"
         >
           <LogOut size={15} className="text-muted" />
@@ -448,25 +472,95 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         </div>
       )}
 
-      {/* ── Delete Confirmation Modal ── */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl">
+      {/* ── Sign Out Confirmation Modal ── */}
+      {showSignOutModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !isSigningOut && setShowSignOutModal(false)}
+          />
+          <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            {/* Header */}
             <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-f1-red/10">
-                <AlertTriangle size={16} className="text-f1-red" />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-f1-red/15">
+                <LogOut size={15} className="text-f1-red" />
               </div>
-              <h3 className="text-sm font-semibold text-f1-white">Delete Account</h3>
+              <div>
+                <h2 className="text-sm font-semibold text-f1-white">Sign out?</h2>
+                <p className="mt-0.5 text-[11px] text-muted">Signed in as {displayName}</p>
+              </div>
             </div>
-
+            {/* Body */}
             <div className="px-5 py-4">
-              <p className="text-sm leading-relaxed text-muted">
-                This action is permanent and cannot be undone. All your predictions,
-                achievements, and data will be permanently deleted.
+              <p className="text-xs leading-relaxed text-muted">
+                You will be redirected to the login page. Your predictions and data are safely saved.
               </p>
-              {authProvider === "email" && (
+            </div>
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
+              <button
+                onClick={() => setShowSignOutModal(false)}
+                disabled={isSigningOut}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="flex items-center gap-1.5 rounded-lg bg-f1-red px-4 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-f1-red/80 disabled:opacity-50"
+              >
+                {isSigningOut ? <Loader2 size={12} className="animate-spin" /> : <LogOut size={12} />}
+                {isSigningOut ? "Signing out..." : "Sign out"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Account Confirmation Modal ── */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => {
+              if (!deleteLoading) {
+                setShowDeleteConfirm(false);
+                setDeletePassword("");
+                setDeleteEmailConfirm("");
+                setError(null);
+              }
+            }}
+          />
+          <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-f1-red/40 bg-card shadow-2xl">
+            {/* Header — red tint */}
+            <div className="flex items-center gap-3 border-b border-f1-red/20 bg-f1-red/5 px-5 py-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-f1-red/20">
+                <AlertTriangle size={15} className="text-f1-red" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-f1-red">Delete account</h2>
+                <p className="mt-0.5 text-[11px] text-f1-red/60">This cannot be undone</p>
+              </div>
+            </div>
+            {/* Body — red tint */}
+            <div className="bg-f1-red/3 px-5 py-4">
+              <p className="text-xs leading-relaxed text-muted">
+                All your{" "}
+                <span className="font-medium text-f1-white">predictions, points, and achievements</span>{" "}
+                will be permanently deleted. There is no way to recover your account after this action.
+              </p>
+              {authProvider === "email" ? (
                 <div className="mt-4">
-                  <label className="mb-1.5 block text-xs font-medium text-foreground">
+                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-f1-red/70">
                     Confirm with your password
                   </label>
                   <div className="relative">
@@ -475,7 +569,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                       value={deletePassword}
                       onChange={(e) => setDeletePassword(e.target.value)}
                       placeholder="Enter your password"
-                      className="w-full rounded-lg border border-border bg-input-bg px-3 py-2.5 pr-10 text-sm text-f1-white placeholder-muted outline-none transition-colors focus:border-f1-red"
+                      className="w-full rounded-lg border border-f1-red/30 bg-input-bg px-3 py-2.5 pr-10 text-sm text-f1-white placeholder-muted outline-none transition-colors focus:border-f1-red"
                     />
                     <button
                       type="button"
@@ -486,25 +580,46 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                     </button>
                   </div>
                 </div>
+              ) : (
+                <div className="mt-4">
+                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-f1-red/70">
+                    Type your email to confirm
+                  </label>
+                  <input
+                    type="email"
+                    value={deleteEmailConfirm}
+                    onChange={(e) => setDeleteEmailConfirm(e.target.value)}
+                    placeholder={profile.email}
+                    className="w-full rounded-lg border border-f1-red/30 bg-input-bg px-3 py-2.5 text-sm text-f1-white placeholder-muted outline-none transition-colors focus:border-f1-red"
+                  />
+                </div>
               )}
             </div>
-
-            <div className="flex gap-3 border-t border-border px-5 py-4">
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 border-t border-f1-red/20 bg-f1-red/3 px-5 py-3">
               <button
                 onClick={() => {
                   setShowDeleteConfirm(false);
                   setDeletePassword("");
+                  setDeleteEmailConfirm("");
+                  setError(null);
                 }}
-                className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-f1-white transition-colors hover:bg-card-hover"
+                disabled={deleteLoading}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAccount}
-                disabled={deleteLoading || (authProvider === "email" && !deletePassword)}
-                className="flex-1 rounded-lg bg-f1-red px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-f1-red-hover disabled:opacity-50"
+                disabled={
+                  deleteLoading ||
+                  (authProvider === "email" && !deletePassword) ||
+                  (authProvider !== "email" && !deleteEmailConfirm.trim())
+                }
+                className="flex items-center gap-1.5 rounded-lg bg-f1-red px-4 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-f1-red/80 disabled:opacity-50"
               >
-                {deleteLoading ? "Deleting..." : "Delete"}
+                {deleteLoading ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                {deleteLoading ? "Deleting..." : "Delete account"}
               </button>
             </div>
           </div>
