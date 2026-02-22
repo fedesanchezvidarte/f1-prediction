@@ -15,17 +15,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const { type } = body as { type: string };
 
   if (type === "race") {
-    return handleRacePrediction(supabase, user.id, body);
+    return handleRacePrediction(supabase, user.id, body as Parameters<typeof handleRacePrediction>[2]);
   }
   if (type === "sprint") {
-    return handleSprintPrediction(supabase, user.id, body);
+    return handleSprintPrediction(supabase, user.id, body as Parameters<typeof handleSprintPrediction>[2]);
   }
   if (type === "champion") {
-    return handleChampionPrediction(supabase, user.id, body);
+    return handleChampionPrediction(supabase, user.id, body as Parameters<typeof handleChampionPrediction>[2]);
   }
 
   return NextResponse.json({ error: "Invalid prediction type" }, { status: 400 });
@@ -78,6 +83,14 @@ async function handleRacePrediction(
   }
 ) {
   const { raceId: meetingKey, polePositionDriverNumber, top10, fastestLapDriverNumber, fastestPitStopDriverNumber } = body;
+
+  if (!Array.isArray(top10) || top10.length !== 10) {
+    return NextResponse.json({ error: "top10 must be an array of exactly 10 elements" }, { status: 400 });
+  }
+  const nonNullTop10 = top10.filter((d): d is number => d !== null);
+  if (new Set(nonNullTop10).size !== nonNullTop10.length) {
+    return NextResponse.json({ error: "top10 must not contain duplicate drivers" }, { status: 400 });
+  }
 
   const raceDbId = await getRaceDbId(supabase, meetingKey);
   if (!raceDbId) {
@@ -141,6 +154,14 @@ async function handleSprintPrediction(
   }
 ) {
   const { raceId: meetingKey, sprintPoleDriverNumber, top8, fastestLapDriverNumber } = body;
+
+  if (!Array.isArray(top8) || top8.length !== 8) {
+    return NextResponse.json({ error: "top8 must be an array of exactly 8 elements" }, { status: 400 });
+  }
+  const nonNullTop8 = top8.filter((d): d is number => d !== null);
+  if (new Set(nonNullTop8).size !== nonNullTop8.length) {
+    return NextResponse.json({ error: "top8 must not contain duplicate drivers" }, { status: 400 });
+  }
 
   const raceDbId = await getRaceDbId(supabase, meetingKey);
   if (!raceDbId) {

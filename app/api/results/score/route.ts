@@ -18,7 +18,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
+  const isAdmin =
+    (user.app_metadata?.role === "admin") ||
+    (process.env.ADMIN_USER_IDS?.split(",").includes(user.id));
+
+  if (!isAdmin) {
+    return NextResponse.json({ error: "Forbidden: admin access required" }, { status: 403 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const { raceId } = body as { raceId: number };
 
   if (!raceId) {
@@ -34,7 +47,7 @@ export async function POST(request: NextRequest) {
   ]);
 
   if (affectedUserIds.size > 0) {
-    await updateLeaderboard(supabase, Array.from(affectedUserIds));
+    await updateLeaderboard(supabase, Array.from(affectedUserIds), raceScored.perfectPodiumUsers);
   }
 
   return NextResponse.json({
@@ -158,7 +171,8 @@ async function scoreSprintPredictions(
 
 async function updateLeaderboard(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  userIds: string[]
+  userIds: string[],
+  perfectPodiumUsers: string[]
 ) {
   const { data: season } = await supabase
     .from("seasons")
@@ -167,6 +181,8 @@ async function updateLeaderboard(
     .single();
 
   if (!season) return;
+
+  const perfectPodiumSet = new Set(perfectPodiumUsers);
 
   for (const userId of userIds) {
     const { data: racePreds } = await supabase
@@ -202,17 +218,22 @@ async function updateLeaderboard(
 
     const { data: existingLb } = await supabase
       .from("leaderboard")
-      .select("id")
+      .select("id, perfect_podiums")
       .eq("user_id", userId)
       .eq("season_id", season.id)
       .single();
+
+    const currentPerfectPodiums = existingLb?.perfect_podiums ?? 0;
+    const newPerfectPodiums = perfectPodiumSet.has(userId)
+      ? currentPerfectPodiums + 1
+      : currentPerfectPodiums;
 
     const leaderboardData = {
       user_id: userId,
       season_id: season.id,
       total_points: totalPoints,
       predictions_count: predictionsCount,
-      perfect_podiums: 0,
+      perfect_podiums: newPerfectPodiums,
       best_race_points: bestRacePoints,
       rank: 0,
     };
@@ -227,23 +248,24 @@ async function updateLeaderboard(
     }
   }
 
-  // Recalculate ranks for all users in the season
+  // Recalculate ranks for all users in the season using batch upsert
   const { data: allLb } = await supabase
     .from("leaderboard")
     .select("id, total_points")
     .eq("season_id", season.id)
     .order("total_points", { ascending: false });
 
-  if (allLb) {
+  if (allLb && allLb.length > 0) {
     let currentRank = 1;
+    const updates: { id: number; rank: number }[] = [];
+
     for (let i = 0; i < allLb.length; i++) {
       if (i > 0 && allLb[i].total_points < allLb[i - 1].total_points) {
         currentRank = i + 1;
       }
-      await supabase
-        .from("leaderboard")
-        .update({ rank: currentRank })
-        .eq("id", allLb[i].id);
+      updates.push({ id: allLb[i].id, rank: currentRank });
     }
+
+    await supabase.from("leaderboard").upsert(updates, { onConflict: "id" });
   }
 }

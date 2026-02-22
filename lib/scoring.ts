@@ -53,13 +53,15 @@ export interface ChampionScoringBreakdown {
 
 function arraysMatchExact(pred: (number | null)[], result: number[], start: number, end: number): boolean {
   for (let i = start; i < end; i++) {
-    if (pred[i] !== result[i]) return false;
+    if (pred[i] === null || pred[i] !== result[i]) return false;
   }
   return true;
 }
 
 function arraysMatchAnyOrder(pred: (number | null)[], result: number[], start: number, end: number): boolean {
-  const predSet = new Set(pred.slice(start, end).filter((id): id is number => id !== null));
+  const predSlice = pred.slice(start, end);
+  if (predSlice.some((id) => id === null)) return false;
+  const predSet = new Set(predSlice as number[]);
   const resultSet = new Set(result.slice(start, end));
   if (predSet.size !== resultSet.size) return false;
   for (const id of predSet) {

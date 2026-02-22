@@ -11,14 +11,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const { type } = body as { type: string };
 
   if (type === "race") {
-    return handleRaceReset(supabase, user.id, body.raceId);
+    return handleRaceReset(supabase, user.id, (body as { raceId: number }).raceId);
   }
   if (type === "sprint") {
-    return handleSprintReset(supabase, user.id, body.raceId);
+    return handleSprintReset(supabase, user.id, (body as { raceId: number }).raceId);
   }
   if (type === "champion") {
     return handleChampionReset(supabase, user.id);

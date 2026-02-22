@@ -44,7 +44,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
+  const isAdmin =
+    (user.app_metadata?.role === "admin") ||
+    (process.env.ADMIN_USER_IDS?.split(",").includes(user.id));
+
+  if (!isAdmin) {
+    return NextResponse.json({ error: "Forbidden: admin access required" }, { status: 403 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const { meetingKey, sessionType } = body as {
     meetingKey: number;
     sessionType: "race" | "sprint";
@@ -63,6 +76,12 @@ export async function POST(request: NextRequest) {
     const sessionsRes = await fetch(
       `https://api.openf1.org/v1/sessions?meeting_key=${meetingKey}&session_name=${sessionName}`
     );
+    if (!sessionsRes.ok) {
+      return NextResponse.json(
+        { error: `OpenF1 sessions API returned ${sessionsRes.status}` },
+        { status: 502 }
+      );
+    }
     const sessions: OpenF1Session[] = await sessionsRes.json();
 
     if (!sessions || sessions.length === 0) {
@@ -78,6 +97,12 @@ export async function POST(request: NextRequest) {
     const positionsRes = await fetch(
       `https://api.openf1.org/v1/position?session_key=${sessionKey}`
     );
+    if (!positionsRes.ok) {
+      return NextResponse.json(
+        { error: `OpenF1 position API returned ${positionsRes.status}` },
+        { status: 502 }
+      );
+    }
     const allPositions: OpenF1Position[] = await positionsRes.json();
 
     // Get the final positions (last entry per driver)
@@ -96,6 +121,12 @@ export async function POST(request: NextRequest) {
     const qualyRes = await fetch(
       `https://api.openf1.org/v1/sessions?meeting_key=${meetingKey}&session_name=${qualyName}`
     );
+    if (!qualyRes.ok) {
+      return NextResponse.json(
+        { error: `OpenF1 qualifying sessions API returned ${qualyRes.status}` },
+        { status: 502 }
+      );
+    }
     const qualySessions: OpenF1Session[] = await qualyRes.json();
 
     let poleDriverNumber: number | null = null;
@@ -103,6 +134,12 @@ export async function POST(request: NextRequest) {
       const qualyPositionsRes = await fetch(
         `https://api.openf1.org/v1/position?session_key=${qualySessions[0].session_key}`
       );
+      if (!qualyPositionsRes.ok) {
+        return NextResponse.json(
+          { error: `OpenF1 qualifying position API returned ${qualyPositionsRes.status}` },
+          { status: 502 }
+        );
+      }
       const qualyPositions: OpenF1Position[] = await qualyPositionsRes.json();
 
       const qualyFinal = new Map<number, number>();
@@ -121,6 +158,12 @@ export async function POST(request: NextRequest) {
     const lapsRes = await fetch(
       `https://api.openf1.org/v1/laps?session_key=${sessionKey}`
     );
+    if (!lapsRes.ok) {
+      return NextResponse.json(
+        { error: `OpenF1 laps API returned ${lapsRes.status}` },
+        { status: 502 }
+      );
+    }
     const allLaps: OpenF1LapData[] = await lapsRes.json();
 
     let fastestLapDriver: number | null = null;
@@ -174,6 +217,12 @@ export async function POST(request: NextRequest) {
       const pitsRes = await fetch(
         `https://api.openf1.org/v1/pit?session_key=${sessionKey}`
       );
+      if (!pitsRes.ok) {
+        return NextResponse.json(
+          { error: `OpenF1 pit API returned ${pitsRes.status}` },
+          { status: 502 }
+        );
+      }
       const allPits: OpenF1PitData[] = await pitsRes.json();
 
       let fastestPitDriver: number | null = null;

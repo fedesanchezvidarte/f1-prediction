@@ -234,12 +234,14 @@ export function RacePredictionContent({
   }
 
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleReset() {
     if (isSaving) return;
     setIsSaving(true);
+    setErrorMessage(null);
     try {
       const payload = isChampionTab
         ? { type: "champion" }
@@ -254,8 +256,9 @@ export function RacePredictionContent({
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        console.error("Reset failed:", data.error);
+        const data = await res.json().catch(() => ({} as { error?: string }));
+        const message = data?.error || "Failed to reset prediction. Please try again.";
+        setErrorMessage(message);
         return;
       }
 
@@ -289,6 +292,7 @@ export function RacePredictionContent({
   async function handleSubmit() {
     if (isSaving) return;
     setIsSaving(true);
+    setErrorMessage(null);
     try {
       let payload: Record<string, unknown>;
 
@@ -335,8 +339,9 @@ export function RacePredictionContent({
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        console.error("Submit failed:", data.error);
+        const data = await res.json().catch(() => ({} as { error?: string }));
+        const message = data?.error || "Failed to submit prediction. Please try again.";
+        setErrorMessage(message);
         return;
       }
 
@@ -640,6 +645,19 @@ export function RacePredictionContent({
           </p>
         )}
       </div>
+
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="flex items-center gap-2 border-t border-f1-red/30 bg-f1-red/10 px-4 py-2.5 sm:px-5">
+          <span className="text-[11px] font-medium text-f1-red">{errorMessage}</span>
+          <button
+            onClick={() => setErrorMessage(null)}
+            className="ml-auto text-[10px] text-f1-red/60 hover:text-f1-red"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Points & Actions Bar */}
       <div className="flex items-center justify-between border-t border-border px-4 py-3 sm:px-5">

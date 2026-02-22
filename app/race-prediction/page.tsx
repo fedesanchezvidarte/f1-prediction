@@ -59,11 +59,27 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     viewingDisplayName = viewingProfile?.display_name ?? "Driver";
   }
 
+  // Fetch current season dynamically
+  const { data: currentSeason } = await supabase
+    .from("seasons")
+    .select("id")
+    .eq("is_current", true)
+    .single();
+
+  const seasonId = currentSeason?.id;
+  if (!seasonId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted">No active season found.</p>
+      </div>
+    );
+  }
+
   // Build mapping: DB driver ID -> driver number (for converting DB data to frontend)
   const { data: dbDrivers } = await supabase
     .from("drivers")
     .select("id, driver_number")
-    .eq("season_id", 1); // season 2026
+    .eq("season_id", seasonId);
 
   const driverIdToNumber = new Map<number, number>();
   for (const d of dbDrivers ?? []) {
@@ -74,7 +90,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   const { data: dbRaces } = await supabase
     .from("races")
     .select("id, meeting_key")
-    .eq("season_id", 1);
+    .eq("season_id", seasonId);
 
   const raceIdToMeetingKey = new Map<number, number>();
   for (const r of dbRaces ?? []) {
