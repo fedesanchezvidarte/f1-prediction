@@ -112,6 +112,15 @@ export interface DetailedLeaderboardEntry extends LeaderboardEntry {
   racePoints: Record<number, number | null>;
 }
 
+export interface Profile {
+  id: string;
+  displayName: string;
+  email: string;
+  avatarUrl: string | null;
+  countryCode: string | null;
+  createdAt: string;
+}
+
 export interface PointSystemRule {
   category: string;
   description: string;

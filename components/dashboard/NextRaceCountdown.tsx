@@ -96,7 +96,7 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
       {isLive && (
         <div className="mt-4 rounded-lg bg-f1-red/5 px-3 py-3 text-center">
           <p className="text-sm font-medium text-f1-white">
-            Race weekend is underway!
+            Lights out, and a way we go!
           </p>
         </div>
       )}

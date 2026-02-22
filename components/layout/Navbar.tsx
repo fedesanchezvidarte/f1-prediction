@@ -117,13 +117,18 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
             <div className="my-1 border-t border-border" />
 
             {/* Profile */}
-            <button
+            <Link
+              href="/profile"
               onClick={() => setIsMenuOpen(false)}
-              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-muted transition-colors hover:bg-card-hover hover:text-f1-white"
+              className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-card-hover ${
+                pathname === "/profile"
+                  ? "font-medium text-f1-white"
+                  : "text-muted hover:text-f1-white"
+              }`}
             >
               <User size={16} />
               Profile
-            </button>
+            </Link>
 
             <div className="my-1 border-t border-border" />
 
