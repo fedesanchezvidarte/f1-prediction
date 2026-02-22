@@ -17,7 +17,11 @@ import type {
   Driver,
 } from "@/types";
 
-export default async function RacePredictionPage() {
+interface PageProps {
+  searchParams: Promise<{ user?: string }>;
+}
+
+export default async function RacePredictionPage({ searchParams }: PageProps) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -26,6 +30,10 @@ export default async function RacePredictionPage() {
   if (!user) {
     redirect("/login");
   }
+
+  const params = await searchParams;
+  const viewingUserId = params.user ?? user.id;
+  const isOwner = viewingUserId === user.id;
 
   const fallbackName =
     user.user_metadata?.full_name || user.email?.split("@")[0] || "Driver";
@@ -40,22 +48,82 @@ export default async function RacePredictionPage() {
   const displayName = profileRow?.display_name ?? fallbackName;
   const avatarUrl = profileRow?.avatar_url ?? fallbackAvatar;
 
-  function findDriver(id: number | null): Driver | null {
-    if (!id) return null;
-    return DRIVERS_2026.find((d) => d.driverNumber === id) ?? null;
+  // If viewing another user, fetch their display name
+  let viewingDisplayName = displayName;
+  if (!isOwner) {
+    const { data: viewingProfile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", viewingUserId)
+      .single();
+    viewingDisplayName = viewingProfile?.display_name ?? "Driver";
   }
 
+  // Fetch current season dynamically
+  const { data: currentSeason } = await supabase
+    .from("seasons")
+    .select("id")
+    .eq("is_current", true)
+    .single();
+
+  const seasonId = currentSeason?.id;
+  if (!seasonId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted">No active season found.</p>
+      </div>
+    );
+  }
+
+  // Build mapping: DB driver ID -> driver number (for converting DB data to frontend)
+  const { data: dbDrivers } = await supabase
+    .from("drivers")
+    .select("id, driver_number")
+    .eq("season_id", seasonId);
+
+  const driverIdToNumber = new Map<number, number>();
+  for (const d of dbDrivers ?? []) {
+    driverIdToNumber.set(d.id, d.driver_number);
+  }
+
+  // Build mapping: DB race ID -> meeting key
+  const { data: dbRaces } = await supabase
+    .from("races")
+    .select("id, meeting_key")
+    .eq("season_id", seasonId);
+
+  const raceIdToMeetingKey = new Map<number, number>();
+  for (const r of dbRaces ?? []) {
+    raceIdToMeetingKey.set(r.id, r.meeting_key);
+  }
+
+  function findDriver(dbDriverId: number | null): Driver | null {
+    if (!dbDriverId) return null;
+    const driverNumber = driverIdToNumber.get(dbDriverId);
+    if (driverNumber === undefined) return null;
+    return DRIVERS_2026.find((d) => d.driverNumber === driverNumber) ?? null;
+  }
+
+  // Fetch race predictions for the target user
   const { data: racePredRows } = await supabase
     .from("race_predictions")
     .select("race_id, status, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, points_earned")
-    .eq("user_id", user.id);
+    .eq("user_id", viewingUserId);
+
+  const racePredByMeetingKey = new Map<number, (typeof racePredRows extends (infer T)[] | null ? T : never)>();
+  for (const row of racePredRows ?? []) {
+    const meetingKey = raceIdToMeetingKey.get(row.race_id);
+    if (meetingKey !== undefined) {
+      racePredByMeetingKey.set(meetingKey, row);
+    }
+  }
 
   const predictions: FullRacePrediction[] = RACES_2026.map((race) => {
-    const row = (racePredRows ?? []).find((r) => r.race_id === race.meetingKey);
+    const row = racePredByMeetingKey.get(race.meetingKey);
     const top10Ids: (number | null)[] = row?.top_10 ?? [];
     return {
       raceId: race.meetingKey,
-      userId: user.id,
+      userId: viewingUserId,
       status: row?.status ?? "pending",
       polePosition: findDriver(row?.pole_position_driver_id ?? null),
       raceWinner: findDriver(top10Ids[0] ?? null),
@@ -66,18 +134,27 @@ export default async function RacePredictionPage() {
     };
   });
 
+  // Fetch sprint predictions
   const { data: sprintPredRows } = await supabase
     .from("sprint_predictions")
     .select("race_id, status, sprint_pole_driver_id, top_8, fastest_lap_driver_id, points_earned")
-    .eq("user_id", user.id);
+    .eq("user_id", viewingUserId);
+
+  const sprintPredByMeetingKey = new Map<number, (typeof sprintPredRows extends (infer T)[] | null ? T : never)>();
+  for (const row of sprintPredRows ?? []) {
+    const meetingKey = raceIdToMeetingKey.get(row.race_id);
+    if (meetingKey !== undefined) {
+      sprintPredByMeetingKey.set(meetingKey, row);
+    }
+  }
 
   const sprintRaces = RACES_2026.filter((r) => r.hasSprint);
   const sprintPredictions: SprintPrediction[] = sprintRaces.map((race) => {
-    const row = (sprintPredRows ?? []).find((r) => r.race_id === race.meetingKey);
+    const row = sprintPredByMeetingKey.get(race.meetingKey);
     const top8Ids: (number | null)[] = row?.top_8 ?? [];
     return {
       raceId: race.meetingKey,
-      userId: user.id,
+      userId: viewingUserId,
       status: row?.status ?? "pending",
       sprintPole: findDriver(row?.sprint_pole_driver_id ?? null),
       sprintWinner: findDriver(top8Ids[0] ?? null),
@@ -87,10 +164,11 @@ export default async function RacePredictionPage() {
     };
   });
 
+  // Fetch champion prediction
   const { data: champRow } = await supabase
     .from("champion_predictions")
     .select("status, wdc_driver_id, wcc_team_id, points_earned, is_half_points")
-    .eq("user_id", user.id)
+    .eq("user_id", viewingUserId)
     .single();
 
   let wccTeamName: string | null = null;
@@ -104,7 +182,7 @@ export default async function RacePredictionPage() {
   }
 
   const championPrediction: ChampionPrediction = {
-    userId: user.id,
+    userId: viewingUserId,
     status: champRow?.status ?? "pending",
     wdcWinner: findDriver(champRow?.wdc_driver_id ?? null),
     wccWinner: wccTeamName,
@@ -112,20 +190,24 @@ export default async function RacePredictionPage() {
     isHalfPoints: champRow?.is_half_points ?? false,
   };
 
+  // Fetch race results (same for all users)
   const { data: raceResultRows } = await supabase
     .from("race_results")
     .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id");
 
   const raceResults: Record<number, RaceResult> = {};
   for (const row of raceResultRows ?? []) {
+    const meetingKey = raceIdToMeetingKey.get(row.race_id);
+    if (meetingKey === undefined) continue;
+
     const top10Ids: number[] = row.top_10 ?? [];
     const top10 = top10Ids.map((id) => findDriver(id)).filter((d): d is Driver => d !== null);
     const pole = findDriver(row.pole_position_driver_id);
     const fastestLap = findDriver(row.fastest_lap_driver_id);
     const fastestPit = findDriver(row.fastest_pit_stop_driver_id);
     if (top10.length > 0 && pole && fastestLap && fastestPit) {
-      raceResults[row.race_id] = {
-        raceId: row.race_id,
+      raceResults[meetingKey] = {
+        raceId: meetingKey,
         polePosition: pole,
         raceWinner: top10[0],
         top10,
@@ -141,18 +223,31 @@ export default async function RacePredictionPage() {
 
   const sprintResults: Record<number, SprintResult> = {};
   for (const row of sprintResultRows ?? []) {
+    const meetingKey = raceIdToMeetingKey.get(row.race_id);
+    if (meetingKey === undefined) continue;
+
     const top8Ids: number[] = row.top_8 ?? [];
     const top8 = top8Ids.map((id) => findDriver(id)).filter((d): d is Driver => d !== null);
     const pole = findDriver(row.sprint_pole_driver_id);
     const fastestLap = findDriver(row.fastest_lap_driver_id);
     if (top8.length > 0 && pole && fastestLap) {
-      sprintResults[row.race_id] = {
-        raceId: row.race_id,
+      sprintResults[meetingKey] = {
+        raceId: meetingKey,
         sprintPole: pole,
         sprintWinner: top8[0],
         top8,
         fastestLap,
       };
+    }
+  }
+
+  // Determine initial race index: navigate to the next upcoming race
+  const now = new Date();
+  let initialRaceIndex = 0;
+  for (let i = 0; i < RACES_2026.length; i++) {
+    if (new Date(RACES_2026[i].dateEnd) > now) {
+      initialRaceIndex = i;
+      break;
     }
   }
 
@@ -171,8 +266,9 @@ export default async function RacePredictionPage() {
             championPrediction={championPrediction}
             raceResults={raceResults}
             sprintResults={sprintResults}
-            isOwner={true}
-            displayName={displayName}
+            isOwner={isOwner}
+            displayName={viewingDisplayName}
+            initialRaceIndex={initialRaceIndex}
           />
         </div>
       </main>

@@ -52,9 +52,9 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
     .slice(0, 2);
 
   const navLinks = [
-    { href: "/", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
-    { href: "/race-prediction", label: "Predictions", icon: <Trophy size={16} /> },
-    { href: "/leaderboard", label: "Leaderboard", icon: <Medal size={16} /> },
+    { href: "/", label: "Dashboard", icon: <LayoutDashboard size={16} />, highlight: false },
+    { href: "/race-prediction", label: "Predictions", icon: <Trophy size={16} />, highlight: true },
+    { href: "/leaderboard", label: "Leaderboard", icon: <Medal size={16} />, highlight: false },
   ];
 
   return (
@@ -111,6 +111,9 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
               >
                 {link.icon}
                 {link.label}
+                {link.highlight && pathname !== link.href && (
+                  <span className="ml-auto h-2 w-2 rounded-full bg-f1-red animate-pulse" />
+                )}
               </Link>
             ))}
 

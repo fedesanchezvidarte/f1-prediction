@@ -49,6 +49,17 @@ export default async function Home() {
     .select("race_id, status, points_earned")
     .eq("user_id", user.id);
 
+  // Build mapping: DB race ID -> meeting key
+  const { data: dbRaces } = await supabase
+    .from("races")
+    .select("id, meeting_key")
+    .eq("season_id", 1);
+
+  const raceIdToMeetingKey = new Map<number, number>();
+  for (const r of dbRaces ?? []) {
+    raceIdToMeetingKey.set(r.id, r.meeting_key);
+  }
+
   // All profiles = every registered user (source of truth for total count + leaderboard)
   const { data: allProfiles } = await supabase
     .from("profiles")
@@ -107,7 +118,10 @@ export default async function Home() {
   };
 
   const predictions: RacePrediction[] = RACES_2026.map((race) => {
-    const pred = (racePredictions ?? []).find((p) => p.race_id === race.meetingKey);
+    const pred = (racePredictions ?? []).find((p) => {
+      const meetingKey = raceIdToMeetingKey.get(p.race_id);
+      return meetingKey === race.meetingKey;
+    });
     return {
       raceId: race.meetingKey,
       raceName: race.raceName,
