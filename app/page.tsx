@@ -8,11 +8,13 @@ import { PredictionsCard } from "@/components/dashboard/PredictionsCard";
 import { LeaderboardCard } from "@/components/dashboard/LeaderboardCard";
 import { PointSystemCard } from "@/components/dashboard/PointSystemCard";
 import { PlaceholderCard } from "@/components/dashboard/PlaceholderCard";
+import { AchievementsCard } from "@/components/dashboard/AchievementsCard";
 import {
   RACES_2026,
   getNextRace,
   getPredictionCardRaces,
 } from "@/lib/dummy-data";
+import { fetchAchievementsData } from "@/lib/achievements";
 import type { UserStats, LeaderboardEntry, RacePrediction } from "@/types";
 
 export default async function Home() {
@@ -133,6 +135,8 @@ export default async function Home() {
     };
   });
 
+  const { achievements, earnedIds: earnedAchievementIds } = await fetchAchievementsData(supabase, user.id);
+
   const nextRace = getNextRace();
   const predictionCardRaces = getPredictionCardRaces();
 
@@ -179,10 +183,15 @@ export default async function Home() {
               <div className="sm:border-r">
                 <PointSystemCard />
               </div>
-              {/* Placeholders */}
+              {/* Achievements */}
               <div className="border-t border-border sm:border-r sm:border-t-0">
-                <PlaceholderCard />
+                <AchievementsCard
+                  earned={earnedAchievementIds}
+                  achievements={achievements}
+                  total={achievements.length}
+                />
               </div>
+              {/* Placeholder */}
               <div className="border-t border-border sm:border-t-0">
                 <PlaceholderCard />
               </div>

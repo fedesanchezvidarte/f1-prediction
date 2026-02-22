@@ -10,6 +10,7 @@ import {
   Trophy,
   Medal,
   Star,
+  Award,
   Calendar,
   Pencil,
   Check,
@@ -331,6 +332,16 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
           <div className="flex items-center gap-3">
             <Medal size={15} className="text-muted" />
             <span className="text-sm text-f1-white">Leaderboard</span>
+          </div>
+          <ChevronRight size={15} className="text-muted" />
+        </Link>
+        <Link
+          href="/achievements"
+          className="flex items-center justify-between border-b border-border px-5 py-3.5 transition-colors hover:bg-card-hover"
+        >
+          <div className="flex items-center gap-3">
+            <Award size={15} className="text-muted" />
+            <span className="text-sm text-f1-white">Achievements</span>
           </div>
           <ChevronRight size={15} className="text-muted" />
         </Link>
