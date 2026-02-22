@@ -65,36 +65,31 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
     <header className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
       <Link href="/" className="flex items-center gap-3">
         <Image src="/logo.svg" alt="F1 Prediction" width={36} height={36} priority />
-        <div className="hidden sm:block">
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold tracking-tight text-f1-white">
-              F1 Prediction
-            </span>
-            <span className="text-xs text-muted">Season 2026</span>
-          </div>
+        <div className="flex items-baseline gap-2">
+          <span className="text-lg font-bold tracking-tight text-f1-white">
+            F1 Prediction
+          </span>
+          <span className="text-xs text-muted">Season 2026</span>
         </div>
       </Link>
 
       <div className="relative flex items-center gap-3" ref={menuRef}>
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="group flex items-center gap-2.5 rounded-full px-3 py-1 transition-colors hover:bg-card-hover"
+          className="group flex items-center rounded-full p-0.5 transition-all ring-1 ring-transparent hover:ring-border-hover"
           aria-label="Open user menu"
         >
-          <span className="text-sm text-muted transition-colors group-hover:text-f1-white">
-            {displayName}
-          </span>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-card text-sm font-medium text-f1-white ring-1 ring-transparent transition-all group-hover:ring-border-hover">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-card text-sm font-medium text-f1-white">
             {avatarUrl ? (
               <Image
                 src={avatarUrl}
                 alt={displayName}
-                width={36}
-                height={36}
-                className="h-9 w-9 rounded-full object-cover"
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-full object-cover"
               />
             ) : (
-              <span className="text-xs">{initials}</span>
+              <span className="text-[11px] font-semibold">{initials}</span>
             )}
           </div>
         </button>
