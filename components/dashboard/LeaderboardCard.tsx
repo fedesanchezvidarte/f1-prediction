@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Medal, ChevronRight } from "lucide-react";
 import type { LeaderboardEntry } from "@/types";

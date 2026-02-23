@@ -1,3 +1,5 @@
+"use client";
+
 import { Trophy, TrendingUp, Target, Zap } from "lucide-react";
 import type { UserStats } from "@/types";
 import { useLanguage } from "@/components/providers/LanguageProvider";
