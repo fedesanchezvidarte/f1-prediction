@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { scoreRaceForId } from "@/lib/scoring-service";
 
 /**
  * Fetches race results from the OpenF1 API and stores them in the database.
  * Then triggers scoring for all submitted predictions.
  *
- * Query params: ?meetingKey=1280&sessionType=race
- * sessionType: "race" | "sprint"
+ * Uses the `session_result` endpoint for final standings and `starting_grid`
+ * for pole position — both give clean sorted data directly.
+ *
+ * Body: { meetingKey: number, sessionType: "race" | "sprint" }
  *
  * OpenF1 API docs: https://openf1.org/docs/?shell#session-result
  */
@@ -18,7 +21,15 @@ interface OpenF1Session {
   meeting_key: number;
 }
 
-interface OpenF1Position {
+interface OpenF1SessionResult {
+  driver_number: number;
+  position: number;
+  dnf: boolean;
+  dns: boolean;
+  dsq: boolean;
+}
+
+interface OpenF1StartingGrid {
   driver_number: number;
   position: number;
 }
@@ -32,6 +43,7 @@ interface OpenF1LapData {
 interface OpenF1PitData {
   driver_number: number;
   pit_duration: number;
+  stop_duration: number | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -71,7 +83,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // 1. Find the session key for this meeting + session type
+    // 1. Find the race session key
     const sessionName = sessionType === "race" ? "Race" : "Sprint";
     const sessionsRes = await fetch(
       `https://api.openf1.org/v1/sessions?meeting_key=${meetingKey}&session_name=${sessionName}`
@@ -93,64 +105,64 @@ export async function POST(request: NextRequest) {
 
     const sessionKey = sessions[0].session_key;
 
-    // 2. Fetch position data from the session
-    const positionsRes = await fetch(
-      `https://api.openf1.org/v1/position?session_key=${sessionKey}`
+    // 2. Fetch final standings via session_result (clean sorted data)
+    const resultRes = await fetch(
+      `https://api.openf1.org/v1/session_result?session_key=${sessionKey}`
     );
-    if (!positionsRes.ok) {
+    if (!resultRes.ok) {
       return NextResponse.json(
-        { error: `OpenF1 position API returned ${positionsRes.status}` },
+        { error: `OpenF1 session_result API returned ${resultRes.status}` },
         { status: 502 }
       );
     }
-    const allPositions: OpenF1Position[] = await positionsRes.json();
+    const sessionResults: OpenF1SessionResult[] = await resultRes.json();
 
-    // Get the final positions (last entry per driver)
-    const finalPositions = new Map<number, number>();
-    for (const pos of allPositions) {
-      finalPositions.set(pos.driver_number, pos.position);
+    if (!sessionResults || sessionResults.length === 0) {
+      return NextResponse.json(
+        { error: `No results available yet for session ${sessionKey}` },
+        { status: 404 }
+      );
     }
 
-    // Sort by position to get top N
-    const sorted = Array.from(finalPositions.entries()).sort(
-      (a, b) => a[1] - b[1]
-    );
+    // Filter out DNF/DNS/DSQ for position ranking, then sort by position
+    const classified = sessionResults
+      .filter((r) => !r.dns && !r.dsq)
+      .sort((a, b) => a.position - b.position);
 
-    // 3. Get qualifying session for pole position
+    // 3. Get pole position from the starting grid of the race session
     const qualyName = sessionType === "race" ? "Qualifying" : "Sprint Qualifying";
     const qualyRes = await fetch(
       `https://api.openf1.org/v1/sessions?meeting_key=${meetingKey}&session_name=${qualyName}`
     );
-    if (!qualyRes.ok) {
-      return NextResponse.json(
-        { error: `OpenF1 qualifying sessions API returned ${qualyRes.status}` },
-        { status: 502 }
-      );
-    }
-    const qualySessions: OpenF1Session[] = await qualyRes.json();
-
     let poleDriverNumber: number | null = null;
-    if (qualySessions && qualySessions.length > 0) {
-      const qualyPositionsRes = await fetch(
-        `https://api.openf1.org/v1/position?session_key=${qualySessions[0].session_key}`
-      );
-      if (!qualyPositionsRes.ok) {
-        return NextResponse.json(
-          { error: `OpenF1 qualifying position API returned ${qualyPositionsRes.status}` },
-          { status: 502 }
+    if (qualyRes.ok) {
+      const qualySessions: OpenF1Session[] = await qualyRes.json();
+      if (qualySessions && qualySessions.length > 0) {
+        const gridRes = await fetch(
+          `https://api.openf1.org/v1/starting_grid?session_key=${qualySessions[0].session_key}&position=1`
         );
+        if (gridRes.ok) {
+          const grid: OpenF1StartingGrid[] = await gridRes.json();
+          if (grid && grid.length > 0) {
+            poleDriverNumber = grid[0].driver_number;
+          }
+        }
       }
-      const qualyPositions: OpenF1Position[] = await qualyPositionsRes.json();
+    }
 
-      const qualyFinal = new Map<number, number>();
-      for (const pos of qualyPositions) {
-        qualyFinal.set(pos.driver_number, pos.position);
-      }
-      const qualySorted = Array.from(qualyFinal.entries()).sort(
-        (a, b) => a[1] - b[1]
-      );
-      if (qualySorted.length > 0) {
-        poleDriverNumber = qualySorted[0][0];
+    // Fallback: if starting_grid didn't work, use session_result from qualifying
+    if (poleDriverNumber === null && qualyRes.ok) {
+      const qualySessions: OpenF1Session[] = await qualyRes.json();
+      if (qualySessions && qualySessions.length > 0) {
+        const qualyResultRes = await fetch(
+          `https://api.openf1.org/v1/session_result?session_key=${qualySessions[0].session_key}&position=1`
+        );
+        if (qualyResultRes.ok) {
+          const qualyResults: OpenF1SessionResult[] = await qualyResultRes.json();
+          if (qualyResults && qualyResults.length > 0) {
+            poleDriverNumber = qualyResults[0].driver_number;
+          }
+        }
       }
     }
 
@@ -158,25 +170,20 @@ export async function POST(request: NextRequest) {
     const lapsRes = await fetch(
       `https://api.openf1.org/v1/laps?session_key=${sessionKey}`
     );
-    if (!lapsRes.ok) {
-      return NextResponse.json(
-        { error: `OpenF1 laps API returned ${lapsRes.status}` },
-        { status: 502 }
-      );
-    }
-    const allLaps: OpenF1LapData[] = await lapsRes.json();
-
     let fastestLapDriver: number | null = null;
-    let fastestLapTime = Infinity;
-    for (const lap of allLaps) {
-      if (
-        lap.lap_duration &&
-        lap.lap_duration > 0 &&
-        !lap.is_pit_out_lap &&
-        lap.lap_duration < fastestLapTime
-      ) {
-        fastestLapTime = lap.lap_duration;
-        fastestLapDriver = lap.driver_number;
+    if (lapsRes.ok) {
+      const allLaps: OpenF1LapData[] = await lapsRes.json();
+      let fastestLapTime = Infinity;
+      for (const lap of allLaps) {
+        if (
+          lap.lap_duration &&
+          lap.lap_duration > 0 &&
+          !lap.is_pit_out_lap &&
+          lap.lap_duration < fastestLapTime
+        ) {
+          fastestLapTime = lap.lap_duration;
+          fastestLapDriver = lap.driver_number;
+        }
       }
     }
 
@@ -210,27 +217,23 @@ export async function POST(request: NextRequest) {
     }
 
     if (sessionType === "race") {
-      const topN = sorted.slice(0, 10);
-      const top10Ids = topN.map((entry) => mapDriverId(entry[0]));
+      const topN = classified.slice(0, 10);
+      const top10Ids = topN.map((entry) => mapDriverId(entry.driver_number));
 
-      // 6. Get fastest pit stop (race only)
+      // 6. Get fastest pit stop (race only) — prefer stop_duration (stationary time)
       const pitsRes = await fetch(
         `https://api.openf1.org/v1/pit?session_key=${sessionKey}`
       );
-      if (!pitsRes.ok) {
-        return NextResponse.json(
-          { error: `OpenF1 pit API returned ${pitsRes.status}` },
-          { status: 502 }
-        );
-      }
-      const allPits: OpenF1PitData[] = await pitsRes.json();
-
       let fastestPitDriver: number | null = null;
-      let fastestPitTime = Infinity;
-      for (const pit of allPits) {
-        if (pit.pit_duration && pit.pit_duration > 0 && pit.pit_duration < fastestPitTime) {
-          fastestPitTime = pit.pit_duration;
-          fastestPitDriver = pit.driver_number;
+      if (pitsRes.ok) {
+        const allPits: OpenF1PitData[] = await pitsRes.json();
+        let fastestPitTime = Infinity;
+        for (const pit of allPits) {
+          const duration = pit.stop_duration ?? pit.pit_duration;
+          if (duration && duration > 0 && duration < fastestPitTime) {
+            fastestPitTime = duration;
+            fastestPitDriver = pit.driver_number;
+          }
         }
       }
 
@@ -240,6 +243,7 @@ export async function POST(request: NextRequest) {
         top_10: top10Ids,
         fastest_lap_driver_id: mapDriverId(fastestLapDriver),
         fastest_pit_stop_driver_id: mapDriverId(fastestPitDriver),
+        source: "openf1" as const,
       };
 
       const { data: existingResult } = await supabase
@@ -257,14 +261,15 @@ export async function POST(request: NextRequest) {
         await supabase.from("race_results").insert(resultData);
       }
     } else {
-      const topN = sorted.slice(0, 8);
-      const top8Ids = topN.map((entry) => mapDriverId(entry[0]));
+      const topN = classified.slice(0, 8);
+      const top8Ids = topN.map((entry) => mapDriverId(entry.driver_number));
 
       const resultData = {
         race_id: race.id,
         sprint_pole_driver_id: mapDriverId(poleDriverNumber),
         top_8: top8Ids,
         fastest_lap_driver_id: mapDriverId(fastestLapDriver),
+        source: "openf1" as const,
       };
 
       const { data: existingResult } = await supabase
@@ -283,22 +288,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 7. Trigger scoring
-    const scoreRes = await fetch(new URL("/api/results/score", request.url), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        cookie: request.headers.get("cookie") ?? "",
-      },
-      body: JSON.stringify({ raceId: race.id }),
-    });
-
-    const scoreResult = await scoreRes.json();
+    // 7. Trigger scoring directly (no internal HTTP call)
+    const scoreResult = await scoreRaceForId(supabase, race.id);
 
     return NextResponse.json({
       success: true,
       sessionKey,
-      driversFound: sorted.length,
+      driversFound: classified.length,
+      source: "openf1",
       scoring: scoreResult,
     });
   } catch (error) {
