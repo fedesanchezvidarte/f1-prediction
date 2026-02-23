@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminUser } from "@/lib/admin";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import {
@@ -145,7 +146,7 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <Navbar displayName={displayName} avatarUrl={avatarUrl ?? undefined} />
+      <Navbar displayName={displayName} avatarUrl={avatarUrl ?? undefined} isAdmin={isAdminUser(user)} />
 
       <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-5xl">
