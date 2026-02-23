@@ -588,7 +588,7 @@ export function RacePredictionContent({
       )}
 
       {/* Results Toggle */}
-      {!isChampionTab && raceStatus === "completed" && (
+      {!isChampionTab && (raceStatus === "completed" || currentResult || currentSprintResult) && (
         <div className="border-b border-border px-4 py-2 sm:px-5">
           <button
             onClick={() => setShowResults(!showResults)}
