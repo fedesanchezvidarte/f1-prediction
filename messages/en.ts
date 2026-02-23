@@ -30,7 +30,9 @@ const en = {
   login: {
     title: "Welcome back",
     subtitle: "Sign in to manage your predictions",
-    disclaimer: "This app is made for fun between friends and motorsport fans.\nNo betting, no gambling — just passion for F1.",
+    disclaimerLine1: "This app is made for fun between friends and motorsport fans.",
+    disclaimerLine2Emphasis: "No betting, no gambling",
+    disclaimerLine2Suffix: "just passion for F1.",
     continueWithGoogle: "Continue with Google",
     or: "or",
     email: "Email",
@@ -54,6 +56,7 @@ const en = {
     or: "or",
     fullName: "Full name",
     email: "Email",
+    fullNamePlaceholder: "Lightning McQueen",
     emailPlaceholder: "you@example.com",
     password: "Password",
     passwordPlaceholder: "At least 6 characters",

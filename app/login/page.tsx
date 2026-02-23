@@ -63,16 +63,18 @@ export default function LoginPage() {
 
         <div className="w-full space-y-6">
           <div className="text-center">
-            <h2 className="text-2xl font-semibold text-f1-white">
-              {t.login.title}
+            <h2 className="text-3xl font-semibold text-f1-white">
+              {t.login.title}!
             </h2>
             <p className="mt-1 text-sm text-muted">
               {t.login.subtitle}
             </p>
             <p className="mt-3 text-[11px] leading-relaxed text-muted/60">
-              {t.login.disclaimer.split("\n").map((line, i) => (
-                <span key={i}>{line}{i === 0 && <br />}</span>
-              ))}
+              {t.login.disclaimerLine1}
+              <br />
+              <strong className="font-semibold text-foreground">{t.login.disclaimerLine2Emphasis}</strong>
+              {" — "}
+              <strong className="font-black">{t.login.disclaimerLine2Suffix}</strong>
             </p>
           </div>
 
