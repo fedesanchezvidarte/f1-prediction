@@ -2,13 +2,16 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { UserPointsCard } from "@/components/dashboard/UserPointsCard";
-import { NextRaceCountdown } from "@/components/dashboard/NextRaceCountdown";
-import { PredictionsCard } from "@/components/dashboard/PredictionsCard";
-import { LeaderboardCard } from "@/components/dashboard/LeaderboardCard";
-import { PointSystemCard } from "@/components/dashboard/PointSystemCard";
-import { PlaceholderCard } from "@/components/dashboard/PlaceholderCard";
-import { AchievementsCard } from "@/components/dashboard/AchievementsCard";
+import {
+  AchievementsCard,
+  LeaderboardCard,
+  NextRaceCountdown,
+  NoUpcomingRaces,
+  PlaceholderCard,
+  PointSystemCard,
+  PredictionsCard,
+  UserPointsCard,
+} from "@/components/dashboard";
 import {
   RACES_2026,
   getNextRace,
@@ -159,9 +162,7 @@ export default async function Home() {
                 {nextRace ? (
                   <NextRaceCountdown race={nextRace} />
                 ) : (
-                  <div className="flex h-full items-center justify-center p-6 text-sm text-muted">
-                    No upcoming races
-                  </div>
+                  <NoUpcomingRaces />
                 )}
               </div>
 

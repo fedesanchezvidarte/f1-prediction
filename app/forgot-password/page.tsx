@@ -6,12 +6,14 @@ import { Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { F1Logo } from "@/components/F1Logo";
 import { AuthFooter } from "@/components/AuthFooter";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { t } = useLanguage();
 
   async function handleResetPassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,18 +45,18 @@ export default function ForgotPasswordPage() {
               <Mail size={28} className="text-f1-blue" />
             </div>
             <h2 className="text-2xl font-semibold text-f1-white">
-              Check your email
+              {t.forgotPassword.checkEmail}
             </h2>
             <p className="text-sm text-muted">
-              If an account exists for{" "}
-              <span className="font-medium text-f1-white">{email}</span>,
-              we&apos;ve sent a password reset link.
+              {t.forgotPassword.resetLinkSent}{" "}
+              <span className="font-medium text-f1-white">{email}</span>,{" "}
+              {t.forgotPassword.resetLinkSentSuffix}
             </p>
             <Link
               href="/login"
               className="mt-4 inline-block text-sm font-medium text-f1-white transition-colors hover:text-f1-red"
             >
-              Back to login
+              {t.forgotPassword.backToLogin}
             </Link>
           </div>
         </div>
@@ -71,10 +73,10 @@ export default function ForgotPasswordPage() {
         <div className="w-full space-y-6">
           <div className="text-center">
             <h2 className="text-2xl font-semibold text-f1-white">
-              Reset your password
+              {t.forgotPassword.title}
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Enter your email and we&apos;ll send you a reset link
+              {t.forgotPassword.subtitle}
             </p>
           </div>
 
@@ -84,7 +86,7 @@ export default function ForgotPasswordPage() {
                 htmlFor="email"
                 className="block text-sm font-medium text-foreground"
               >
-                Email
+                {t.forgotPassword.email}
               </label>
               <input
                 id="email"
@@ -92,7 +94,7 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="you@example.com"
+                placeholder={t.forgotPassword.emailPlaceholder}
                 className="w-full rounded-lg border border-border bg-input-bg px-4 py-3 text-sm text-f1-white placeholder-muted outline-none transition-colors focus:border-f1-red"
               />
             </div>
@@ -108,17 +110,17 @@ export default function ForgotPasswordPage() {
               disabled={loading}
               className="w-full rounded-lg bg-f1-red px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-f1-red-hover disabled:opacity-50"
             >
-              {loading ? "Sending link..." : "Send reset link"}
+              {loading ? t.forgotPassword.sendingLink : t.forgotPassword.sendResetLink}
             </button>
           </form>
 
           <p className="text-center text-sm text-muted">
-            Remember your password?{" "}
+            {t.forgotPassword.rememberPassword}{" "}
             <Link
               href="/login"
               className="font-medium text-f1-white transition-colors hover:text-f1-red"
             >
-              Sign in
+              {t.forgotPassword.signIn}
             </Link>
           </p>
         </div>

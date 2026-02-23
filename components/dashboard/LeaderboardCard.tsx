@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Medal, ChevronRight } from "lucide-react";
 import type { LeaderboardEntry } from "@/types";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface LeaderboardCardProps {
   entries: LeaderboardEntry[];
@@ -37,20 +38,22 @@ export function LeaderboardCard({
   entries,
   currentUserId,
 }: LeaderboardCardProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="flex h-full flex-col p-5 sm:p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Medal size={16} className="text-f1-amber" />
           <p className="text-xs font-medium uppercase tracking-wider text-muted">
-            Leaderboard
+            {t.leaderboardCard.leaderboard}
           </p>
         </div>
         <Link
           href="/leaderboard"
           className="flex items-center gap-0.5 text-[10px] font-medium text-muted transition-colors hover:text-f1-white"
         >
-          View all
+          {t.leaderboardCard.viewAll}
           <ChevronRight size={12} />
         </Link>
       </div>
@@ -76,14 +79,14 @@ export function LeaderboardCard({
               >
                 {entry.displayName}
                 {entry.userId === currentUserId && (
-                  <span className="ml-1 text-[10px] text-f1-red">(You)</span>
+                  <span className="ml-1 text-[10px] text-f1-red">({t.leaderboardCard.you})</span>
                 )}
               </span>
             </div>
             <span className="text-xs font-semibold tabular-nums text-f1-white">
               {entry.totalPoints}
               <span className="ml-0.5 text-[10px] font-normal text-muted">
-                pts
+                {t.leaderboardCard.pts}
               </span>
             </span>
           </div>

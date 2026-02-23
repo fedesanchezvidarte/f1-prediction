@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Award, ChevronRight } from "lucide-react";
 import { getAchievementIcon } from "@/lib/achievements";
 import type { Achievement } from "@/types";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface AchievementsCardProps {
   earned: number[];
@@ -12,6 +13,7 @@ interface AchievementsCardProps {
 }
 
 export function AchievementsCard({ earned, achievements, total }: AchievementsCardProps) {
+  const { t } = useLanguage();
   const earnedSet = new Set(earned);
   const earnedCount = earned.length;
 
@@ -27,7 +29,7 @@ export function AchievementsCard({ earned, achievements, total }: AchievementsCa
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-muted">
-            Achievements
+            {t.achievementsCard.achievements}
           </p>
           <p className="mt-1 text-2xl font-bold tabular-nums text-f1-white">
             {earnedCount}
@@ -51,17 +53,17 @@ export function AchievementsCard({ earned, achievements, total }: AchievementsCa
             </div>
           ))}
           {earnedCount > 3 && (
-            <span className="text-[10px] text-muted">+{earnedCount - 3} more</span>
+            <span className="text-[10px] text-muted">+{earnedCount - 3} {t.achievementsCard.more}</span>
           )}
         </div>
       ) : (
         <p className="mt-3 text-[10px] text-muted">
-          No achievements yet — start predicting!
+          {t.achievementsCard.noAchievements}
         </p>
       )}
 
       <div className="mt-3 flex items-center gap-1 text-[10px] text-muted transition-colors group-hover:text-f1-white">
-        View all
+        {t.achievementsCard.viewAll}
         <ChevronRight size={12} className="transition-transform group-hover:translate-x-0.5" />
       </div>
     </Link>

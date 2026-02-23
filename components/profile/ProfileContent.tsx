@@ -27,6 +27,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
 import type { Profile } from "@/types";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface ProfileStats {
   totalPoints: number;
@@ -43,6 +44,7 @@ interface ProfileContentProps {
 
 export function ProfileContent({ profile, stats, authProvider }: ProfileContentProps) {
   const router = useRouter();
+  const { t, language } = useLanguage();
   const [isEditingName, setIsEditingName] = useState(false);
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [nameInput, setNameInput] = useState(profile.displayName);
@@ -70,10 +72,10 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
     .toUpperCase()
     .slice(0, 2);
 
-  const memberSince = new Date(profile.createdAt).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  const memberSince = new Date(profile.createdAt).toLocaleDateString(
+    language === "es" ? "es-ES" : "en-US",
+    { month: "long", year: "numeric" }
+  );
 
   async function handleSaveName() {
     const trimmed = nameInput.trim();
@@ -92,7 +94,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
       .eq("id", profile.id);
 
     if (updateError) {
-      setError("Failed to update display name. Please try again.");
+      setError(t.profilePage.failedToUpdateName);
       setSaving(false);
       return;
     }
@@ -100,7 +102,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
     setDisplayName(trimmed);
     setIsEditingName(false);
     setSaving(false);
-    setSuccess("Display name updated!");
+    setSuccess(t.profilePage.displayNameUpdated);
     setTimeout(() => setSuccess(null), 3000);
     router.refresh();
   }
@@ -115,11 +117,11 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
 
   async function handleChangePassword() {
     if (!newPassword || newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(t.profilePage.passwordsDoNotMatchError);
       return;
     }
     if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError(t.profilePage.passwordTooShort);
       return;
     }
 
@@ -138,7 +140,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
     setConfirmPassword("");
     setShowChangePassword(false);
     setChangePasswordLoading(false);
-    setSuccess("Password updated successfully!");
+    setSuccess(t.profilePage.passwordUpdated);
     setTimeout(() => setSuccess(null), 3000);
   }
 
@@ -154,13 +156,13 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         password: deletePassword,
       });
       if (signInError) {
-        setError("Incorrect password. Please try again.");
+        setError(t.profilePage.incorrectPassword);
         setDeleteLoading(false);
         return;
       }
     } else {
       if (deleteEmailConfirm.trim().toLowerCase() !== profile.email.toLowerCase()) {
-        setError("Email address does not match. Please try again.");
+        setError(t.profilePage.emailDoesNotMatch);
         setDeleteLoading(false);
         return;
       }
@@ -169,9 +171,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
     const { error: deleteError } = await supabase.rpc("delete_own_account");
 
     if (deleteError) {
-      setError(
-        "Failed to delete account. Please contact support if the issue persists."
-      );
+      setError(t.profilePage.failedToDelete);
       setDeleteLoading(false);
       setShowDeleteConfirm(false);
       return;
@@ -202,7 +202,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         {/* ── Header ── */}
         <div className="flex items-center gap-2 border-b border-border px-5 py-3">
           <User size={16} className="text-f1-red" />
-          <h1 className="text-sm font-semibold text-f1-white">Profile</h1>
+          <h1 className="text-sm font-semibold text-f1-white">{t.profilePage.title}</h1>
         </div>
 
         {/* ── Avatar & Name ── */}
@@ -245,7 +245,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                   onClick={handleSaveName}
                   disabled={saving}
                   className="rounded-lg bg-f1-green/20 p-1.5 text-f1-green transition-colors hover:bg-f1-green/30 disabled:opacity-50"
-                  aria-label="Save name"
+                  aria-label={t.profilePage.saveName}
                 >
                   <Check size={14} />
                 </button>
@@ -255,7 +255,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                     setNameInput(displayName);
                   }}
                   className="rounded-lg bg-card-hover p-1.5 text-muted transition-colors hover:text-f1-white"
-                  aria-label="Cancel"
+                  aria-label={t.profilePage.cancelEdit}
                 >
                   <X size={14} />
                 </button>
@@ -266,7 +266,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                 <button
                   onClick={() => setIsEditingName(true)}
                   className="rounded-md p-1 text-muted transition-colors hover:bg-card-hover hover:text-f1-white"
-                  aria-label="Edit display name"
+                  aria-label={t.profilePage.editDisplayName}
                 >
                   <Pencil size={13} />
                 </button>
@@ -278,7 +278,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted/50">
               <Calendar size={11} />
-              Member since {memberSince}
+              {t.profilePage.memberSince} {memberSince}
             </div>
           </div>
         </div>
@@ -287,22 +287,22 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
           <StatCell
             icon={<Trophy size={15} className="text-f1-amber" />}
-            label="Points"
+            label={t.profilePage.points}
             value={stats.totalPoints.toString()}
           />
           <StatCell
             icon={<Medal size={15} className="text-f1-purple" />}
-            label="Rank"
+            label={t.profilePage.rank}
             value={stats.rank ? `#${stats.rank}` : "—"}
           />
           <StatCell
             icon={<Star size={15} className="text-f1-green" />}
-            label="Predictions"
+            label={t.profilePage.predictions}
             value={stats.predictionsCount.toString()}
           />
           <StatCell
             icon={<Star size={15} className="text-f1-blue" />}
-            label="Achievements"
+            label={t.profilePage.achievements}
             value={stats.achievementsCount.toString()}
           />
         </div>
@@ -310,7 +310,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         {/* ── Quick links section header ── */}
         <div className="border-b border-border px-5 py-2.5">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted/50">
-            Navigate
+            {t.profilePage.navigate}
           </p>
         </div>
 
@@ -321,7 +321,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         >
           <div className="flex items-center gap-3">
             <Trophy size={15} className="text-muted" />
-            <span className="text-sm text-f1-white">My Predictions</span>
+            <span className="text-sm text-f1-white">{t.profilePage.myPredictions}</span>
           </div>
           <ChevronRight size={15} className="text-muted" />
         </Link>
@@ -331,7 +331,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         >
           <div className="flex items-center gap-3">
             <Medal size={15} className="text-muted" />
-            <span className="text-sm text-f1-white">Leaderboard</span>
+            <span className="text-sm text-f1-white">{t.profilePage.leaderboard}</span>
           </div>
           <ChevronRight size={15} className="text-muted" />
         </Link>
@@ -341,7 +341,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         >
           <div className="flex items-center gap-3">
             <Award size={15} className="text-muted" />
-            <span className="text-sm text-f1-white">Achievements</span>
+            <span className="text-sm text-f1-white">{t.profilePage.achievements}</span>
           </div>
           <ChevronRight size={15} className="text-muted" />
         </Link>
@@ -349,7 +349,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         {/* ── Account section header ── */}
         <div className="border-b border-border px-5 py-2.5">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted/50">
-            Account
+            {t.profilePage.account}
           </p>
         </div>
 
@@ -364,7 +364,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
           >
             <div className="flex items-center gap-3">
               <KeyRound size={15} className="text-muted" />
-              <span className="text-sm text-f1-white">Change Password</span>
+              <span className="text-sm text-f1-white">{t.profilePage.changePassword}</span>
             </div>
             <ChevronRight size={15} className="text-muted" />
           </button>
@@ -375,7 +375,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
           className="flex w-full items-center gap-3 border-b border-border px-5 py-3.5 transition-colors hover:bg-card-hover"
         >
           <LogOut size={15} className="text-muted" />
-          <span className="text-sm text-f1-white">Sign Out</span>
+          <span className="text-sm text-f1-white">{t.profilePage.signOut}</span>
         </button>
 
         <button
@@ -383,13 +383,13 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
           className="flex w-full items-center gap-3 px-5 py-3.5 transition-colors hover:bg-card-hover"
         >
           <Trash2 size={15} className="text-f1-red/70" />
-          <span className="text-sm text-f1-red/70">Delete Account</span>
+          <span className="text-sm text-f1-red/70">{t.profilePage.deleteAccount}</span>
         </button>
       </div>
 
       {/* Auth provider info */}
       <p className="text-center text-[11px] text-muted/40">
-        Signed in with {authProvider === "google" ? "Google" : "email & password"}
+        {t.profilePage.signedInWith} {authProvider === "google" ? t.profilePage.google : t.profilePage.emailAndPassword}
       </p>
 
       {/* ── Change Password Modal ── */}
@@ -400,7 +400,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-f1-blue/10">
                 <KeyRound size={16} className="text-f1-blue" />
               </div>
-              <h3 className="text-sm font-semibold text-f1-white">Change Password</h3>
+              <h3 className="text-sm font-semibold text-f1-white">{t.profilePage.changePasswordTitle}</h3>
             </div>
 
             <div className="space-y-4 px-5 py-4">
@@ -412,14 +412,14 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
 
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-foreground">
-                  New Password
+                  {t.profilePage.newPassword}
                 </label>
                 <div className="relative">
                   <input
                     type={showNewPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
+                    placeholder={t.profilePage.newPasswordPlaceholder}
                     className="w-full rounded-lg border border-border bg-input-bg px-3 py-2.5 pr-10 text-sm text-f1-white placeholder-muted outline-none transition-colors focus:border-f1-red"
                   />
                   <button
@@ -435,14 +435,14 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
 
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-foreground">
-                  Confirm New Password
+                  {t.profilePage.confirmNewPassword}
                 </label>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
+                    placeholder={t.profilePage.confirmNewPasswordPlaceholder}
                     className="w-full rounded-lg border border-border bg-input-bg px-3 py-2.5 pr-10 text-sm text-f1-white placeholder-muted outline-none transition-colors focus:border-f1-red"
                   />
                   <button
@@ -454,7 +454,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                   </button>
                 </div>
                 {confirmPassword && newPassword !== confirmPassword && (
-                  <p className="mt-1.5 text-[11px] text-f1-red">Passwords do not match.</p>
+                  <p className="mt-1.5 text-[11px] text-f1-red">{t.profilePage.passwordsDoNotMatch}</p>
                 )}
               </div>
             </div>
@@ -469,14 +469,14 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                 }}
                 className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-f1-white transition-colors hover:bg-card-hover"
               >
-                Cancel
+                {t.profilePage.cancel}
               </button>
               <button
                 onClick={handleChangePassword}
                 disabled={changePasswordLoading || !newPassword || newPassword !== confirmPassword}
                 className="flex-1 rounded-lg bg-f1-blue px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-f1-blue/80 disabled:opacity-50"
               >
-                {changePasswordLoading ? "Updating..." : "Update Password"}
+                {changePasswordLoading ? t.profilePage.updating : t.profilePage.updatePassword}
               </button>
             </div>
           </div>
@@ -501,14 +501,14 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                 <LogOut size={15} className="text-f1-red" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-f1-white">Sign out?</h2>
-                <p className="mt-0.5 text-[11px] text-muted">Signed in as {displayName}</p>
+                <h2 className="text-sm font-semibold text-f1-white">{t.profilePage.signOutTitle}</h2>
+                <p className="mt-0.5 text-[11px] text-muted">{t.profilePage.signedInAs} {displayName}</p>
               </div>
             </div>
             {/* Body */}
             <div className="px-5 py-4">
               <p className="text-xs leading-relaxed text-muted">
-                You will be redirected to the login page. Your predictions and data are safely saved.
+                {t.profilePage.signOutBody}
               </p>
             </div>
             {/* Actions */}
@@ -518,7 +518,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                 disabled={isSigningOut}
                 className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
               >
-                Cancel
+                {t.profilePage.cancel}
               </button>
               <button
                 onClick={handleSignOut}
@@ -526,7 +526,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                 className="flex items-center gap-1.5 rounded-lg bg-f1-red px-4 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-f1-red/80 disabled:opacity-50"
               >
                 {isSigningOut ? <Loader2 size={12} className="animate-spin" /> : <LogOut size={12} />}
-                {isSigningOut ? "Signing out..." : "Sign out"}
+                {isSigningOut ? t.profilePage.signingOut : t.profilePage.signOut}
               </button>
             </div>
           </div>
@@ -558,28 +558,28 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                 <AlertTriangle size={15} className="text-f1-red" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-f1-red">Delete account</h2>
-                <p className="mt-0.5 text-[11px] text-f1-red/60">This cannot be undone</p>
+                <h2 className="text-sm font-semibold text-f1-red">{t.profilePage.deleteAccountTitle}</h2>
+                <p className="mt-0.5 text-[11px] text-f1-red/60">{t.profilePage.deleteCannotBeUndone}</p>
               </div>
             </div>
             {/* Body — red tint */}
             <div className="bg-f1-red/3 px-5 py-4">
               <p className="text-xs leading-relaxed text-muted">
-                All your{" "}
-                <span className="font-medium text-f1-white">predictions, points, and achievements</span>{" "}
-                will be permanently deleted. There is no way to recover your account after this action.
+                {t.profilePage.deleteBody}{" "}
+                <span className="font-medium text-f1-white">{t.profilePage.deletePredictionsPointsAchievements}</span>{" "}
+                {t.profilePage.deleteBodySuffix}
               </p>
               {authProvider === "email" ? (
                 <div className="mt-4">
                   <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-f1-red/70">
-                    Confirm with your password
+                    {t.profilePage.confirmWithPassword}
                   </label>
                   <div className="relative">
                     <input
                       type={showDeletePassword ? "text" : "password"}
                       value={deletePassword}
                       onChange={(e) => setDeletePassword(e.target.value)}
-                      placeholder="Enter your password"
+                      placeholder={t.profilePage.confirmPasswordPlaceholder}
                       className="w-full rounded-lg border border-f1-red/30 bg-input-bg px-3 py-2.5 pr-10 text-sm text-f1-white placeholder-muted outline-none transition-colors focus:border-f1-red"
                     />
                     <button
@@ -594,7 +594,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
               ) : (
                 <div className="mt-4">
                   <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-f1-red/70">
-                    Type your email to confirm
+                    {t.profilePage.typeEmailToConfirm}
                   </label>
                   <input
                     type="email"
@@ -618,7 +618,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                 disabled={deleteLoading}
                 className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
               >
-                Cancel
+                {t.profilePage.cancel}
               </button>
               <button
                 onClick={handleDeleteAccount}
@@ -630,7 +630,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
                 className="flex items-center gap-1.5 rounded-lg bg-f1-red px-4 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-f1-red/80 disabled:opacity-50"
               >
                 {deleteLoading ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                {deleteLoading ? "Deleting..." : "Delete account"}
+                {deleteLoading ? t.profilePage.deleting : t.profilePage.deleteConfirm}
               </button>
             </div>
           </div>
