@@ -8,6 +8,7 @@ import {
   CATEGORY_LABELS,
 } from "@/lib/achievements";
 import type { Achievement, AchievementCategory } from "@/types";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface AchievementsContentProps {
   achievements: Achievement[];
@@ -26,6 +27,7 @@ export function AchievementsContent({
   earnedIds,
 }: AchievementsContentProps) {
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
+  const { t } = useLanguage();
 
   const earnedSet = new Set(earnedIds);
   const earnedCount = earnedIds.length;
@@ -44,9 +46,9 @@ export function AchievementsContent({
             <Award size={18} className="text-f1-purple" />
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-f1-white">Achievements</h1>
+            <h1 className="text-sm font-semibold text-f1-white">{t.achievementsPage.title}</h1>
             <p className="text-[11px] text-muted">
-              {earnedCount} of {achievements.length} unlocked
+              {earnedCount} {t.achievementsPage.of} {achievements.length} {t.achievementsPage.unlocked}
             </p>
           </div>
         </div>
@@ -69,7 +71,7 @@ export function AchievementsContent({
         <FilterButton
           active={activeCategory === "all"}
           onClick={() => setActiveCategory("all")}
-          label="All"
+          label={t.achievementsPage.all}
           count={achievements.length}
         />
         {CATEGORIES.map((cat) => {
@@ -149,7 +151,7 @@ export function AchievementsContent({
       {filtered.length === 0 && (
         <div className="flex flex-col items-center gap-2 py-12 text-center">
           <Award size={24} className="text-muted/30" />
-          <p className="text-sm text-muted">No achievements in this category</p>
+          <p className="text-sm text-muted">{t.achievementsPage.noAchievements}</p>
         </div>
       )}
     </div>

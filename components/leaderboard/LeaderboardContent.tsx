@@ -12,6 +12,7 @@ import {
   Filter,
 } from "lucide-react";
 import type { DetailedLeaderboardEntry, Race } from "@/types";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type ViewMode = "simple" | "detailed";
 
@@ -58,8 +59,8 @@ export function LeaderboardContent({
   const [selectedRace, setSelectedRace] = useState<number | "all">("all");
   const [page, setPage] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
+  const { t } = useLanguage();
 
-  // Number of races that have at least one scored prediction (drives the "X/N" display)
   const totalScoredRaces = useMemo(() => {
     const scored = new Set<number>();
     for (const entry of entries) {
@@ -72,14 +73,12 @@ export function LeaderboardContent({
 
   const sorted = useMemo(() => {
     if (selectedRace === "all") {
-      // Preserve server-assigned ranks (handles ties correctly)
       return [...entries].sort((a, b) =>
         b.totalPoints !== a.totalPoints
           ? b.totalPoints - a.totalPoints
           : a.displayName.localeCompare(b.displayName)
       );
     }
-    // For single-race filter, re-rank by that race's points
     return [...entries].sort((a, b) => {
       const aP = a.racePoints[selectedRace] ?? -1;
       const bP = b.racePoints[selectedRace] ?? -1;
@@ -87,13 +86,11 @@ export function LeaderboardContent({
     });
   }, [entries, selectedRace]);
 
-  // Re-assign ranks with tie support
   const ranked = useMemo(() => {
     const result: DetailedLeaderboardEntry[] = [];
     let currentRank = 1;
     for (let i = 0; i < sorted.length; i++) {
       if (selectedRace === "all") {
-        // Use server rank (already tie-aware)
         result.push({ ...sorted[i] });
       } else {
         const pts = sorted[i].racePoints[selectedRace] ?? -1;
@@ -110,7 +107,7 @@ export function LeaderboardContent({
 
   const selectedRaceLabel =
     selectedRace === "all"
-      ? "All Races"
+      ? t.leaderboardPage.allRaces
       : races.find((r) => r.meetingKey === selectedRace)?.circuitShortName ??
         "Race";
 
@@ -120,9 +117,9 @@ export function LeaderboardContent({
       <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="flex items-center gap-2">
           <Medal size={18} className="text-f1-amber" />
-          <h1 className="text-sm font-semibold text-f1-white">Leaderboard</h1>
+          <h1 className="text-sm font-semibold text-f1-white">{t.leaderboardPage.title}</h1>
           <span className="rounded-full bg-card px-2 py-0.5 text-[10px] tabular-nums text-muted">
-            {entries.length} players
+            {entries.length} {t.leaderboardPage.players}
           </span>
         </div>
 
@@ -138,7 +135,7 @@ export function LeaderboardContent({
               }`}
             >
               <List size={13} />
-              Simple
+              {t.leaderboardPage.simple}
             </button>
             <button
               onClick={() => setViewMode("detailed")}
@@ -149,7 +146,7 @@ export function LeaderboardContent({
               }`}
             >
               <Table2 size={13} />
-              Detailed
+              {t.leaderboardPage.detailed}
             </button>
           </div>
 
@@ -177,7 +174,7 @@ export function LeaderboardContent({
                       : "text-muted"
                   }`}
                 >
-                  All Races
+                  {t.leaderboardPage.allRaces}
                 </button>
                 {races.map((race) => (
                   <button
@@ -221,8 +218,8 @@ export function LeaderboardContent({
       {/* Pagination */}
       <div className="flex items-center justify-between border-t border-border px-4 py-3 sm:px-5">
         <p className="text-[11px] tabular-nums text-muted">
-          Showing {page * PAGE_SIZE + 1}–
-          {Math.min((page + 1) * PAGE_SIZE, ranked.length)} of {ranked.length}
+          {t.leaderboardPage.showing} {page * PAGE_SIZE + 1}–
+          {Math.min((page + 1) * PAGE_SIZE, ranked.length)} {t.leaderboardPage.of} {ranked.length}
         </p>
         <div className="flex items-center gap-1">
           <button
@@ -271,14 +268,16 @@ function SimpleTable({
   selectedRace: number | "all";
   totalScoredRaces: number;
 }) {
+  const { t } = useLanguage();
+
   return (
     <div>
       {/* Header */}
       <div className="grid grid-cols-[2.5rem_1fr_5rem_4.5rem] items-center gap-2 border-b border-border bg-card/50 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted sm:grid-cols-[3rem_1fr_6rem_5rem] sm:px-5">
         <span>#</span>
-        <span>Player</span>
-        <span className="text-right">Predictions</span>
-        <span className="text-right">Points</span>
+        <span>{t.leaderboardPage.player}</span>
+        <span className="text-right">{t.leaderboardPage.predictionsCol}</span>
+        <span className="text-right">{t.leaderboardPage.points}</span>
       </div>
       {/* Rows */}
       {entries.map((entry) => {
@@ -301,7 +300,7 @@ function SimpleTable({
             >
               {entry.displayName}
               {isMe && (
-                <span className="ml-1.5 text-[10px] text-f1-red">(You)</span>
+                <span className="ml-1.5 text-[10px] text-f1-red">({t.leaderboardPage.you})</span>
               )}
             </Link>
             <span className="text-right tabular-nums text-muted">
@@ -328,6 +327,8 @@ function DetailedTable({
   races: Race[];
   currentUserId?: string;
 }) {
+  const { t } = useLanguage();
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[600px] text-xs">
@@ -337,7 +338,7 @@ function DetailedTable({
               #
             </th>
             <th className="sticky left-13 z-10 min-w-32 bg-card/95 px-2 py-2.5 pr-4 text-left backdrop-blur-sm">
-              Player
+              {t.leaderboardPage.player}
             </th>
             {races.map((race) => (
               <th key={race.meetingKey} className="px-3 py-2.5 text-center">
@@ -350,7 +351,7 @@ function DetailedTable({
                 </div>
               </th>
             ))}
-            <th className="px-4 py-2.5 text-right sm:px-5">Total</th>
+            <th className="px-4 py-2.5 text-right sm:px-5">{t.leaderboardPage.total}</th>
           </tr>
         </thead>
         <tbody>
@@ -376,7 +377,7 @@ function DetailedTable({
                     {entry.displayName}
                     {isMe && (
                       <span className="ml-1.5 text-[10px] text-f1-red">
-                        (You)
+                        ({t.leaderboardPage.you})
                       </span>
                     )}
                   </Link>

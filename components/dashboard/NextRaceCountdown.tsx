@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Clock, Radio, MapPin } from "lucide-react";
 import type { Race } from "@/types";
 import { getRaceStatus } from "@/lib/dummy-data";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface NextRaceCountdownProps {
   race: Race;
@@ -43,6 +44,7 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
     calculateTimeLeft(race.dateStart)
   );
   const [status, setStatus] = useState(getRaceStatus(race));
+  const { t } = useLanguage();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -58,17 +60,17 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
     <div className="flex h-full flex-col justify-between p-5 sm:p-6">
       <div className="flex items-start justify-between">
         <p className="text-xs font-medium uppercase tracking-wider text-muted">
-          {isLive ? "Race Weekend" : "Next Race"}
+          {isLive ? t.nextRace.raceWeekend : t.nextRace.nextRace}
         </p>
         {isLive ? (
           <span className="flex items-center gap-1.5 rounded-full bg-f1-red/15 px-2.5 py-1 text-[10px] font-semibold uppercase text-f1-red">
             <Radio size={10} className="animate-pulse" />
-            Live
+            {t.nextRace.live}
           </span>
         ) : (
           <span className="flex items-center gap-1.5 rounded-full bg-f1-green/15 px-2.5 py-1 text-[10px] font-semibold uppercase text-f1-green">
             <Clock size={10} />
-            Upcoming
+            {t.nextRace.upcoming}
           </span>
         )}
       </div>
@@ -83,20 +85,20 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
 
       {!isLive && (
         <div className="mt-4 flex justify-between gap-2 rounded-lg bg-background/50 px-3 py-2">
-          <TimeUnit value={timeLeft.days} label="Days" />
+          <TimeUnit value={timeLeft.days} label={t.nextRace.days} />
           <span className="self-start pt-1 text-lg text-muted">:</span>
-          <TimeUnit value={timeLeft.hours} label="Hrs" />
+          <TimeUnit value={timeLeft.hours} label={t.nextRace.hrs} />
           <span className="self-start pt-1 text-lg text-muted">:</span>
-          <TimeUnit value={timeLeft.minutes} label="Min" />
+          <TimeUnit value={timeLeft.minutes} label={t.nextRace.min} />
           <span className="self-start pt-1 text-lg text-muted">:</span>
-          <TimeUnit value={timeLeft.seconds} label="Sec" />
+          <TimeUnit value={timeLeft.seconds} label={t.nextRace.sec} />
         </div>
       )}
 
       {isLive && (
         <div className="mt-4 rounded-lg bg-f1-red/5 px-3 py-3 text-center">
           <p className="text-sm font-medium text-f1-white">
-            Lights out, and a way we go!
+            {t.nextRace.lightsOut}
           </p>
         </div>
       )}

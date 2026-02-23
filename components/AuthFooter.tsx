@@ -1,8 +1,14 @@
+"use client";
+
+import { useLanguage } from "@/components/providers/LanguageProvider";
+
 export function AuthFooter() {
+  const { t } = useLanguage();
+
   return (
     <footer className="py-6 text-center font-mono text-xs text-muted">
       <p>
-        made with ❤︎ on{" "}
+        {t.authFooter.madeWith}{" "}
         <a
           href="https://github.com/fedesanchezvidarte/f1-prediction"
           target="_blank"
@@ -13,7 +19,7 @@ export function AuthFooter() {
         </a>
       </p>
       <p className="mt-1">
-        find me on{" "}
+        {t.authFooter.findMe}{" "}
         <a
           href="https://www.linkedin.com/in/fedesanchezvidarte/"
           target="_blank"

@@ -1,7 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import { Linkedin, Github, Coffee } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="border-t border-border bg-background">
       <div className="mx-auto flex flex-col items-center gap-4 px-4 py-6 sm:flex-row sm:justify-between sm:px-6">
@@ -10,7 +15,7 @@ export function Footer() {
           <span className="text-sm font-semibold text-f1-white">
             F1 Prediction
           </span>
-          <span className="text-xs text-muted">Season 2026</span>
+          <span className="text-xs text-muted">{t.footer.season}</span>
         </div>
 
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
@@ -22,7 +27,7 @@ export function Footer() {
             aria-label="Buy me a coffee"
           >
             <Coffee size={13} />
-            <span>buy me a coffee</span>
+            <span>{t.footer.buyMeCoffee}</span>
           </a>
 
           <div className="flex items-center gap-4">

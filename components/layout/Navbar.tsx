@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface NavbarProps {
   displayName: string;
@@ -32,6 +33,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -59,10 +61,10 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
     .slice(0, 2);
 
   const navLinks = [
-    { href: "/", label: "Dashboard", icon: <LayoutDashboard size={16} />, highlight: false },
-    { href: "/race-prediction", label: "Predictions", icon: <Trophy size={16} />, highlight: true },
-    { href: "/leaderboard", label: "Leaderboard", icon: <Medal size={16} />, highlight: false },
-    { href: "/achievements", label: "Achievements", icon: <Award size={16} />, highlight: false },
+    { href: "/", label: t.nav.dashboard, icon: <LayoutDashboard size={16} />, highlight: false },
+    { href: "/race-prediction", label: t.nav.predictions, icon: <Trophy size={16} />, highlight: true },
+    { href: "/leaderboard", label: t.nav.leaderboard, icon: <Medal size={16} />, highlight: false },
+    { href: "/achievements", label: t.nav.achievements, icon: <Award size={16} />, highlight: false },
   ];
 
   return (
@@ -73,7 +75,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
           <span className="text-lg font-bold tracking-tight text-f1-white">
             F1 Prediction
           </span>
-          <span className="text-xs text-muted">Season 2026</span>
+          <span className="text-xs text-muted">{t.navbar.season}</span>
         </div>
       </Link>
 
@@ -81,7 +83,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="group flex items-center rounded-full p-0.5 transition-all ring-1 ring-transparent hover:ring-border-hover"
-          aria-label="Open user menu"
+          aria-label={t.navbar.openMenu}
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-card text-sm font-medium text-f1-white">
             {avatarUrl ? (
@@ -103,13 +105,13 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
             {/* User info header */}
             <div className="border-b border-border px-3 py-2.5">
               <p className="text-[11px] font-semibold text-f1-white truncate">{displayName}</p>
-              <p className="text-[10px] text-muted/60 mt-0.5">Season 2026</p>
+              <p className="text-[10px] text-muted/60 mt-0.5">{t.navbar.season}</p>
             </div>
 
             {/* Navigation section */}
             <div className="py-1">
               <p className="px-3 pt-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted/40">
-                Navigate
+                {t.navbar.navigate}
               </p>
               {navLinks.map((link) => (
                 <Link
@@ -143,7 +145,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
                 <span className={pathname === "/profile" ? "text-f1-white" : "text-muted/60"}>
                   <User size={16} />
                 </span>
-                Profile
+                {t.nav.profile}
               </Link>
             </div>
 
@@ -152,7 +154,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
             {/* Settings section */}
             <div className="py-1">
               <p className="px-3 pt-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted/40">
-                Settings
+                {t.navbar.settings}
               </p>
 
               {/* Language */}
@@ -160,13 +162,27 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 text-[11px] text-muted">
                     <Globe size={12} className="text-muted/60" />
-                    Language
+                    {t.navbar.language}
                   </span>
                   <div className="flex rounded-md border border-border overflow-hidden">
-                    <button className="px-2 py-0.5 text-[10px] font-semibold text-f1-white bg-card-hover">
+                    <button
+                      onClick={() => setLanguage("en")}
+                      className={`px-2 py-0.5 text-[10px] transition-colors ${
+                        language === "en"
+                          ? "font-semibold text-f1-white bg-card-hover"
+                          : "font-medium text-muted hover:text-f1-white"
+                      }`}
+                    >
                       EN
                     </button>
-                    <button className="px-2 py-0.5 text-[10px] font-medium text-muted border-l border-border hover:text-f1-white transition-colors">
+                    <button
+                      onClick={() => setLanguage("es")}
+                      className={`px-2 py-0.5 text-[10px] border-l border-border transition-colors ${
+                        language === "es"
+                          ? "font-semibold text-f1-white bg-card-hover"
+                          : "font-medium text-muted hover:text-f1-white"
+                      }`}
+                    >
                       ES
                     </button>
                   </div>
@@ -182,7 +198,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
                     ) : (
                       <Sun size={12} className="text-muted/60" />
                     )}
-                    Theme
+                    {t.navbar.theme}
                   </span>
                   <div className="flex rounded-md border border-border overflow-hidden">
                     <button
@@ -194,7 +210,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
                       }`}
                     >
                       <Moon size={9} />
-                      Dark
+                      {t.navbar.dark}
                     </button>
                     <button
                       onClick={() => setTheme("light")}
@@ -205,7 +221,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
                       }`}
                     >
                       <Sun size={9} />
-                      Light
+                      {t.navbar.light}
                     </button>
                   </div>
                 </div>
@@ -224,7 +240,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-f1-red/80 transition-colors hover:bg-card-hover hover:text-f1-red"
               >
                 <LogOut size={13} />
-                Sign out
+                {t.navbar.signOut}
               </button>
             </div>
           </div>
@@ -249,14 +265,14 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
                 <LogOut size={15} className="text-f1-red" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-f1-white">Sign out?</h2>
-                <p className="mt-0.5 text-[11px] text-muted">Signed in as {displayName}</p>
+                <h2 className="text-sm font-semibold text-f1-white">{t.navbar.signOutTitle}</h2>
+                <p className="mt-0.5 text-[11px] text-muted">{t.navbar.signedInAs} {displayName}</p>
               </div>
             </div>
             {/* Body */}
             <div className="px-5 py-4">
               <p className="text-xs leading-relaxed text-muted">
-                You will be redirected to the login page. Your predictions and data are safely saved.
+                {t.navbar.signOutBody}
               </p>
             </div>
             {/* Actions */}
@@ -266,7 +282,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
                 disabled={isSigningOut}
                 className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
               >
-                Cancel
+                {t.navbar.cancel}
               </button>
               <button
                 onClick={handleSignOut}
@@ -274,7 +290,7 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
                 className="flex items-center gap-1.5 rounded-lg bg-f1-red px-4 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-f1-red/80 disabled:opacity-50"
               >
                 {isSigningOut ? <Loader2 size={12} className="animate-spin" /> : <LogOut size={12} />}
-                {isSigningOut ? "Signing out..." : "Sign out"}
+                {isSigningOut ? t.navbar.signingOut : t.navbar.signOut}
               </button>
             </div>
           </div>

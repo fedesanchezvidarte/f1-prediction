@@ -8,11 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import { F1Logo } from "@/components/F1Logo";
 import { AuthFooter } from "@/components/AuthFooter";
 import { GoogleIcon } from "@/components/GoogleIcon";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
-/**
- * Page to login a user
- * @returns - The login page
- */
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -20,6 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { t } = useLanguage();
 
   async function handleEmailLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -66,14 +64,15 @@ export default function LoginPage() {
         <div className="w-full space-y-6">
           <div className="text-center">
             <h2 className="text-2xl font-semibold text-f1-white">
-              Welcome back
+              {t.login.title}
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Sign in to manage your predictions
+              {t.login.subtitle}
             </p>
             <p className="mt-3 text-[11px] leading-relaxed text-muted/60">
-              This app is made for fun between friends and motorsport fans.
-              <br />No betting, no gambling — just passion for F1.
+              {t.login.disclaimer.split("\n").map((line, i) => (
+                <span key={i}>{line}{i === 0 && <br />}</span>
+              ))}
             </p>
           </div>
 
@@ -83,12 +82,12 @@ export default function LoginPage() {
             className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium text-f1-white transition-colors hover:border-border-hover hover:bg-card-hover"
           >
             <GoogleIcon />
-            Continue with Google
+            {t.login.continueWithGoogle}
           </button>
 
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted">or</span>
+            <span className="text-xs text-muted">{t.login.or}</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
@@ -98,7 +97,7 @@ export default function LoginPage() {
                 htmlFor="email"
                 className="block text-sm font-medium text-foreground"
               >
-                Email
+                {t.login.email}
               </label>
               <input
                 id="email"
@@ -106,7 +105,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="you@example.com"
+                placeholder={t.login.emailPlaceholder}
                 className="w-full rounded-lg border border-border bg-input-bg px-4 py-3 text-sm text-f1-white placeholder-muted outline-none transition-colors focus:border-f1-red"
               />
             </div>
@@ -117,13 +116,13 @@ export default function LoginPage() {
                   htmlFor="password"
                   className="block text-sm font-medium text-foreground"
                 >
-                  Password
+                  {t.login.password}
                 </label>
                 <Link
                   href="/forgot-password"
                   className="text-xs text-muted transition-colors hover:text-f1-red"
                 >
-                  Forgot password?
+                  {t.login.forgotPassword}
                 </Link>
               </div>
               <div className="relative">
@@ -133,14 +132,14 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="Enter your password"
+                  placeholder={t.login.passwordPlaceholder}
                   className="w-full rounded-lg border border-border bg-input-bg px-4 py-3 pr-11 text-sm text-f1-white placeholder-muted outline-none transition-colors focus:border-f1-red"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-f1-white"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? t.login.hidePassword : t.login.showPassword}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -158,17 +157,17 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full rounded-lg bg-f1-red px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-f1-red-hover disabled:opacity-50"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? t.login.signingIn : t.login.signIn}
             </button>
           </form>
 
           <p className="text-center text-sm text-muted">
-            Don&apos;t have an account?{" "}
+            {t.login.noAccount}{" "}
             <Link
               href="/register"
               className="font-medium text-f1-white transition-colors hover:text-f1-red"
             >
-              Create account
+              {t.login.createAccount}
             </Link>
           </p>
         </div>

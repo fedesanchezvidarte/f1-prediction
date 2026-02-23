@@ -4,9 +4,11 @@ import { useState } from "react";
 import { HelpCircle } from "lucide-react";
 import { PointSystemModal } from "./PointSystemModal";
 import { POINT_SYSTEM } from "@/lib/dummy-data";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export function PointSystemCard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <>
@@ -18,9 +20,9 @@ export function PointSystemCard() {
           <HelpCircle size={20} className="text-f1-purple" />
         </div>
         <div>
-          <p className="text-xs font-medium text-f1-white">Point System</p>
+          <p className="text-xs font-medium text-f1-white">{t.pointSystem.title}</p>
           <p className="mt-0.5 text-[10px] text-muted">
-            Tap to view scoring rules
+            {t.pointSystem.tapToView}
           </p>
         </div>
       </button>

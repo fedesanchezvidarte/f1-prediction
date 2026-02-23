@@ -32,6 +32,7 @@ import type {
 } from "@/types";
 import { getRaceStatus } from "@/lib/dummy-data";
 import { DriverSelect, type MatchStatus } from "./DriverSelect";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type TabMode = "race" | "sprint" | "champion";
 
@@ -65,10 +66,11 @@ interface RacePredictionContentProps {
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useLanguage();
   const config: Record<string, { bg: string; text: string; label: string }> = {
-    pending: { bg: "bg-f1-amber/15", text: "text-f1-amber", label: "Pending" },
-    submitted: { bg: "bg-f1-blue/15", text: "text-f1-blue", label: "Submitted" },
-    scored: { bg: "bg-f1-green/15", text: "text-f1-green", label: "Scored" },
+    pending: { bg: "bg-f1-amber/15", text: "text-f1-amber", label: t.predictionsPage.pending },
+    submitted: { bg: "bg-f1-blue/15", text: "text-f1-blue", label: t.predictionsPage.submitted },
+    scored: { bg: "bg-f1-green/15", text: "text-f1-green", label: t.predictionsPage.scored },
   };
   const c = config[status] ?? config.pending;
   return (
@@ -80,10 +82,11 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function RaceStatusBadge({ status }: { status: RaceStatus }) {
+  const { t } = useLanguage();
   const config: Record<RaceStatus, { bg: string; text: string; label: string; icon: React.ReactNode }> = {
-    upcoming: { bg: "bg-f1-blue/15", text: "text-f1-blue", label: "Upcoming", icon: <Clock size={10} /> },
-    live: { bg: "bg-f1-red/15", text: "text-f1-red", label: "LIVE", icon: <Zap size={10} /> },
-    completed: { bg: "bg-f1-green/15", text: "text-f1-green", label: "Completed", icon: <CheckCircle2 size={10} /> },
+    upcoming: { bg: "bg-f1-blue/15", text: "text-f1-blue", label: t.predictionsPage.upcoming, icon: <Clock size={10} /> },
+    live: { bg: "bg-f1-red/15", text: "text-f1-red", label: t.predictionsPage.live, icon: <Zap size={10} /> },
+    completed: { bg: "bg-f1-green/15", text: "text-f1-green", label: t.predictionsPage.completed, icon: <CheckCircle2 size={10} /> },
   };
   const c = config[status];
   return (
@@ -150,6 +153,8 @@ export function RacePredictionContent({
     return false;
   }, [isChampionTab, tab, champPred, currentSprintPred, currentPrediction]);
 
+  const { t, language } = useLanguage();
+
   const getSubmitButtonConfig = useCallback(() => {
     const status = isChampionTab
       ? champPred.status
@@ -157,11 +162,11 @@ export function RacePredictionContent({
         ? currentSprintPred?.status ?? "pending"
         : currentPrediction?.status ?? "pending";
 
-    if (status === "scored") return { color: "bg-muted/20 text-muted cursor-not-allowed", label: "Scored" };
-    if (status === "submitted" && !hasEdits) return { color: "bg-f1-blue text-white", label: "Submitted" };
-    if (status === "submitted") return { color: "bg-f1-amber text-black", label: "Update Prediction" };
-    return { color: "bg-f1-green text-black hover:bg-f1-green/80", label: "Submit Prediction" };
-  }, [isChampionTab, tab, champPred, currentSprintPred, currentPrediction, hasEdits]);
+    if (status === "scored") return { color: "bg-muted/20 text-muted cursor-not-allowed", label: t.predictionsPage.scored };
+    if (status === "submitted" && !hasEdits) return { color: "bg-f1-blue text-white", label: t.predictionsPage.submitted };
+    if (status === "submitted") return { color: "bg-f1-amber text-black", label: t.predictionsPage.updatePrediction };
+    return { color: "bg-f1-green text-black hover:bg-f1-green/80", label: t.predictionsPage.submitPrediction };
+  }, [isChampionTab, tab, champPred, currentSprintPred, currentPrediction, hasEdits, t]);
 
   const submitConfig = getSubmitButtonConfig();
 
@@ -376,7 +381,7 @@ export function RacePredictionContent({
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return d.toLocaleDateString(language === "es" ? "es-ES" : "en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
   const raceMatchStatuses = useMemo((): RaceMatchStatuses | null => {
@@ -447,7 +452,7 @@ export function RacePredictionContent({
           className="flex items-center gap-1.5 text-[11px] font-medium text-muted transition-colors hover:text-f1-white"
         >
           <ChevronLeft size={14} />
-          Leaderboard
+          {t.predictionsPage.backToLeaderboard}
         </a>
         {displayName && (
           <span className="flex items-center gap-1.5 text-[11px] text-muted">
@@ -455,7 +460,7 @@ export function RacePredictionContent({
             {isOwner ? (
               <span className="font-medium text-f1-white">{displayName}</span>
             ) : (
-              <span>{displayName}&apos;s predictions</span>
+              <span>{displayName}&apos;s {t.predictionsPage.yourPredictions}</span>
             )}
           </span>
         )}
@@ -516,7 +521,7 @@ export function RacePredictionContent({
             }`}
           >
             <Crown size={10} />
-            <span className="hidden sm:inline">Champion</span>
+            <span className="hidden sm:inline">{t.predictionsPage.champion}</span>
           </button>
         </div>
 
@@ -560,7 +565,7 @@ export function RacePredictionContent({
             }`}
           >
             <Flag size={12} />
-            Race
+            {t.predictionsPage.race}
           </button>
           <button
             onClick={() => currentRace.hasSprint && setTab("sprint")}
@@ -574,9 +579,9 @@ export function RacePredictionContent({
             }`}
           >
             <Zap size={12} />
-            Sprint
+            {t.predictionsPage.sprint}
             {!currentRace.hasSprint && (
-              <span className="text-[9px] text-muted/30">N/A</span>
+              <span className="text-[9px] text-muted/30">{t.predictionsPage.na}</span>
             )}
           </button>
         </div>
@@ -590,7 +595,7 @@ export function RacePredictionContent({
             className="flex items-center gap-1.5 text-[11px] font-medium text-f1-blue transition-colors hover:text-f1-blue/80"
           >
             {showResults ? <EyeOff size={12} /> : <Eye size={12} />}
-            {showResults ? "Hide Results" : "Show Results"}
+            {showResults ? t.predictionsPage.hideResults : t.predictionsPage.showResults}
           </button>
         </div>
       )}
@@ -627,7 +632,7 @@ export function RacePredictionContent({
             />
           ) : (
             <p className="py-8 text-center text-xs text-muted">
-              No sprint predictions available for this race.
+              {t.predictionsPage.noSprintPredictions}
             </p>
           )
         ) : currentPrediction ? (
@@ -642,7 +647,7 @@ export function RacePredictionContent({
           />
         ) : (
           <p className="py-8 text-center text-xs text-muted">
-            No predictions available for this race.
+            {t.predictionsPage.noPredictions}
           </p>
         )}
       </div>
@@ -655,7 +660,7 @@ export function RacePredictionContent({
             onClick={() => setErrorMessage(null)}
             className="ml-auto text-[10px] text-f1-red/60 hover:text-f1-red"
           >
-            Dismiss
+            {t.predictionsPage.dismiss}
           </button>
         </div>
       )}
@@ -669,7 +674,7 @@ export function RacePredictionContent({
               <span className="text-sm font-bold tabular-nums text-f1-amber">
                 {pointsEarned}
               </span>
-              <span className="text-[10px] text-muted">pts earned</span>
+              <span className="text-[10px] text-muted">{t.predictionsPage.ptsEarned}</span>
             </div>
           )}
           <StatusBadge
@@ -692,7 +697,7 @@ export function RacePredictionContent({
                 className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
               >
                 <RotateCcw size={12} />
-                Reset
+                {t.predictionsPage.reset}
               </button>
             )}
             <button
@@ -701,7 +706,7 @@ export function RacePredictionContent({
               className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[11px] font-semibold transition-colors ${submitConfig.color} ${isSaving ? "opacity-70" : ""}`}
             >
               {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-              {isSaving ? "Saving..." : submitConfig.label}
+              {isSaving ? t.predictionsPage.saving : submitConfig.label}
             </button>
           </div>
         )}
@@ -739,12 +744,13 @@ function ResetConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useLanguage();
   const label =
     tab === "champion"
-      ? "Championship"
+      ? t.predictionsPage.championship
       : tab === "sprint"
-        ? `Sprint — ${raceName}`
-        : raceName ?? "Race";
+        ? `${t.predictionsPage.sprint} — ${raceName}`
+        : raceName ?? t.predictionsPage.race;
 
   return (
     <div
@@ -766,7 +772,7 @@ function ResetConfirmModal({
             <RotateCcw size={15} className="text-f1-red" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-f1-white">Reset prediction?</h2>
+            <h2 className="text-sm font-semibold text-f1-white">{t.predictionsPage.resetPrediction}</h2>
             <p className="mt-0.5 text-[11px] text-muted">{label}</p>
           </div>
         </div>
@@ -774,8 +780,9 @@ function ResetConfirmModal({
         {/* Body */}
         <div className="px-5 py-4">
           <p className="text-xs leading-relaxed text-muted">
-            This will clear all your selections for this prediction and set it back to{" "}
-            <span className="font-medium text-f1-white">pending</span>. This action cannot be undone.
+            {t.predictionsPage.resetBody}{" "}
+            <span className="font-medium text-f1-white">{t.predictionsPage.resetBodyPending}</span>
+            {t.predictionsPage.resetBodySuffix}
           </p>
         </div>
 
@@ -786,7 +793,7 @@ function ResetConfirmModal({
             disabled={isSaving}
             className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
           >
-            Cancel
+            {t.navbar.cancel}
           </button>
           <button
             onClick={onConfirm}
@@ -794,7 +801,7 @@ function ResetConfirmModal({
             className="flex items-center gap-1.5 rounded-lg bg-f1-red px-4 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-f1-red/80 disabled:opacity-50"
           >
             {isSaving ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
-            {isSaving ? "Resetting..." : "Reset prediction"}
+            {isSaving ? t.predictionsPage.resetting : t.predictionsPage.resetConfirm}
           </button>
         </div>
       </div>
@@ -845,20 +852,20 @@ function RaceInfoBar({
 /* ---------- Champion Header ---------- */
 
 function ChampionHeader() {
+  const { t } = useLanguage();
   return (
     <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
       <div className="flex items-center gap-2">
         <Crown size={16} className="text-f1-amber" />
         <h2 className="text-sm font-semibold text-f1-white">
-          Championship Predictions
+          {t.predictionsPage.championshipPredictions}
         </h2>
       </div>
       <div className="group relative">
         <Info size={14} className="cursor-help text-muted" />
         <div className="pointer-events-none absolute right-0 top-full z-50 mt-1 w-64 rounded-lg border border-border bg-card p-3 opacity-0 shadow-xl transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
           <p className="text-[11px] leading-relaxed text-muted">
-            Championship predictions are locked after the start of the first race.
-            Predictions changed after the summer break earn half points.
+            {t.predictionsPage.championshipInfo}
           </p>
         </div>
       </div>
@@ -885,11 +892,12 @@ function RaceForm({
   onChange: (update: Partial<FullRacePrediction>) => void;
   matchStatuses: RaceMatchStatuses | null;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <DriverSelect
-          label="Pole Position"
+          label={t.predictionsPage.polePosition}
           value={prediction.polePosition}
           drivers={drivers}
           disabledDrivers={[]}
@@ -898,7 +906,7 @@ function RaceForm({
           matchStatus={matchStatuses?.polePosition}
         />
         <DriverSelect
-          label="Race Winner (P1)"
+          label={t.predictionsPage.raceWinner}
           value={prediction.raceWinner}
           drivers={drivers}
           disabledDrivers={getDisabledForWinner()}
@@ -911,9 +919,9 @@ function RaceForm({
       <div>
         <div className="mb-2 flex items-center gap-2">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-            Rest of Top 10
+            {t.predictionsPage.restOfTop10}
           </span>
-          <span className="text-[9px] text-muted/50">(P2 – P10, excluding race winner)</span>
+          <span className="text-[9px] text-muted/50">{t.predictionsPage.restOfTop10Sub}</span>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {prediction.restOfTop10.map((driver, i) => (
@@ -938,7 +946,7 @@ function RaceForm({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <DriverSelect
-          label="Fastest Lap"
+          label={t.predictionsPage.fastestLap}
           value={prediction.fastestLap}
           drivers={drivers}
           disabledDrivers={[]}
@@ -947,7 +955,7 @@ function RaceForm({
           matchStatus={matchStatuses?.fastestLap}
         />
         <DriverSelect
-          label="Fastest Pit Stop"
+          label={t.predictionsPage.fastestPitStop}
           value={prediction.fastestPitStop}
           drivers={drivers}
           disabledDrivers={[]}
@@ -979,11 +987,12 @@ function SprintForm({
   onChange: (update: Partial<SprintPrediction>) => void;
   matchStatuses: SprintMatchStatuses | null;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <DriverSelect
-          label="Sprint Pole Position"
+          label={t.predictionsPage.sprintPolePosition}
           value={prediction.sprintPole}
           drivers={drivers}
           disabledDrivers={[]}
@@ -992,7 +1001,7 @@ function SprintForm({
           matchStatus={matchStatuses?.sprintPole}
         />
         <DriverSelect
-          label="Sprint Winner (P1)"
+          label={t.predictionsPage.sprintWinnerP1}
           value={prediction.sprintWinner}
           drivers={drivers}
           disabledDrivers={getDisabledForWinner()}
@@ -1005,9 +1014,9 @@ function SprintForm({
       <div>
         <div className="mb-2 flex items-center gap-2">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-            Rest of Top 8
+            {t.predictionsPage.restOfTop8}
           </span>
-          <span className="text-[9px] text-muted/50">(P2 – P8, excluding sprint winner)</span>
+          <span className="text-[9px] text-muted/50">{t.predictionsPage.restOfTop8Sub}</span>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {prediction.restOfTop8.map((driver, i) => (
@@ -1032,7 +1041,7 @@ function SprintForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2">
         <DriverSelect
-          label="Fastest Lap"
+          label={t.predictionsPage.fastestLap}
           value={prediction.fastestLap}
           drivers={drivers}
           disabledDrivers={[]}
@@ -1062,6 +1071,7 @@ function ChampionForm({
   isEditable: boolean;
   onChange: (pred: ChampionPrediction) => void;
 }) {
+  const { t } = useLanguage();
   const [teamOpen, setTeamOpen] = useState(false);
   const [openUpward, setOpenUpward] = useState(false);
   const teamBtnRef = useRef<HTMLButtonElement>(null);
@@ -1081,13 +1091,13 @@ function ChampionForm({
         <div className="flex items-center gap-2 rounded-lg border border-f1-amber/30 bg-f1-amber/5 px-3 py-2">
           <Info size={14} className="shrink-0 text-f1-amber" />
           <p className="text-[11px] text-f1-amber">
-            Predictions changed after the summer break earn half points.
+            {t.predictionsPage.halfPointsWarning}
           </p>
         </div>
       )}
 
       <DriverSelect
-        label="World Drivers' Champion (WDC)"
+        label={t.predictionsPage.wdc}
         value={prediction.wdcWinner}
         drivers={drivers}
         disabledDrivers={[]}
@@ -1097,7 +1107,7 @@ function ChampionForm({
 
       <div className="relative">
         <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted">
-          World Constructors&apos; Champion (WCC)
+          {t.predictionsPage.wcc}
         </label>
         <button
           ref={teamBtnRef}
@@ -1121,7 +1131,7 @@ function ChampionForm({
               {prediction.wccWinner}
             </span>
           ) : (
-            <span className="text-muted">Select team...</span>
+            <span className="text-muted">{t.predictionsPage.selectTeam}</span>
           )}
           <ChevronDown size={14} className={`text-muted transition-transform ${teamOpen ? "rotate-180" : ""}`} />
         </button>
@@ -1169,20 +1179,21 @@ function ResultsDisplay({
   result: RaceResult;
   type: "race";
 }) {
+  const { t } = useLanguage();
   return (
     <div className="border-b border-border bg-card/30 px-4 py-3 sm:px-5">
       <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-f1-green">
-        Race Results
+        {t.predictionsPage.raceResults}
       </h3>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-4">
-        <ResultItem label="Pole" driver={result.polePosition} />
-        <ResultItem label="Winner" driver={result.raceWinner} />
-        <ResultItem label="Fastest Lap" driver={result.fastestLap} />
-        <ResultItem label="Fastest Pit" driver={result.fastestPitStop} />
+        <ResultItem label={t.predictionsPage.pole} driver={result.polePosition} />
+        <ResultItem label={t.predictionsPage.winner} driver={result.raceWinner} />
+        <ResultItem label={t.predictionsPage.fastestLap} driver={result.fastestLap} />
+        <ResultItem label={t.predictionsPage.fastestPit} driver={result.fastestPitStop} />
       </div>
       <div className="mt-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-          Top 10
+          {t.predictionsPage.top10}
         </span>
         <div className="mt-1 grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:gap-1.5">
           {result.top10.map((driver, i) => (
@@ -1207,19 +1218,20 @@ function ResultsDisplay({
 }
 
 function SprintResultsDisplay({ result }: { result: SprintResult }) {
+  const { t } = useLanguage();
   return (
     <div className="border-b border-border bg-card/30 px-4 py-3 sm:px-5">
       <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-f1-green">
-        Sprint Results
+        {t.predictionsPage.sprintResults}
       </h3>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-3">
-        <ResultItem label="Sprint Pole" driver={result.sprintPole} />
-        <ResultItem label="Sprint Winner" driver={result.sprintWinner} />
-        <ResultItem label="Fastest Lap" driver={result.fastestLap} />
+        <ResultItem label={t.predictionsPage.sprintPole} driver={result.sprintPole} />
+        <ResultItem label={t.predictionsPage.sprintWinner} driver={result.sprintWinner} />
+        <ResultItem label={t.predictionsPage.fastestLap} driver={result.fastestLap} />
       </div>
       <div className="mt-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-          Top 8
+          {t.predictionsPage.top8}
         </span>
         <div className="mt-1 flex flex-wrap gap-1.5">
           {result.top8.map((driver, i) => (

@@ -1,0 +1,309 @@
+const en = {
+  // ── Navbar ──────────────────────────────────────────────────────────────
+  navbar: {
+    season: "Season 2026",
+    openMenu: "Open user menu",
+    navigate: "Navigate",
+    settings: "Settings",
+    language: "Language",
+    theme: "Theme",
+    dark: "Dark",
+    light: "Light",
+    signOut: "Sign out",
+    signOutTitle: "Sign out?",
+    signedInAs: "Signed in as",
+    signOutBody: "You will be redirected to the login page. Your predictions and data are safely saved.",
+    cancel: "Cancel",
+    signingOut: "Signing out...",
+  },
+
+  // ── Navigation links ────────────────────────────────────────────────────
+  nav: {
+    dashboard: "Dashboard",
+    predictions: "Predictions",
+    leaderboard: "Leaderboard",
+    achievements: "Achievements",
+    profile: "Profile",
+  },
+
+  // ── Auth pages ──────────────────────────────────────────────────────────
+  login: {
+    title: "Welcome back",
+    subtitle: "Sign in to manage your predictions",
+    disclaimer: "This app is made for fun between friends and motorsport fans.\nNo betting, no gambling — just passion for F1.",
+    continueWithGoogle: "Continue with Google",
+    or: "or",
+    email: "Email",
+    emailPlaceholder: "you@example.com",
+    password: "Password",
+    passwordPlaceholder: "Enter your password",
+    forgotPassword: "Forgot password?",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    signIn: "Sign in",
+    signingIn: "Signing in...",
+    noAccount: "Don't have an account?",
+    createAccount: "Create account",
+  },
+
+  register: {
+    title: "Create your account",
+    subtitle: "Join the race and start predicting",
+    disclaimer: "This app is made for fun between friends and motorsport fans.\nNo betting, no gambling — just passion for F1.",
+    continueWithGoogle: "Continue with Google",
+    or: "or",
+    fullName: "Full name",
+    email: "Email",
+    emailPlaceholder: "you@example.com",
+    password: "Password",
+    passwordPlaceholder: "At least 6 characters",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    createAccount: "Create account",
+    creatingAccount: "Creating account...",
+    alreadyHaveAccount: "Already have an account?",
+    signIn: "Sign in",
+    checkEmail: "Check your email",
+    confirmationSent: "We've sent a confirmation link to",
+    clickToVerify: "Click the link to verify your account.",
+    backToLogin: "Back to login",
+  },
+
+  forgotPassword: {
+    title: "Reset your password",
+    subtitle: "Enter your email and we'll send you a reset link",
+    email: "Email",
+    emailPlaceholder: "you@example.com",
+    sendResetLink: "Send reset link",
+    sendingLink: "Sending link...",
+    rememberPassword: "Remember your password?",
+    signIn: "Sign in",
+    checkEmail: "Check your email",
+    resetLinkSent: "If an account exists for",
+    resetLinkSentSuffix: "we've sent a password reset link.",
+    backToLogin: "Back to login",
+  },
+
+  // ── Dashboard cards ─────────────────────────────────────────────────────
+  userPoints: {
+    yourPoints: "Your Points",
+    rank: "Rank",
+    predictions: "Predictions",
+    bestRace: "Best Race",
+  },
+
+  nextRace: {
+    nextRace: "Next Race",
+    raceWeekend: "Race Weekend",
+    live: "Live",
+    upcoming: "Upcoming",
+    days: "Days",
+    hrs: "Hrs",
+    min: "Min",
+    sec: "Sec",
+    lightsOut: "Lights out, and away we go!",
+    noUpcoming: "No upcoming races",
+  },
+
+  predictionsCard: {
+    predictions: "Predictions",
+    viewAll: "View all",
+    submitted: "Submitted",
+    scored: "Scored",
+    pending: "Pending",
+    pointsEarned: "Points earned",
+    makePrediction: "Make Prediction",
+    live: "Live",
+  },
+
+  leaderboardCard: {
+    leaderboard: "Leaderboard",
+    viewAll: "View all",
+    you: "You",
+    pts: "pts",
+  },
+
+  pointSystem: {
+    title: "Point System",
+    tapToView: "Tap to view scoring rules",
+    modalTitle: "Prediction Point System",
+    closeModal: "Close modal",
+    max: "Max",
+    pts: "pts",
+  },
+
+  achievementsCard: {
+    achievements: "Achievements",
+    viewAll: "View all",
+    noAchievements: "No achievements yet — start predicting!",
+    more: "more",
+  },
+
+  placeholder: {
+    stillCooking: "Still cooking...",
+  },
+
+  // ── Leaderboard page ────────────────────────────────────────────────────
+  leaderboardPage: {
+    title: "Leaderboard",
+    players: "players",
+    simple: "Simple",
+    detailed: "Detailed",
+    allRaces: "All Races",
+    player: "Player",
+    predictionsCol: "Predictions",
+    points: "Points",
+    total: "Total",
+    showing: "Showing",
+    of: "of",
+    you: "You",
+  },
+
+  // ── Predictions page ────────────────────────────────────────────────────
+  predictionsPage: {
+    backToLeaderboard: "Leaderboard",
+    yourPredictions: "your predictions",
+    champion: "Champion",
+    race: "Race",
+    sprint: "Sprint",
+    na: "N/A",
+    showResults: "Show Results",
+    hideResults: "Hide Results",
+    raceResults: "Race Results",
+    sprintResults: "Sprint Results",
+    top10: "Top 10",
+    top8: "Top 8",
+    pole: "Pole",
+    winner: "Winner",
+    fastestLap: "Fastest Lap",
+    fastestPit: "Fastest Pit",
+    sprintPole: "Sprint Pole",
+    sprintWinner: "Sprint Winner",
+    ptsEarned: "pts earned",
+    reset: "Reset",
+    saving: "Saving...",
+    dismiss: "Dismiss",
+    noSprintPredictions: "No sprint predictions available for this race.",
+    noPredictions: "No predictions available for this race.",
+    // Status labels
+    pending: "Pending",
+    submitted: "Submitted",
+    scored: "Scored",
+    // Submit button labels
+    submitPrediction: "Submit Prediction",
+    updatePrediction: "Update Prediction",
+    // Race form labels
+    polePosition: "Pole Position",
+    raceWinner: "Race Winner (P1)",
+    restOfTop10: "Rest of Top 10",
+    restOfTop10Sub: "(P2 – P10, excluding race winner)",
+    fastestPitStop: "Fastest Pit Stop",
+    // Sprint form labels
+    sprintPolePosition: "Sprint Pole Position",
+    sprintWinnerP1: "Sprint Winner (P1)",
+    restOfTop8: "Rest of Top 8",
+    restOfTop8Sub: "(P2 – P8, excluding sprint winner)",
+    // Champion form labels
+    wdc: "World Drivers' Champion (WDC)",
+    wcc: "World Constructors' Champion (WCC)",
+    selectTeam: "Select team...",
+    halfPointsWarning: "Predictions changed after the summer break earn half points.",
+    // Champion header
+    championshipPredictions: "Championship Predictions",
+    championshipInfo: "Championship predictions are locked after the start of the first race. Predictions changed after the summer break earn half points.",
+    // Race status
+    upcoming: "Upcoming",
+    live: "LIVE",
+    completed: "Completed",
+    // Reset modal
+    resetPrediction: "Reset prediction?",
+    resetBody: "This will clear all your selections for this prediction and set it back to",
+    resetBodyPending: "pending",
+    resetBodySuffix: ". This action cannot be undone.",
+    resetting: "Resetting...",
+    resetConfirm: "Reset prediction",
+    championship: "Championship",
+  },
+
+  // ── Achievements page ───────────────────────────────────────────────────
+  achievementsPage: {
+    title: "Achievements",
+    unlocked: "unlocked",
+    of: "of",
+    all: "All",
+    noAchievements: "No achievements in this category",
+  },
+
+  // ── Profile page ────────────────────────────────────────────────────────
+  profilePage: {
+    title: "Profile",
+    memberSince: "Member since",
+    editDisplayName: "Edit display name",
+    saveName: "Save name",
+    cancelEdit: "Cancel",
+    points: "Points",
+    rank: "Rank",
+    predictions: "Predictions",
+    achievements: "Achievements",
+    navigate: "Navigate",
+    myPredictions: "My Predictions",
+    leaderboard: "Leaderboard",
+    account: "Account",
+    changePassword: "Change Password",
+    signOut: "Sign Out",
+    deleteAccount: "Delete Account",
+    signedInWith: "Signed in with",
+    google: "Google",
+    emailAndPassword: "email & password",
+    // Change password modal
+    changePasswordTitle: "Change Password",
+    newPassword: "New Password",
+    newPasswordPlaceholder: "Enter new password",
+    confirmNewPassword: "Confirm New Password",
+    confirmNewPasswordPlaceholder: "Confirm new password",
+    passwordsDoNotMatch: "Passwords do not match.",
+    cancel: "Cancel",
+    updatePassword: "Update Password",
+    updating: "Updating...",
+    // Sign out modal
+    signOutTitle: "Sign out?",
+    signedInAs: "Signed in as",
+    signOutBody: "You will be redirected to the login page. Your predictions and data are safely saved.",
+    signingOut: "Signing out...",
+    // Delete account modal
+    deleteAccountTitle: "Delete account",
+    deleteCannotBeUndone: "This cannot be undone",
+    deleteBody: "All your",
+    deletePredictionsPointsAchievements: "predictions, points, and achievements",
+    deleteBodySuffix: "will be permanently deleted. There is no way to recover your account after this action.",
+    confirmWithPassword: "Confirm with your password",
+    confirmPasswordPlaceholder: "Enter your password",
+    typeEmailToConfirm: "Type your email to confirm",
+    deleting: "Deleting...",
+    deleteConfirm: "Delete account",
+    // Errors
+    failedToUpdateName: "Failed to update display name. Please try again.",
+    passwordsDoNotMatchError: "Passwords do not match.",
+    passwordTooShort: "Password must be at least 8 characters.",
+    passwordUpdated: "Password updated successfully!",
+    displayNameUpdated: "Display name updated!",
+    incorrectPassword: "Incorrect password. Please try again.",
+    emailDoesNotMatch: "Email address does not match. Please try again.",
+    failedToDelete: "Failed to delete account. Please contact support if the issue persists.",
+  },
+
+  // ── Auth footer ─────────────────────────────────────────────────────────
+  authFooter: {
+    madeWith: "made with ❤︎ on",
+    findMe: "find me on",
+  },
+
+  // ── Footer ──────────────────────────────────────────────────────────────
+  footer: {
+    season: "Season 2026",
+    buyMeCoffee: "buy me a coffee",
+  },
+};
+
+export type Messages = typeof en;
+export default en;

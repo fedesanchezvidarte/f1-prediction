@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect } from "react";
 import type { PointSystemSection } from "@/types";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface PointSystemModalProps {
   sections: PointSystemSection[];
@@ -10,6 +11,8 @@ interface PointSystemModalProps {
 }
 
 export function PointSystemModal({ sections, onClose }: PointSystemModalProps) {
+  const { t } = useLanguage();
+
   useEffect(() => {
     function handleEscape(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -31,12 +34,12 @@ export function PointSystemModal({ sections, onClose }: PointSystemModalProps) {
       <div className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card">
         <div className="sticky top-0 flex items-center justify-between border-b border-border bg-card px-6 py-4">
           <h2 className="text-lg font-bold text-f1-white">
-            Prediction Point System
+            {t.pointSystem.modalTitle}
           </h2>
           <button
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-card-hover hover:text-f1-white"
-            aria-label="Close modal"
+            aria-label={t.pointSystem.closeModal}
           >
             <X size={18} />
           </button>
@@ -50,7 +53,7 @@ export function PointSystemModal({ sections, onClose }: PointSystemModalProps) {
                   {section.title}
                 </h3>
                 <span className="rounded-full bg-f1-red/10 px-2.5 py-0.5 text-[10px] font-semibold text-f1-red">
-                  Max {section.maxPoints} pts
+                  {t.pointSystem.max} {section.maxPoints} {t.pointSystem.pts}
                 </span>
               </div>
               <div className="mt-3 space-y-1">
