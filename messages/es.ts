@@ -319,6 +319,15 @@ const es: Messages = {
     saveError: "Error al guardar los resultados",
     cancel: "Cancelar",
     navLabel: "Admin",
+    achievementsSection: "Logros",
+    recalculateAllAchievements: "Recalcular Todos",
+    recalculateAchievements: "Recalcular Logros",
+    calculatingAchievements: "Calculando...",
+    achievementsCalculated: "Logros calculados",
+    achievementsUsers: "usuarios procesados",
+    achievementsAwarded: "otorgados",
+    achievementsRevoked: "revocados",
+    achievementsError: "Error al calcular los logros",
   },
   // ── Auth footer ─────────────────────────────────────────────────────────
   authFooter: {
