@@ -385,7 +385,7 @@ export function RacePredictionContent({
   };
 
   const raceMatchStatuses = useMemo((): RaceMatchStatuses | null => {
-    if (raceStatus !== "completed" || !currentResult || !currentPrediction) return null;
+    if (!currentResult || !currentPrediction) return null;
     const resultTop10Numbers = currentResult.top10.map((d) => d.driverNumber);
 
     function fieldStatus(predicted: Driver | null, actual: Driver): MatchStatus {
@@ -412,10 +412,10 @@ export function RacePredictionContent({
       fastestLap: fieldStatus(currentPrediction.fastestLap, currentResult.fastestLap),
       fastestPitStop: fieldStatus(currentPrediction.fastestPitStop, currentResult.fastestPitStop),
     };
-  }, [raceStatus, currentResult, currentPrediction]);
+  }, [currentResult, currentPrediction]);
 
   const sprintMatchStatuses = useMemo((): SprintMatchStatuses | null => {
-    if (raceStatus !== "completed" || !currentSprintResult || !currentSprintPred) return null;
+    if (!currentSprintResult || !currentSprintPred) return null;
     const resultTop8Numbers = currentSprintResult.top8.map((d) => d.driverNumber);
 
     function fieldStatus(predicted: Driver | null, actual: Driver): MatchStatus {
@@ -441,7 +441,7 @@ export function RacePredictionContent({
       restOfTop8: restStatuses,
       fastestLap: fieldStatus(currentSprintPred.fastestLap, currentSprintResult.fastestLap),
     };
-  }, [raceStatus, currentSprintResult, currentSprintPred]);
+  }, [currentSprintResult, currentSprintPred]);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border">
