@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Shield,
   Download,
@@ -70,6 +71,7 @@ type SessionType = "race" | "sprint";
 
 export function AdminPanel({ races, drivers }: AdminPanelProps) {
   const { t } = useLanguage();
+  const router = useRouter();
   const admin = t.admin;
   const [expandedRace, setExpandedRace] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Record<number, SessionType>>({});
@@ -117,6 +119,7 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
           ...prev,
           [key]: `${admin.fetchSuccess} (${data.driversFound} drivers, ${data.scoring?.racePredictionsScored ?? 0} race + ${data.scoring?.sprintPredictionsScored ?? 0} sprint predictions scored)`,
         }));
+        router.refresh();
       } else {
         setFetchingState((prev) => ({ ...prev, [key]: "error" }));
         setFetchMessages((prev) => ({
@@ -147,6 +150,7 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
 
       if (res.ok && data.success) {
         setRescoringState((prev) => ({ ...prev, [raceId]: "success" }));
+        router.refresh();
       } else {
         setRescoringState((prev) => ({ ...prev, [raceId]: "error" }));
       }
@@ -206,6 +210,7 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
               <button
                 onClick={() => setExpandedRace(isExpanded ? null : race.id)}
                 className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-card-hover"
+                aria-expanded={isExpanded}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-f1-red/10 text-[10px] font-bold text-f1-red">
@@ -458,8 +463,7 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
                       }
                       onSuccess={() => {
                         setShowManualForm((prev) => ({ ...prev, [manualKey]: false }));
-                        // Refresh the page to show updated data
-                        window.location.reload();
+                        router.refresh();
                       }}
                       onCancel={() =>
                         setShowManualForm((prev) => ({ ...prev, [manualKey]: false }))
