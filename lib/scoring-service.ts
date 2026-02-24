@@ -103,9 +103,8 @@ async function scoreRacePredictions(
       .eq("id", pred.id);
 
     if (error) {
-      console.error(
-        `[scoring] Failed to update race prediction ${pred.id}:`,
-        error.message
+      throw new Error(
+        `Failed to update race prediction ${pred.id}: ${error.message}`
       );
     }
 
@@ -168,9 +167,8 @@ async function scoreSprintPredictions(
       .eq("id", pred.id);
 
     if (error) {
-      console.error(
-        `[scoring] Failed to update sprint prediction ${pred.id}:`,
-        error.message
+      throw new Error(
+        `Failed to update sprint prediction ${pred.id}: ${error.message}`
       );
     }
 
@@ -252,12 +250,24 @@ async function updateLeaderboard(
     };
 
     if (existingLb) {
-      await supabase
+      const { error: updateError } = await supabase
         .from("leaderboard")
         .update(leaderboardData)
         .eq("id", existingLb.id);
+      if (updateError) {
+        throw new Error(
+          `Failed to update leaderboard for user ${userId}: ${updateError.message}`
+        );
+      }
     } else {
-      await supabase.from("leaderboard").insert(leaderboardData);
+      const { error: insertError } = await supabase
+        .from("leaderboard")
+        .insert(leaderboardData);
+      if (insertError) {
+        throw new Error(
+          `Failed to insert leaderboard for user ${userId}: ${insertError.message}`
+        );
+      }
     }
   }
 
@@ -279,6 +289,14 @@ async function updateLeaderboard(
       updates.push({ id: allLb[i].id, rank: currentRank });
     }
 
-    await supabase.from("leaderboard").upsert(updates, { onConflict: "id" });
+    const { error: upsertError } = await supabase
+      .from("leaderboard")
+      .upsert(updates, { onConflict: "id" });
+
+    if (upsertError) {
+      throw new Error(
+        `Failed to recalculate leaderboard ranks: ${upsertError.message}`
+      );
+    }
   }
 }
