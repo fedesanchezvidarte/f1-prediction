@@ -587,8 +587,9 @@ export function RacePredictionContent({
         </div>
       )}
 
-      {/* Results Toggle */}
-      {!isChampionTab && raceStatus === "completed" && (
+      {/* Results Toggle — show when race is completed OR when results data exists
+         (e.g. admin entered results before the race dates have passed) */}
+      {!isChampionTab && (raceStatus === "completed" || currentResult || currentSprintResult) && (
         <div className="border-b border-border px-4 py-2 sm:px-5">
           <button
             onClick={() => setShowResults(!showResults)}

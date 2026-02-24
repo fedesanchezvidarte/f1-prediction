@@ -15,6 +15,7 @@ import {
   Moon,
   Sun,
   Loader2,
+  Shield,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/providers/ThemeProvider";
@@ -23,9 +24,10 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 interface NavbarProps {
   displayName: string;
   avatarUrl?: string;
+  isAdmin?: boolean;
 }
 
-export function Navbar({ displayName, avatarUrl }: NavbarProps) {
+export function Navbar({ displayName, avatarUrl, isAdmin = false }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -147,6 +149,22 @@ export function Navbar({ displayName, avatarUrl }: NavbarProps) {
                 </span>
                 {t.nav.profile}
               </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors hover:bg-card-hover ${
+                    pathname === "/admin"
+                      ? "font-semibold text-f1-white"
+                      : "text-f1-red/80 hover:text-f1-red"
+                  }`}
+                >
+                  <span className={pathname === "/admin" ? "text-f1-red" : "text-f1-red/60"}>
+                    <Shield size={16} />
+                  </span>
+                  {t.admin.navLabel}
+                </Link>
+              )}
             </div>
 
             <div className="border-t border-border" />
