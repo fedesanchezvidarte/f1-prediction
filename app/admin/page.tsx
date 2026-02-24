@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminUser } from "@/lib/admin";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AdminPanel } from "@/components/admin/AdminPanel";
@@ -15,11 +16,7 @@ export default async function AdminPage() {
   }
 
   // Check admin access
-  const isAdmin =
-    user.app_metadata?.role === "admin" ||
-    process.env.ADMIN_USER_IDS?.split(",").includes(user.id);
-
-  if (!isAdmin) {
+  if (!isAdminUser(user)) {
     redirect("/");
   }
 
