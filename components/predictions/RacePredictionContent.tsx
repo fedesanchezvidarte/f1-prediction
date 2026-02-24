@@ -365,11 +365,18 @@ export function RacePredictionContent({
     }
   }
 
+  const racePts = currentPrediction?.pointsEarned ?? null;
+  const sprintPts = currentSprintPred?.pointsEarned ?? null;
+
   const pointsEarned = isChampionTab
     ? champPred.pointsEarned
     : tab === "sprint"
-      ? currentSprintPred?.pointsEarned ?? null
-      : currentPrediction?.pointsEarned ?? null;
+      ? sprintPts
+      : currentRace.hasSprint
+        ? racePts !== null || sprintPts !== null
+          ? (racePts ?? 0) + (sprintPts ?? 0)
+          : null
+        : racePts;
 
   const teamColors = useMemo(() => {
     const map: Record<string, string> = {};

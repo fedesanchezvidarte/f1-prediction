@@ -55,6 +55,11 @@ export default async function Home() {
     .select("race_id, status, points_earned")
     .eq("user_id", user.id);
 
+  const { data: sprintPredictions } = await supabase
+    .from("sprint_predictions")
+    .select("race_id, points_earned")
+    .eq("user_id", user.id);
+
   // Build mapping: DB race ID -> meeting key
   const { data: dbRaces } = await supabase
     .from("races")
@@ -123,18 +128,32 @@ export default async function Home() {
     bestRacePoints: leaderboardRow?.best_race_points ?? 0,
   };
 
+  const sprintEarningsByMeetingKey = new Map<number, number>();
+  for (const sp of sprintPredictions ?? []) {
+    const meetingKey = raceIdToMeetingKey.get(sp.race_id);
+    if (meetingKey !== undefined && sp.points_earned != null) {
+      sprintEarningsByMeetingKey.set(meetingKey, sp.points_earned);
+    }
+  }
+
   const predictions: RacePrediction[] = RACES_2026.map((race) => {
     const pred = (racePredictions ?? []).find((p) => {
       const meetingKey = raceIdToMeetingKey.get(p.race_id);
       return meetingKey === race.meetingKey;
     });
+    const racePts = pred?.points_earned ?? null;
+    const sprintPts = race.hasSprint ? (sprintEarningsByMeetingKey.get(race.meetingKey) ?? null) : null;
+    const totalPts =
+      racePts !== null || sprintPts !== null
+        ? (racePts ?? 0) + (sprintPts ?? 0)
+        : undefined;
     return {
       raceId: race.meetingKey,
       raceName: race.raceName,
       round: race.round,
       status: (pred?.status as RacePrediction["status"]) ?? "pending",
       top10: [],
-      pointsEarned: pred?.points_earned ?? undefined,
+      pointsEarned: totalPts,
       maxPoints: 42,
     };
   });
