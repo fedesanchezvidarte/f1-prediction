@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { scoreRaceForId } from "@/lib/scoring-service";
+import { isAdminUser } from "@/lib/admin";
 
 /**
  * Fetches race results from the OpenF1 API and stores them in the database.
@@ -56,11 +57,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const isAdmin =
-    (user.app_metadata?.role === "admin") ||
-    (process.env.ADMIN_USER_IDS?.split(",").includes(user.id));
-
-  if (!isAdmin) {
+  if (!isAdminUser(user)) {
     return NextResponse.json({ error: "Forbidden: admin access required" }, { status: 403 });
   }
 
@@ -135,8 +132,9 @@ export async function POST(request: NextRequest) {
       `https://api.openf1.org/v1/sessions?meeting_key=${meetingKey}&session_name=${qualyName}`
     );
     let poleDriverNumber: number | null = null;
+    let qualySessions: OpenF1Session[] = [];
     if (qualyRes.ok) {
-      const qualySessions: OpenF1Session[] = await qualyRes.json();
+      qualySessions = await qualyRes.json();
       if (qualySessions && qualySessions.length > 0) {
         const gridRes = await fetch(
           `https://api.openf1.org/v1/starting_grid?session_key=${qualySessions[0].session_key}&position=1`
@@ -151,17 +149,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Fallback: if starting_grid didn't work, use session_result from qualifying
-    if (poleDriverNumber === null && qualyRes.ok) {
-      const qualySessions: OpenF1Session[] = await qualyRes.json();
-      if (qualySessions && qualySessions.length > 0) {
-        const qualyResultRes = await fetch(
-          `https://api.openf1.org/v1/session_result?session_key=${qualySessions[0].session_key}&position=1`
-        );
-        if (qualyResultRes.ok) {
-          const qualyResults: OpenF1SessionResult[] = await qualyResultRes.json();
-          if (qualyResults && qualyResults.length > 0) {
-            poleDriverNumber = qualyResults[0].driver_number;
-          }
+    if (poleDriverNumber === null && qualySessions.length > 0) {
+      const qualyResultRes = await fetch(
+        `https://api.openf1.org/v1/session_result?session_key=${qualySessions[0].session_key}&position=1`
+      );
+      if (qualyResultRes.ok) {
+        const qualyResults: OpenF1SessionResult[] = await qualyResultRes.json();
+        if (qualyResults && qualyResults.length > 0) {
+          poleDriverNumber = qualyResults[0].driver_number;
         }
       }
     }

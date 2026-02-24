@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { scoreRaceForId } from "@/lib/scoring-service";
+import { isAdminUser } from "@/lib/admin";
 
 /**
  * Allows an admin to manually enter or override race/sprint results.
@@ -55,11 +56,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const isAdmin =
-    user.app_metadata?.role === "admin" ||
-    process.env.ADMIN_USER_IDS?.split(",").includes(user.id);
-
-  if (!isAdmin) {
+  if (!isAdminUser(user)) {
     return NextResponse.json(
       { error: "Forbidden: admin access required" },
       { status: 403 }
@@ -119,6 +116,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Validate all top10 entries are valid positive numbers
+      if (top10.some((id) => typeof id !== "number" || id <= 0 || !Number.isFinite(id))) {
+        return NextResponse.json(
+          { error: "All top10 entries must be valid positive driver IDs" },
+          { status: 400 }
+        );
+      }
+
       const resultData = {
         race_id: raceId,
         pole_position_driver_id: polePositionDriverId,
@@ -154,6 +159,14 @@ export async function POST(request: NextRequest) {
             error:
               "Sprint results require: sprintPoleDriverId, top8 (8 driver IDs), fastestLapDriverId",
           },
+          { status: 400 }
+        );
+      }
+
+      // Validate all top8 entries are valid positive numbers
+      if (top8.some((id) => typeof id !== "number" || id <= 0 || !Number.isFinite(id))) {
+        return NextResponse.json(
+          { error: "All top8 entries must be valid positive driver IDs" },
           { status: 400 }
         );
       }

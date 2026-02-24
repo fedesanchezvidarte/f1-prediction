@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { scoreRaceForId } from "@/lib/scoring-service";
+import { isAdminUser } from "@/lib/admin";
 
 /**
  * Scores all submitted predictions for a given race (and sprint if applicable).
@@ -18,11 +19,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const isAdmin =
-    (user.app_metadata?.role === "admin") ||
-    (process.env.ADMIN_USER_IDS?.split(",").includes(user.id));
-
-  if (!isAdmin) {
+  if (!isAdminUser(user)) {
     return NextResponse.json({ error: "Forbidden: admin access required" }, { status: 403 });
   }
 
