@@ -4,6 +4,10 @@
  * Shared by /api/results/score and /api/results/manual routes.
  */
 import { scoreRacePrediction, scoreSprintPrediction } from "@/lib/scoring";
+import {
+  calculateAchievementsForUsers,
+  type AchievementCalculationResult,
+} from "@/lib/achievement-calculator";
 
 type SupabaseClient = Awaited<
   ReturnType<typeof import("@/lib/supabase/server").createClient>
@@ -12,6 +16,7 @@ type SupabaseClient = Awaited<
 export interface ScoringResult {
   racePredictionsScored: number;
   sprintPredictionsScored: number;
+  achievements?: AchievementCalculationResult;
 }
 
 export async function scoreRaceForId(
@@ -26,17 +31,33 @@ export async function scoreRaceForId(
     ...sprintScored.userIds,
   ]);
 
+  let achievements: AchievementCalculationResult | undefined;
+
   if (affectedUserIds.size > 0) {
+    const userIdArray = Array.from(affectedUserIds);
+
     await updateLeaderboard(
       supabase,
-      Array.from(affectedUserIds),
+      userIdArray,
       raceScored.perfectPodiumUsers
     );
+
+    // Auto-calculate achievements for all affected users.
+    // Errors here should not cause the overall scoring operation to fail.
+    try {
+      achievements = await calculateAchievementsForUsers(supabase, userIdArray);
+    } catch (error) {
+      console.error(
+        "[scoring] Failed to calculate achievements for users",
+        { userIds: userIdArray, error }
+      );
+    }
   }
 
   return {
     racePredictionsScored: raceScored.count,
     sprintPredictionsScored: sprintScored.count,
+    achievements,
   };
 }
 

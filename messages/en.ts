@@ -329,6 +329,15 @@ const en = {
     saveError: "Failed to save results",
     cancel: "Cancel",
     navLabel: "Admin",
+    achievementsSection: "Achievements",
+    recalculateAllAchievements: "Recalculate All",
+    recalculateAchievements: "Recalc Achievements",
+    calculatingAchievements: "Calculating...",
+    achievementsCalculated: "Achievements calculated",
+    achievementsUsers: "users processed",
+    achievementsAwarded: "awarded",
+    achievementsRevoked: "revoked",
+    achievementsError: "Failed to calculate achievements",
   },
   // ── Auth footer ─────────────────────────────────────────────────────────
   authFooter: {

@@ -15,6 +15,7 @@ import {
   Trophy,
   Clock,
   RefreshCw,
+  Award,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { ManualResultForm } from "@/components/admin/ManualResultForm";
@@ -79,6 +80,10 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
   const [fetchMessages, setFetchMessages] = useState<Record<string, string>>({});
   const [showManualForm, setShowManualForm] = useState<Record<string, boolean>>({});
   const [rescoringState, setRescoringState] = useState<Record<number, "loading" | "success" | "error">>({});
+  const [achievementState, setAchievementState] = useState<Record<number, "loading" | "success" | "error">>({});
+  const [achievementMessages, setAchievementMessages] = useState<Record<number, string>>({});
+  const [globalAchievementState, setGlobalAchievementState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [globalAchievementMsg, setGlobalAchievementMsg] = useState("");
 
   const now = new Date();
 
@@ -159,6 +164,71 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
     }
   }
 
+  async function handleCalculateAchievements(raceId: number) {
+    setAchievementState((prev) => ({ ...prev, [raceId]: "loading" }));
+    setAchievementMessages((prev) => ({ ...prev, [raceId]: "" }));
+
+    try {
+      const res = await fetch("/api/achievements/calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raceId }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setAchievementState((prev) => ({ ...prev, [raceId]: "success" }));
+        setAchievementMessages((prev) => ({
+          ...prev,
+          [raceId]: `${admin.achievementsCalculated}: ${data.usersProcessed} ${admin.achievementsUsers}, ${data.achievementsAwarded} ${admin.achievementsAwarded}, ${data.achievementsRevoked} ${admin.achievementsRevoked}`,
+        }));
+        router.refresh();
+      } else {
+        setAchievementState((prev) => ({ ...prev, [raceId]: "error" }));
+        setAchievementMessages((prev) => ({
+          ...prev,
+          [raceId]: data.error || admin.achievementsError,
+        }));
+      }
+    } catch {
+      setAchievementState((prev) => ({ ...prev, [raceId]: "error" }));
+      setAchievementMessages((prev) => ({
+        ...prev,
+        [raceId]: admin.achievementsError,
+      }));
+    }
+  }
+
+  async function handleCalculateAllAchievements() {
+    setGlobalAchievementState("loading");
+    setGlobalAchievementMsg("");
+
+    try {
+      const res = await fetch("/api/achievements/calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ all: true }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setGlobalAchievementState("success");
+        setGlobalAchievementMsg(
+          `${admin.achievementsCalculated}: ${data.usersProcessed} ${admin.achievementsUsers}, ${data.achievementsAwarded} ${admin.achievementsAwarded}, ${data.achievementsRevoked} ${admin.achievementsRevoked}`
+        );
+        router.refresh();
+      } else {
+        setGlobalAchievementState("error");
+        setGlobalAchievementMsg(data.error || admin.achievementsError);
+      }
+    } catch {
+      setGlobalAchievementState("error");
+      setGlobalAchievementMsg(admin.achievementsError);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -190,6 +260,43 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
             {races.filter((r) => !r.hasRaceResult && getRaceStatus(r) === "completed").length}
           </p>
         </div>
+      </div>
+
+      {/* Global achievements recalculation */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Award size={16} className="text-f1-amber" />
+            <span className="text-sm font-semibold text-f1-white">{admin.achievementsSection}</span>
+          </div>
+          <button
+            onClick={handleCalculateAllAchievements}
+            disabled={globalAchievementState === "loading"}
+            className="flex items-center gap-1.5 rounded-lg bg-f1-amber/15 px-3 py-2 text-xs font-medium text-f1-amber transition-colors hover:bg-f1-amber/25 disabled:opacity-50"
+          >
+            {globalAchievementState === "loading" ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <RefreshCw size={13} />
+            )}
+            {globalAchievementState === "loading"
+              ? admin.calculatingAchievements
+              : admin.recalculateAllAchievements}
+          </button>
+        </div>
+        {globalAchievementMsg && (
+          <div
+            className={`rounded-lg px-3 py-2 text-xs ${
+              globalAchievementState === "success"
+                ? "bg-f1-green/10 text-f1-green"
+                : globalAchievementState === "error"
+                  ? "bg-f1-red/10 text-f1-red"
+                  : ""
+            }`}
+          >
+            {globalAchievementMsg}
+          </div>
+        )}
       </div>
 
       {/* Race list */}
@@ -428,6 +535,25 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
                         {admin.rescore}
                       </button>
                     )}
+
+                    {/* Recalculate achievements for this race */}
+                    {((sessionType === "race" && race.hasRaceResult) ||
+                      (sessionType === "sprint" && race.hasSprintResult)) && (
+                      <button
+                        onClick={() => handleCalculateAchievements(race.id)}
+                        disabled={achievementState[race.id] === "loading"}
+                        className="flex items-center gap-1.5 rounded-lg bg-f1-amber/15 px-3 py-2 text-xs font-medium text-f1-amber transition-colors hover:bg-f1-amber/25 disabled:opacity-50"
+                      >
+                        {achievementState[race.id] === "loading" ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Award size={13} />
+                        )}
+                        {achievementState[race.id] === "loading"
+                          ? admin.calculatingAchievements
+                          : admin.recalculateAchievements}
+                      </button>
+                    )}
                   </div>
 
                   {/* Fetch status message */}
@@ -449,6 +575,21 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
                   {rescoringState[race.id] === "success" && (
                     <div className="rounded-lg bg-f1-green/10 px-3 py-2 text-xs text-f1-green">
                       {admin.rescoreSuccess}
+                    </div>
+                  )}
+
+                  {/* Achievement calculation status */}
+                  {achievementMessages[race.id] && (
+                    <div
+                      className={`rounded-lg px-3 py-2 text-xs ${
+                        achievementState[race.id] === "success"
+                          ? "bg-f1-green/10 text-f1-green"
+                          : achievementState[race.id] === "error"
+                            ? "bg-f1-red/10 text-f1-red"
+                            : ""
+                      }`}
+                    >
+                      {achievementMessages[race.id]}
                     </div>
                   )}
 
