@@ -11,8 +11,6 @@
 import {
   scoreRacePrediction,
   scoreSprintPrediction,
-  type RaceScoringInput,
-  type SprintScoringInput,
 } from "@/lib/scoring";
 
 type SupabaseClient = Awaited<
@@ -205,10 +203,10 @@ async function evaluateAllAchievements(
       predFastestLap: pred.fastest_lap_driver_id,
       predFastestPitStop: pred.fastest_pit_stop_driver_id,
       resultTop10,
-      resultPole: result.pole_position_driver_id,
-      resultFastestLap: result.fastest_lap_driver_id,
-      resultFastestPitStop: result.fastest_pit_stop_driver_id,
-    } as RaceScoringInput);
+      resultPole: result.pole_position_driver_id ?? 0,
+      resultFastestLap: result.fastest_lap_driver_id ?? 0,
+      resultFastestPitStop: result.fastest_pit_stop_driver_id ?? 0,
+    });
 
     totalCorrectPositions += breakdown.positionMatches;
 
@@ -250,9 +248,9 @@ async function evaluateAllAchievements(
       predSprintPole: pred.sprint_pole_driver_id,
       predFastestLap: pred.fastest_lap_driver_id,
       resultTop8,
-      resultSprintPole: result.sprint_pole_driver_id,
-      resultFastestLap: result.fastest_lap_driver_id,
-    } as SprintScoringInput);
+      resultSprintPole: result.sprint_pole_driver_id ?? 0,
+      resultFastestLap: result.fastest_lap_driver_id ?? 0,
+    });
 
     totalCorrectPositions += breakdown.positionMatches;
 
@@ -280,6 +278,8 @@ async function evaluateAllAchievements(
     // so we award both achievement checks optimistically when pts > 0.
     // This covers the realistic case; fine-grained tracking would require
     // storing individual match results in a separate column.
+    // TODO: add wdc_correct / wcc_correct boolean columns to champion_predictions
+    // to track each championship prediction individually and avoid this ambiguity.
     if (pts > 0) {
       hasCorrectWdc = true;
       hasCorrectWcc = true;
@@ -413,12 +413,16 @@ async function reconcileAchievements(
     .eq("user_id", userId);
 
   const currentIds = new Set(
-    (currentAchievements ?? []).map((a) => a.achievement_id as number)
+    (currentAchievements ?? [])
+      .map((a) => a.achievement_id)
+      .filter((id): id is number => typeof id === "number")
   );
 
   const toAdd = [...earnedIds].filter((id) => !currentIds.has(id));
   const toRemove = (currentAchievements ?? []).filter(
-    (a) => !earnedIds.has(a.achievement_id)
+    (a) =>
+      typeof a.achievement_id === "number" &&
+      !earnedIds.has(a.achievement_id)
   );
 
   let awarded = 0;

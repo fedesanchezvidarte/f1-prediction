@@ -42,8 +42,16 @@ export async function scoreRaceForId(
       raceScored.perfectPodiumUsers
     );
 
-    // Auto-calculate achievements for all affected users
-    achievements = await calculateAchievementsForUsers(supabase, userIdArray);
+    // Auto-calculate achievements for all affected users.
+    // Errors here should not cause the overall scoring operation to fail.
+    try {
+      achievements = await calculateAchievementsForUsers(supabase, userIdArray);
+    } catch (error) {
+      console.error(
+        "[scoring] Failed to calculate achievements for users",
+        { userIds: userIdArray, error }
+      );
+    }
   }
 
   return {

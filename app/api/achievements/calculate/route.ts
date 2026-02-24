@@ -46,6 +46,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Recalculate for all users who predicted a specific race
+    if (body.raceId !== undefined) {
+      if (!Number.isInteger(body.raceId) || body.raceId <= 0) {
+        return NextResponse.json(
+          { error: "raceId must be a positive integer" },
+          { status: 400 }
+        );
+      }
+    }
+
     if (body.raceId) {
       const [{ data: racePreds }, { data: sprintPreds }] = await Promise.all([
         supabase
@@ -81,10 +90,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Recalculate for a specific list of users
-    if (body.userIds && body.userIds.length > 0) {
+    if (body.userIds !== undefined) {
+      if (!Array.isArray(body.userIds) || body.userIds.length === 0) {
+        return NextResponse.json(
+          { error: "userIds must be a non-empty array of strings" },
+          { status: 400 }
+        );
+      }
+      const hasInvalidUserId = body.userIds.some(
+        (id) => typeof id !== "string" || id.trim().length === 0
+      );
+      if (hasInvalidUserId) {
+        return NextResponse.json(
+          { error: "Each userId must be a valid non-empty string" },
+          { status: 400 }
+        );
+      }
+      const sanitizedUserIds = body.userIds.map((id) => id.trim());
       const result = await calculateAchievementsForUsers(
         supabase,
-        body.userIds
+        sanitizedUserIds
       );
       return NextResponse.json({ success: true, ...result });
     }
