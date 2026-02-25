@@ -167,7 +167,7 @@ const es: Messages = {
   // ── Predictions page ────────────────────────────────────────────────────
   predictionsPage: {
     backToLeaderboard: "Clasificación",
-    yourPredictions: "predicciones",
+    yourPredictions: " predicciones",
     champion: "Campeón",
     race: "Carrera",
     sprint: "Sprint",

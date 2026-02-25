@@ -417,7 +417,9 @@ export function RacePredictionContent({
       raceWinner: positionStatus(currentPrediction.raceWinner, currentResult.top10[0]),
       restOfTop10: restStatuses,
       fastestLap: fieldStatus(currentPrediction.fastestLap, currentResult.fastestLap),
-      fastestPitStop: fieldStatus(currentPrediction.fastestPitStop, currentResult.fastestPitStop),
+      fastestPitStop: currentResult.fastestPitStop
+        ? fieldStatus(currentPrediction.fastestPitStop, currentResult.fastestPitStop)
+        : null,
     };
   }, [currentResult, currentPrediction]);
 
@@ -467,7 +469,7 @@ export function RacePredictionContent({
             {isOwner ? (
               <span className="font-medium text-f1-white">{displayName}</span>
             ) : (
-              <span>{displayName}&apos;s {t.predictionsPage.yourPredictions}</span>
+              <span>{displayName}{t.predictionsPage.yourPredictions}</span>
             )}
           </span>
         )}
@@ -1197,7 +1199,9 @@ function ResultsDisplay({
         <ResultItem label={t.predictionsPage.pole} driver={result.polePosition} />
         <ResultItem label={t.predictionsPage.winner} driver={result.raceWinner} />
         <ResultItem label={t.predictionsPage.fastestLap} driver={result.fastestLap} />
-        <ResultItem label={t.predictionsPage.fastestPit} driver={result.fastestPitStop} />
+        {result.fastestPitStop && (
+          <ResultItem label={t.predictionsPage.fastestPit} driver={result.fastestPitStop} />
+        )}
       </div>
       <div className="mt-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">

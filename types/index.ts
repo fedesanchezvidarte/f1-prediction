@@ -79,7 +79,7 @@ export interface RaceResult {
   raceWinner: Driver;
   top10: Driver[];
   fastestLap: Driver;
-  fastestPitStop: Driver;
+  fastestPitStop?: Driver;
 }
 
 export interface SprintResult {

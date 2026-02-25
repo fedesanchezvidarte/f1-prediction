@@ -165,7 +165,7 @@ const en = {
   // ── Predictions page ────────────────────────────────────────────────────
   predictionsPage: {
     backToLeaderboard: "Leaderboard",
-    yourPredictions: "your predictions",
+    yourPredictions: "'s predictions",
     champion: "Champion",
     race: "Race",
     sprint: "Sprint",

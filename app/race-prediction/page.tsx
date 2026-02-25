@@ -207,14 +207,14 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     const pole = findDriver(row.pole_position_driver_id);
     const fastestLap = findDriver(row.fastest_lap_driver_id);
     const fastestPit = findDriver(row.fastest_pit_stop_driver_id);
-    if (top10.length > 0 && pole && fastestLap && fastestPit) {
+    if (top10.length > 0 && pole && fastestLap) {
       raceResults[meetingKey] = {
         raceId: meetingKey,
         polePosition: pole,
         raceWinner: top10[0],
         top10,
         fastestLap,
-        fastestPitStop: fastestPit,
+        ...(fastestPit ? { fastestPitStop: fastestPit } : {}),
       };
     }
   }
