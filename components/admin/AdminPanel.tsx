@@ -16,6 +16,7 @@ import {
   Clock,
   RefreshCw,
   Award,
+  Trash2,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { ManualResultForm } from "@/components/admin/ManualResultForm";
@@ -84,6 +85,10 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
   const [achievementMessages, setAchievementMessages] = useState<Record<number, string>>({});
   const [globalAchievementState, setGlobalAchievementState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [globalAchievementMsg, setGlobalAchievementMsg] = useState("");
+  const [resetResultState, setResetResultState] = useState<Record<string, "loading" | "success" | "error">>({});
+  const [resetResultMessages, setResetResultMessages] = useState<Record<string, string>>({});
+  const [globalRescoreState, setGlobalRescoreState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [globalRescoreMsg, setGlobalRescoreMsg] = useState("");
 
   const now = new Date();
 
@@ -200,6 +205,75 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
     }
   }
 
+  async function handleResetResult(raceId: number, sessionType: SessionType) {
+    const key = `${raceId}-${sessionType}`;
+    if (!window.confirm(admin.resetResultConfirm)) return;
+
+    setResetResultState((prev) => ({ ...prev, [key]: "loading" }));
+    setResetResultMessages((prev) => ({ ...prev, [key]: "" }));
+
+    try {
+      const res = await fetch("/api/results/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raceId, sessionType }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setResetResultState((prev) => ({ ...prev, [key]: "success" }));
+        setResetResultMessages((prev) => ({
+          ...prev,
+          [key]: `${admin.resetResultSuccess} (${data.predictionsReverted} ${admin.predictionsReverted})`,
+        }));
+        router.refresh();
+      } else {
+        setResetResultState((prev) => ({ ...prev, [key]: "error" }));
+        setResetResultMessages((prev) => ({
+          ...prev,
+          [key]: data.error || admin.resetResultError,
+        }));
+      }
+    } catch {
+      setResetResultState((prev) => ({ ...prev, [key]: "error" }));
+      setResetResultMessages((prev) => ({
+        ...prev,
+        [key]: admin.resetResultError,
+      }));
+    }
+  }
+
+  async function handleRescoreAll() {
+    if (!window.confirm(admin.rescoreAllConfirm)) return;
+
+    setGlobalRescoreState("loading");
+    setGlobalRescoreMsg("");
+
+    try {
+      const res = await fetch("/api/results/score-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setGlobalRescoreState("success");
+        setGlobalRescoreMsg(
+          `${admin.rescoreAllSuccess}: ${data.racesScored} ${admin.rescoreAllRaces}, ${data.totalRace} ${admin.rescoreAllRacePreds}, ${data.totalSprint} ${admin.rescoreAllSprintPreds}`
+        );
+        router.refresh();
+      } else {
+        setGlobalRescoreState("error");
+        setGlobalRescoreMsg(data.error || admin.rescoreAllError);
+      }
+    } catch {
+      setGlobalRescoreState("error");
+      setGlobalRescoreMsg(admin.rescoreAllError);
+    }
+  }
+
   async function handleCalculateAllAchievements() {
     setGlobalAchievementState("loading");
     setGlobalAchievementMsg("");
@@ -262,41 +336,81 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
         </div>
       </div>
 
-      {/* Global achievements recalculation */}
-      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Award size={16} className="text-f1-amber" />
-            <span className="text-sm font-semibold text-f1-white">{admin.achievementsSection}</span>
+      {/* Global actions — two-column layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Races — Re-score All */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy size={16} className="text-f1-purple" />
+              <span className="text-sm font-semibold text-f1-white">{admin.racesSection}</span>
+            </div>
+            <button
+              onClick={handleRescoreAll}
+              disabled={globalRescoreState === "loading"}
+              className="flex items-center gap-1.5 rounded-lg bg-f1-purple/15 px-3 py-2 text-xs font-medium text-f1-purple transition-colors hover:bg-f1-purple/25 disabled:opacity-50"
+            >
+              {globalRescoreState === "loading" ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <RefreshCw size={13} />
+              )}
+              {globalRescoreState === "loading"
+                ? admin.rescoring
+                : admin.rescoreAll}
+            </button>
           </div>
-          <button
-            onClick={handleCalculateAllAchievements}
-            disabled={globalAchievementState === "loading"}
-            className="flex items-center gap-1.5 rounded-lg bg-f1-amber/15 px-3 py-2 text-xs font-medium text-f1-amber transition-colors hover:bg-f1-amber/25 disabled:opacity-50"
-          >
-            {globalAchievementState === "loading" ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <RefreshCw size={13} />
-            )}
-            {globalAchievementState === "loading"
-              ? admin.calculatingAchievements
-              : admin.recalculateAllAchievements}
-          </button>
+          {globalRescoreMsg && (
+            <div
+              className={`rounded-lg px-3 py-2 text-xs ${
+                globalRescoreState === "success"
+                  ? "bg-f1-green/10 text-f1-green"
+                  : globalRescoreState === "error"
+                    ? "bg-f1-red/10 text-f1-red"
+                    : ""
+              }`}
+            >
+              {globalRescoreMsg}
+            </div>
+          )}
         </div>
-        {globalAchievementMsg && (
-          <div
-            className={`rounded-lg px-3 py-2 text-xs ${
-              globalAchievementState === "success"
-                ? "bg-f1-green/10 text-f1-green"
-                : globalAchievementState === "error"
-                  ? "bg-f1-red/10 text-f1-red"
-                  : ""
-            }`}
-          >
-            {globalAchievementMsg}
+
+        {/* Achievements — Recalculate All */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Award size={16} className="text-f1-amber" />
+              <span className="text-sm font-semibold text-f1-white">{admin.achievementsSection}</span>
+            </div>
+            <button
+              onClick={handleCalculateAllAchievements}
+              disabled={globalAchievementState === "loading"}
+              className="flex items-center gap-1.5 rounded-lg bg-f1-amber/15 px-3 py-2 text-xs font-medium text-f1-amber transition-colors hover:bg-f1-amber/25 disabled:opacity-50"
+            >
+              {globalAchievementState === "loading" ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <RefreshCw size={13} />
+              )}
+              {globalAchievementState === "loading"
+                ? admin.calculatingAchievements
+                : admin.recalculateAllAchievements}
+            </button>
           </div>
-        )}
+          {globalAchievementMsg && (
+            <div
+              className={`rounded-lg px-3 py-2 text-xs ${
+                globalAchievementState === "success"
+                  ? "bg-f1-green/10 text-f1-green"
+                  : globalAchievementState === "error"
+                    ? "bg-f1-red/10 text-f1-red"
+                    : ""
+              }`}
+            >
+              {globalAchievementMsg}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Race list */}
@@ -554,6 +668,25 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
                           : admin.recalculateAchievements}
                       </button>
                     )}
+
+                    {/* Reset result */}
+                    {((sessionType === "race" && race.hasRaceResult) ||
+                      (sessionType === "sprint" && race.hasSprintResult)) && (
+                      <button
+                        onClick={() => handleResetResult(race.id, sessionType)}
+                        disabled={resetResultState[`${race.id}-${sessionType}`] === "loading"}
+                        className="flex items-center gap-1.5 rounded-lg bg-f1-red/15 px-3 py-2 text-xs font-medium text-f1-red transition-colors hover:bg-f1-red/25 disabled:opacity-50"
+                      >
+                        {resetResultState[`${race.id}-${sessionType}`] === "loading" ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={13} />
+                        )}
+                        {resetResultState[`${race.id}-${sessionType}`] === "loading"
+                          ? admin.resettingResult
+                          : admin.resetResult}
+                      </button>
+                    )}
                   </div>
 
                   {/* Fetch status message */}
@@ -590,6 +723,21 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
                       }`}
                     >
                       {achievementMessages[race.id]}
+                    </div>
+                  )}
+
+                  {/* Reset result status */}
+                  {resetResultMessages[`${race.id}-${sessionType}`] && (
+                    <div
+                      className={`rounded-lg px-3 py-2 text-xs ${
+                        resetResultState[`${race.id}-${sessionType}`] === "success"
+                          ? "bg-f1-green/10 text-f1-green"
+                          : resetResultState[`${race.id}-${sessionType}`] === "error"
+                            ? "bg-f1-red/10 text-f1-red"
+                            : ""
+                      }`}
+                    >
+                      {resetResultMessages[`${race.id}-${sessionType}`]}
                     </div>
                   )}
 
