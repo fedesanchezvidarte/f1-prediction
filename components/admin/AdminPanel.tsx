@@ -517,7 +517,6 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
                   {/* Datetime manager */}
                   <DatetimeManager
                     raceId={race.id}
-                    meetingKey={race.meetingKey}
                     dateStart={race.dateStart}
                     dateEnd={race.dateEnd}
                     onUpdate={() => router.refresh()}

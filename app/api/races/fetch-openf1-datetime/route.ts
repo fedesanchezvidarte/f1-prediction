@@ -3,13 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminUser } from "@/lib/admin";
 
 /**
- * Fetches the original start and end datetimes for a race event from OpenF1,
- * saves them to the database, and returns the updated values.
+ * Fetches datetimes from OpenF1 and persists them to the database:
+ *   date_start → Practice 1 session start (weekend opens)
+ *   date_end   → Qualifying start (regular) or Sprint Qualifying start (sprint weekends)
+ *               This is the prediction submission deadline.
  *
- * Body: { raceId: number, meetingKey: number }
+ * Body: { raceId: number }
  *
  * OpenF1 sessions endpoint: https://openf1.org/docs/#sessions
- * Example: https://api.openf1.org/v1/sessions?meeting_key=1279&session_name=Race
+ * Example: https://api.openf1.org/v1/sessions?circuit_short_name=Melbourne&session_name=Qualifying&year=2026
  */
 
 interface OpenF1Session {
@@ -46,64 +48,102 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { raceId, meetingKey } = body as {
-    raceId: number;
-    meetingKey: number;
-  };
+  const { raceId } = body as { raceId: number };
 
-  if (!raceId || !meetingKey) {
-    return NextResponse.json(
-      { error: "raceId and meetingKey are required" },
-      { status: 400 }
-    );
+  if (!raceId) {
+    return NextResponse.json({ error: "raceId is required" }, { status: 400 });
   }
 
-  // Fetch the Race session from OpenF1
-  const sessionsRes = await fetch(
-    `https://api.openf1.org/v1/sessions?meeting_key=${meetingKey}&session_name=Race`
-  );
+  // Fetch circuit_short_name, has_sprint, and season year from DB.
+  const { data: raceRecord } = await supabase
+    .from("races")
+    .select("circuit_short_name, country_name, has_sprint, seasons(year)")
+    .eq("id", raceId)
+    .single();
 
-  if (!sessionsRes.ok) {
+  if (!raceRecord) {
+    return NextResponse.json({ error: "Race not found" }, { status: 404 });
+  }
+
+  const season = Array.isArray(raceRecord.seasons)
+    ? raceRecord.seasons[0]
+    : raceRecord.seasons;
+  const year = season?.year;
+
+  if (!year) {
+    return NextResponse.json({ error: "Could not determine season year for this race" }, { status: 500 });
+  }
+
+  const circuit = encodeURIComponent(raceRecord.circuit_short_name);
+  // Prediction deadline = start of the session that locks the grid:
+  //   sprint weekends → Sprint Qualifying; regular weekends → Qualifying
+  const deadlineSession = raceRecord.has_sprint ? "Sprint Qualifying" : "Qualifying";
+
+  // Fetch Practice 1 (weekend start) and the deadline session in parallel.
+  const [fp1Res, deadlineRes] = await Promise.all([
+    fetch(`https://api.openf1.org/v1/sessions?circuit_short_name=${circuit}&session_name=Practice+1&year=${year}`),
+    fetch(`https://api.openf1.org/v1/sessions?circuit_short_name=${circuit}&session_name=${encodeURIComponent(deadlineSession)}&year=${year}`),
+  ]);
+
+  if (!fp1Res.ok || !deadlineRes.ok) {
     return NextResponse.json(
-      { error: `OpenF1 sessions API returned ${sessionsRes.status}` },
+      { error: `OpenF1 sessions API error: FP1=${fp1Res.status} ${deadlineSession}=${deadlineRes.status}` },
       { status: 502 }
     );
   }
 
-  const sessions: OpenF1Session[] = await sessionsRes.json();
+  const [fp1Sessions, deadlineSessions]: [OpenF1Session[], OpenF1Session[]] = await Promise.all([
+    fp1Res.json(),
+    deadlineRes.json(),
+  ]);
 
-  if (!sessions || sessions.length === 0) {
+  if (!fp1Sessions || fp1Sessions.length === 0) {
     return NextResponse.json(
-      { error: `No Race session found for meeting key ${meetingKey}` },
+      { error: `No Practice 1 session found on OpenF1 for ${raceRecord.circuit_short_name} ${year}` },
       { status: 404 }
     );
   }
 
-  const session = sessions[0];
-  const dateStart = session.date_start;
-  const dateEnd = session.date_end;
+  if (!deadlineSessions || deadlineSessions.length === 0) {
+    return NextResponse.json(
+      { error: `No ${deadlineSession} session found on OpenF1 for ${raceRecord.circuit_short_name} ${year}` },
+      { status: 404 }
+    );
+  }
+
+  const dateStart = fp1Sessions[0].date_start;           // weekend opens
+  const dateEnd = deadlineSessions[0].date_start;         // prediction deadline
+  const gmtOffset = deadlineSessions[0].gmt_offset;
 
   if (!dateStart || !dateEnd) {
     return NextResponse.json(
-      { error: "OpenF1 session is missing date_start or date_end" },
+      { error: "OpenF1 session is missing date_start" },
       { status: 502 }
     );
   }
 
   // Persist to database
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("races")
     .update({ date_start: dateStart, date_end: dateEnd })
-    .eq("id", raceId);
+    .eq("id", raceId)
+    .select("id");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (!data || data.length === 0) {
+    return NextResponse.json(
+      { error: "No race found with that ID, or update was blocked by database policy" },
+      { status: 404 }
+    );
   }
 
   return NextResponse.json({
     success: true,
     dateStart,
     dateEnd,
-    gmtOffset: session.gmt_offset,
+    gmtOffset,
   });
 }

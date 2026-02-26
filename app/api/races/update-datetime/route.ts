@@ -41,13 +41,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("races")
     .update({ date_start: dateStart, date_end: dateEnd })
-    .eq("id", raceId);
+    .eq("id", raceId)
+    .select("id");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (!data || data.length === 0) {
+    return NextResponse.json(
+      { error: "No race found with that ID, or update was blocked by database policy" },
+      { status: 404 }
+    );
   }
 
   return NextResponse.json({ success: true });

@@ -14,7 +14,6 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface DatetimeManagerProps {
   raceId: number;
-  meetingKey: number;
   dateStart: string;
   dateEnd: string;
   /** Called with the updated datetimes after a successful save or restore */
@@ -72,7 +71,6 @@ function getEventStatus(dateStart: string, dateEnd: string): "upcoming" | "live"
 
 export function DatetimeManager({
   raceId,
-  meetingKey,
   dateStart: initialDateStart,
   dateEnd: initialDateEnd,
   onUpdate,
@@ -146,7 +144,7 @@ export function DatetimeManager({
       const res = await fetch("/api/races/fetch-openf1-datetime", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raceId, meetingKey }),
+        body: JSON.stringify({ raceId }),
       });
 
       const data = await res.json();
