@@ -343,6 +343,23 @@ const es: Messages = {
     achievementsAwarded: "otorgados",
     achievementsRevoked: "revocados",
     achievementsError: "Error al calcular los logros",
+    datetimeManager: {
+      title: "Fechas del Evento",
+      startLabel: "Inicio",
+      endLabel: "Fin",
+      yourTimezone: "Hora local (tu zona horaria)",
+      save: "Guardar",
+      saving: "Guardando...",
+      saveSuccess: "Fechas actualizadas correctamente",
+      saveError: "Error al actualizar las fechas",
+      restoreOpenF1: "Restaurar desde OpenF1",
+      restoring: "Restaurando...",
+      restoreSuccess: "Fechas restauradas desde OpenF1",
+      restoreError: "Error al restaurar las fechas desde OpenF1",
+      countdownTitle: "Tiempo hasta la carrera",
+      liveNow: "EN VIVO",
+      completed: "Completada",
+    },
   },
   // ── Auth footer ─────────────────────────────────────────────────────────
   authFooter: {
