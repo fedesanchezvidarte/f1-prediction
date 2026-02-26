@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { HelpCircle } from "lucide-react";
 import { PointSystemModal } from "./PointSystemModal";
-import { POINT_SYSTEM } from "@/lib/dummy-data";
+import { POINT_SYSTEM } from "@/lib/point-system";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export function PointSystemCard() {

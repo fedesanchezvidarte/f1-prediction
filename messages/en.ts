@@ -353,6 +353,23 @@ const en = {
     achievementsAwarded: "awarded",
     achievementsRevoked: "revoked",
     achievementsError: "Failed to calculate achievements",
+    datetimeManager: {
+      title: "Event Datetimes",
+      startLabel: "Start",
+      endLabel: "End",
+      yourTimezone: "Local time (your timezone)",
+      save: "Save",
+      saving: "Saving...",
+      saveSuccess: "Datetimes updated successfully",
+      saveError: "Failed to update datetimes",
+      restoreOpenF1: "Restore from OpenF1",
+      restoring: "Restoring...",
+      restoreSuccess: "Datetimes restored from OpenF1",
+      restoreError: "Failed to restore datetimes from OpenF1",
+      countdownTitle: "Time until race",
+      liveNow: "LIVE NOW",
+      completed: "Completed",
+    },
   },
   // ── Auth footer ─────────────────────────────────────────────────────────
   authFooter: {

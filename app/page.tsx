@@ -13,11 +13,7 @@ import {
   PredictionsCard,
   UserPointsCard,
 } from "@/components/dashboard";
-import {
-  RACES_2026,
-  getNextRace,
-  getPredictionCardRaces,
-} from "@/lib/dummy-data";
+import { fetchRacesFromDb, getNextRace, getPredictionCardRaces } from "@/lib/races";
 import { fetchAchievementsData } from "@/lib/achievements";
 import type { UserStats, LeaderboardEntry, RacePrediction } from "@/types";
 
@@ -60,11 +56,18 @@ export default async function Home() {
     .select("race_id, points_earned")
     .eq("user_id", user.id);
 
+  // Fetch current season to ensure the raceId→meetingKey mapping is season-aware
+  const { data: currentSeason } = await supabase
+    .from("seasons")
+    .select("id")
+    .eq("is_current", true)
+    .single();
+
   // Build mapping: DB race ID -> meeting key
   const { data: dbRaces } = await supabase
     .from("races")
     .select("id, meeting_key")
-    .eq("season_id", 1);
+    .eq("season_id", currentSeason?.id ?? 0);
 
   const raceIdToMeetingKey = new Map<number, number>();
   for (const r of dbRaces ?? []) {
@@ -128,6 +131,9 @@ export default async function Home() {
     bestRacePoints: leaderboardRow?.best_race_points ?? 0,
   };
 
+  // Fetch races with live DB datetimes
+  const races = await fetchRacesFromDb();
+
   const sprintEarningsByMeetingKey = new Map<number, number>();
   for (const sp of sprintPredictions ?? []) {
     const meetingKey = raceIdToMeetingKey.get(sp.race_id);
@@ -136,7 +142,7 @@ export default async function Home() {
     }
   }
 
-  const predictions: RacePrediction[] = RACES_2026.map((race) => {
+  const predictions: RacePrediction[] = races.map((race) => {
     const pred = (racePredictions ?? []).find((p) => {
       const meetingKey = raceIdToMeetingKey.get(p.race_id);
       return meetingKey === race.meetingKey;
@@ -160,8 +166,8 @@ export default async function Home() {
 
   const { achievements, earnedIds: earnedAchievementIds } = await fetchAchievementsData(supabase, user.id);
 
-  const nextRace = getNextRace();
-  const predictionCardRaces = getPredictionCardRaces();
+  const nextRace = getNextRace(races);
+  const predictionCardRaces = getPredictionCardRaces(races);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

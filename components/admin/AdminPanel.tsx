@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { ManualResultForm } from "@/components/admin/ManualResultForm";
+import { DatetimeManager } from "@/components/admin/DatetimeManager";
 
 interface AdminDriver {
   id: number;
@@ -512,6 +513,14 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
                       </button>
                     </div>
                   )}
+
+                  {/* Datetime manager */}
+                  <DatetimeManager
+                    raceId={race.id}
+                    dateStart={race.dateStart}
+                    dateEnd={race.dateEnd}
+                    onUpdate={() => router.refresh()}
+                  />
 
                   {/* Prediction stats */}
                   <div className="flex gap-4 text-xs">

@@ -4,11 +4,9 @@ import { isAdminUser } from "@/lib/admin";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { RacePredictionContent } from "@/components/predictions/RacePredictionContent";
-import {
-  DRIVERS_2026,
-  RACES_2026,
-  TEAMS_2026,
-} from "@/lib/dummy-data";
+import { fetchRacesFromDb } from "@/lib/races";
+import { fetchDriversFromDb } from "@/lib/drivers";
+import { fetchTeamsFromDb } from "@/lib/teams";
 import type {
   FullRacePrediction,
   SprintPrediction,
@@ -99,11 +97,33 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     raceIdToMeetingKey.set(r.id, r.meeting_key);
   }
 
+  // Fetch races with live DB datetimes
+  const RACES = await fetchRacesFromDb();
+
+  if (!RACES || RACES.length === 0) {
+    return (
+      <>
+        <Navbar displayName={displayName} avatarUrl={avatarUrl ?? undefined} isAdmin={isAdminUser(user)} />
+        <main className="container mx-auto px-4 py-8">
+          <h1 className="text-2xl font-semibold">No races available</h1>
+          <p className="mt-4 text-muted-foreground">
+            There are currently no races available for predictions.
+          </p>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  // Fetch drivers and teams from DB
+  const allDrivers = await fetchDriversFromDb();
+  const allTeams = await fetchTeamsFromDb();
+
   function findDriver(dbDriverId: number | null): Driver | null {
     if (!dbDriverId) return null;
     const driverNumber = driverIdToNumber.get(dbDriverId);
     if (driverNumber === undefined) return null;
-    return DRIVERS_2026.find((d) => d.driverNumber === driverNumber) ?? null;
+    return allDrivers.find((d) => d.driverNumber === driverNumber) ?? null;
   }
 
   // Fetch race predictions for the target user
@@ -120,7 +140,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     }
   }
 
-  const predictions: FullRacePrediction[] = RACES_2026.map((race) => {
+  const predictions: FullRacePrediction[] = RACES.map((race) => {
     const row = racePredByMeetingKey.get(race.meetingKey);
     const top10Ids: (number | null)[] = row?.top_10 ?? [];
     return {
@@ -150,7 +170,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     }
   }
 
-  const sprintRaces = RACES_2026.filter((r) => r.hasSprint);
+  const sprintRaces = RACES.filter((r) => r.hasSprint);
   const sprintPredictions: SprintPrediction[] = sprintRaces.map((race) => {
     const row = sprintPredByMeetingKey.get(race.meetingKey);
     const top8Ids: (number | null)[] = row?.top_8 ?? [];
@@ -247,11 +267,11 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   const now = new Date();
   let initialRaceIndex = 0;
   if (roundParam !== null) {
-    const roundIndex = RACES_2026.findIndex((r) => r.round === roundParam);
+    const roundIndex = RACES.findIndex((r) => r.round === roundParam);
     if (roundIndex !== -1) initialRaceIndex = roundIndex;
   } else {
-    for (let i = 0; i < RACES_2026.length; i++) {
-      if (new Date(RACES_2026[i].dateEnd) > now) {
+    for (let i = 0; i < RACES.length; i++) {
+      if (new Date(RACES[i].dateEnd) > now) {
         initialRaceIndex = i;
         break;
       }
@@ -265,9 +285,9 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
       <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-4xl">
           <RacePredictionContent
-            races={RACES_2026}
-            drivers={DRIVERS_2026}
-            teams={TEAMS_2026}
+            races={RACES}
+            drivers={allDrivers}
+            teams={allTeams}
             predictions={predictions}
             sprintPredictions={sprintPredictions}
             championPrediction={championPrediction}
