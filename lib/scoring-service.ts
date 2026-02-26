@@ -199,7 +199,7 @@ async function scoreSprintPredictions(
   return { count: predictions.length, userIds };
 }
 
-async function updateLeaderboard(
+export async function updateLeaderboard(
   supabase: SupabaseClient,
   userIds: string[],
   perfectPodiumUsers: string[]

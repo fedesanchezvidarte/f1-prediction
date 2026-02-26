@@ -71,34 +71,59 @@ export async function POST() {
     }
 
     // Revert all scored race predictions back to "submitted" for these races
-    await supabase
+    const { error: revertRaceErr } = await supabase
       .from("race_predictions")
       .update({ status: "submitted", points_earned: null })
       .in("race_id", Array.from(raceIdsWithResults))
       .eq("status", "scored");
 
+    if (revertRaceErr) {
+      return NextResponse.json(
+        { error: `Failed to revert race predictions: ${revertRaceErr.message}` },
+        { status: 500 }
+      );
+    }
+
     // Revert all scored sprint predictions back to "submitted" for these races
-    await supabase
+    const { error: revertSprintErr } = await supabase
       .from("sprint_predictions")
       .update({ status: "submitted", points_earned: null })
       .in("race_id", Array.from(raceIdsWithResults))
       .eq("status", "scored");
 
-    // Re-score each race
+    if (revertSprintErr) {
+      return NextResponse.json(
+        { error: `Failed to revert sprint predictions: ${revertSprintErr.message}` },
+        { status: 500 }
+      );
+    }
+
+    // Re-score each race, collecting partial failures instead of aborting
     let totalRace = 0;
     let totalSprint = 0;
+    const failedRaceIds: number[] = [];
 
     for (const raceId of raceIdsWithResults) {
-      const result = await scoreRaceForId(supabase, raceId);
-      totalRace += result.racePredictionsScored;
-      totalSprint += result.sprintPredictionsScored;
+      try {
+        const result = await scoreRaceForId(supabase, raceId);
+        totalRace += result.racePredictionsScored;
+        totalSprint += result.sprintPredictionsScored;
+      } catch (raceErr) {
+        console.error(`[score-all] Failed to score race ${raceId}:`, raceErr);
+        failedRaceIds.push(raceId);
+      }
     }
 
     return NextResponse.json({
-      success: true,
-      racesScored: raceIdsWithResults.size,
+      success: failedRaceIds.length === 0,
+      racesScored: raceIdsWithResults.size - failedRaceIds.length,
       totalRace,
       totalSprint,
+      ...(failedRaceIds.length > 0 && {
+        partialFailure: true,
+        failedRaceIds,
+        error: `Failed to score ${failedRaceIds.length} race(s). See failedRaceIds for details.`,
+      }),
     });
   } catch (err) {
     console.error("[score-all] Error:", err);
