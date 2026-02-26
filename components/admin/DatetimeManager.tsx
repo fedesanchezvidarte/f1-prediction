@@ -107,9 +107,25 @@ export function DatetimeManager({
     setSaveState("loading");
     setSaveMsg("");
 
-    // Convert local datetime-local value back to ISO string
-    const newStart = new Date(inputStart).toISOString();
-    const newEnd = new Date(inputEnd).toISOString();
+    // Validate inputs before converting to ISO
+    if (!inputStart || !inputEnd) {
+      setSaveState("error");
+      setSaveMsg(dt.saveError);
+      return;
+    }
+
+    const startDate = new Date(inputStart);
+    const endDate = new Date(inputEnd);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate >= endDate) {
+      setSaveState("error");
+      setSaveMsg(dt.saveError);
+      return;
+    }
+
+    // Convert validated local datetime-local values back to ISO strings
+    const newStart = startDate.toISOString();
+    const newEnd = endDate.toISOString();
 
     try {
       const res = await fetch("/api/races/update-datetime", {
