@@ -9,7 +9,7 @@ import {
   Radio,
 } from "lucide-react";
 import type { Race, RacePrediction } from "@/types";
-import { getRaceStatus } from "@/lib/dummy-data";
+import { getRaceStatus } from "@/lib/race-utils";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface PredictionsCardProps {

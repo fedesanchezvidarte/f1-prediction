@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Clock, Radio, MapPin } from "lucide-react";
 import type { Race } from "@/types";
-import { getRaceStatus } from "@/lib/dummy-data";
+import { getRaceStatus } from "@/lib/race-utils";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface NextRaceCountdownProps {

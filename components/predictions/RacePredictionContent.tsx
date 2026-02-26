@@ -30,7 +30,7 @@ import type {
   SprintResult,
   RaceStatus,
 } from "@/types";
-import { getRaceStatus } from "@/lib/dummy-data";
+import { getRaceStatus } from "@/lib/race-utils";
 import { DriverSelect, type MatchStatus } from "./DriverSelect";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
