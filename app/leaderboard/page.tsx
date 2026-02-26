@@ -4,7 +4,7 @@ import { isAdminUser } from "@/lib/admin";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { LeaderboardContent } from "@/components/leaderboard/LeaderboardContent";
-import { RACES_2026 } from "@/lib/dummy-data";
+import { fetchRacesFromDb } from "@/lib/races";
 import type { DetailedLeaderboardEntry } from "@/types";
 
 export default async function LeaderboardPage() {
@@ -84,7 +84,10 @@ export default async function LeaderboardPage() {
     racePointsMap[pred.user_id][meetingKey] = existing + (pred.points_earned ?? 0);
   }
 
-  const raceKeys = RACES_2026.map((r) => r.meetingKey);
+  // Fetch races with live DB datetimes
+  const races = await fetchRacesFromDb();
+
+  const raceKeys = races.map((r) => r.meetingKey);
 
   // Build entries for every profile, defaulting to 0 pts for users with no leaderboard row
   const unsorted: Omit<DetailedLeaderboardEntry, "rank">[] = (allProfiles ?? []).map((p) => {
@@ -127,7 +130,7 @@ export default async function LeaderboardPage() {
         <div className="mx-auto max-w-5xl">
           <LeaderboardContent
             entries={entries}
-            races={RACES_2026}
+            races={races}
             currentUserId={user.id}
           />
         </div>
