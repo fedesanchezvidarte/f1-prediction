@@ -3,7 +3,7 @@
  * Performs the DB queries and updates for scoring predictions.
  * Shared by /api/results/score and /api/results/manual routes.
  */
-import { scoreRacePrediction, scoreSprintPrediction } from "@/lib/scoring";
+import { scoreRacePrediction, scoreSprintPrediction, scoreChampionPrediction } from "@/lib/scoring";
 import {
   calculateAchievementsForUsers,
   type AchievementCalculationResult,
@@ -320,4 +320,63 @@ export async function updateLeaderboard(
       );
     }
   }
+}
+
+export async function scoreChampionForSeason(
+  supabase: SupabaseClient,
+  seasonId: number
+): Promise<{ championPredictionsScored: number }> {
+  const { data: result } = await supabase
+    .from("champion_results")
+    .select("wdc_driver_id, wcc_team_id")
+    .eq("season_id", seasonId)
+    .single();
+
+  if (!result) return { championPredictionsScored: 0 };
+
+  // Revert previously scored predictions so we can re-score them fresh.
+  await supabase
+    .from("champion_predictions")
+    .update({ status: "submitted", points_earned: null })
+    .eq("season_id", seasonId)
+    .eq("status", "scored");
+
+  const { data: predictions } = await supabase
+    .from("champion_predictions")
+    .select("id, user_id, wdc_driver_id, wcc_team_id, is_half_points")
+    .eq("season_id", seasonId)
+    .eq("status", "submitted");
+
+  if (!predictions || predictions.length === 0) return { championPredictionsScored: 0 };
+
+  const userIds: string[] = [];
+
+  for (const pred of predictions) {
+    const breakdown = scoreChampionPrediction({
+      predWdc: pred.wdc_driver_id,
+      predWcc: pred.wcc_team_id,
+      resultWdc: result.wdc_driver_id,
+      resultWcc: result.wcc_team_id,
+      isHalfPoints: pred.is_half_points ?? false,
+    });
+
+    const { error } = await supabase
+      .from("champion_predictions")
+      .update({ points_earned: breakdown.total, status: "scored" })
+      .eq("id", pred.id);
+
+    if (error) {
+      throw new Error(
+        `Failed to update champion prediction ${pred.id}: ${error.message}`
+      );
+    }
+
+    userIds.push(pred.user_id);
+  }
+
+  if (userIds.length > 0) {
+    await updateLeaderboard(supabase, [...new Set(userIds)], []);
+  }
+
+  return { championPredictionsScored: predictions.length };
 }
