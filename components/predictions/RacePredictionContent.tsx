@@ -129,6 +129,11 @@ export function RacePredictionContent({
     return -1;
   }, [races]);
 
+  const isChampionOpen = useMemo(() => {
+    if (races.length === 0) return false;
+    return new Date() < new Date(races[0].dateStart);
+  }, [races]);
+
   const currentPrediction = predictions.find((p) => p.raceId === currentRace.meetingKey);
   const currentSprintPred = sprintPreds.find((p) => p.raceId === currentRace.meetingKey);
   const currentResult = raceResults[currentRace.meetingKey];
@@ -523,12 +528,17 @@ export function RacePredictionContent({
           })}
           <button
             onClick={() => setTab("champion")}
-            className={`flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium transition-colors sm:px-2.5 ${
+            className={`relative flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium transition-colors sm:px-2.5 ${
               isChampionTab
                 ? "bg-f1-amber text-black"
-                : "text-muted hover:bg-card-hover hover:text-f1-white"
+                : isChampionOpen && champPred.status === "pending"
+                  ? "bg-f1-amber/15 text-f1-amber ring-1 ring-f1-amber/40"
+                  : "text-muted hover:bg-card-hover hover:text-f1-white"
             }`}
           >
+            {isChampionOpen && !isChampionTab && champPred.status === "pending" && (
+              <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-f1-amber animate-pulse" />
+            )}
             <Crown size={10} />
             <span className="hidden sm:inline">{t.predictionsPage.champion}</span>
           </button>
