@@ -335,11 +335,15 @@ export async function scoreChampionForSeason(
   if (!result) return { championPredictionsScored: 0 };
 
   // Revert previously scored predictions so we can re-score them fresh.
-  await supabase
+  const { error: revertError } = await supabase
     .from("champion_predictions")
     .update({ status: "submitted", points_earned: null })
     .eq("season_id", seasonId)
     .eq("status", "scored");
+
+  if (revertError) {
+    throw new Error(`Failed to revert champion predictions: ${revertError.message}`);
+  }
 
   const { data: predictions } = await supabase
     .from("champion_predictions")

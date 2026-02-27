@@ -110,6 +110,7 @@ export function AdminPanel({ races, drivers, teams, championResult, championPred
   const [championRescoreState, setChampionRescoreState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [championResetState, setChampionResetState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [championResetMessage, setChampionResetMessage] = useState("");
+  const [championSaveMessage, setChampionSaveMessage] = useState("");
 
   const now = new Date();
 
@@ -601,6 +602,13 @@ export function AdminPanel({ races, drivers, teams, championResult, championPred
             </div>
           )}
 
+          {/* Save status */}
+          {championSaveMessage && !showChampionForm && (
+            <div className="rounded-lg bg-f1-green/10 px-3 py-2 text-xs text-f1-green">
+              {championSaveMessage}
+            </div>
+          )}
+
           {/* Champion form */}
           {showChampionForm && (
             <ChampionResultForm
@@ -609,6 +617,7 @@ export function AdminPanel({ races, drivers, teams, championResult, championPred
               existingResult={championResult}
               onSuccess={() => {
                 setShowChampionForm(false);
+                setChampionSaveMessage(admin.championSaveSuccess);
                 router.refresh();
               }}
               onCancel={() => setShowChampionForm(false)}
