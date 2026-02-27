@@ -301,23 +301,22 @@ export async function updateLeaderboard(
 
   if (allLb && allLb.length > 0) {
     let currentRank = 1;
-    const updates: { id: number; rank: number }[] = [];
 
     for (let i = 0; i < allLb.length; i++) {
       if (i > 0 && allLb[i].total_points < allLb[i - 1].total_points) {
         currentRank = i + 1;
       }
-      updates.push({ id: allLb[i].id, rank: currentRank });
-    }
 
-    const { error: upsertError } = await supabase
-      .from("leaderboard")
-      .upsert(updates, { onConflict: "id" });
+      const { error: updateError } = await supabase
+        .from("leaderboard")
+        .update({ rank: currentRank })
+        .eq("id", allLb[i].id);
 
-    if (upsertError) {
-      throw new Error(
-        `Failed to recalculate leaderboard ranks: ${upsertError.message}`
-      );
+      if (updateError) {
+        throw new Error(
+          `Failed to recalculate leaderboard ranks: ${updateError.message}`
+        );
+      }
     }
   }
 }
