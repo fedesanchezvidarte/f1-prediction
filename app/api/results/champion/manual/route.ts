@@ -112,12 +112,12 @@ export async function POST(request: NextRequest) {
         .from("champion_results")
         .update(resultData)
         .eq("id", existing.id);
-      if (error) throw error;
+      if (error) throw new Error(error.message);
     } else {
       const { error } = await supabase
         .from("champion_results")
         .insert(resultData);
-      if (error) throw error;
+      if (error) throw new Error(error.message);
     }
 
     // Score all champion predictions for this season
@@ -129,7 +129,10 @@ export async function POST(request: NextRequest) {
       scoring,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message =
+      error instanceof Error
+        ? error.message
+        : (error as { message?: string })?.message ?? "Unknown error";
     return NextResponse.json(
       { error: `Failed to save champion result: ${message}` },
       { status: 500 }

@@ -86,7 +86,10 @@ export async function POST() {
       predictionsReverted: scoredPreds?.length ?? 0,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message =
+      error instanceof Error
+        ? error.message
+        : (error as { message?: string })?.message ?? "Unknown error";
     return NextResponse.json(
       { error: `Failed to reset champion result: ${message}` },
       { status: 500 }
