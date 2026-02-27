@@ -100,6 +100,21 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   // Fetch races with live DB datetimes
   const RACES = await fetchRacesFromDb();
 
+  if (!RACES || RACES.length === 0) {
+    return (
+      <>
+        <Navbar displayName={displayName} avatarUrl={avatarUrl ?? undefined} isAdmin={isAdminUser(user)} />
+        <main className="container mx-auto px-4 py-8">
+          <h1 className="text-2xl font-semibold">No races available</h1>
+          <p className="mt-4 text-muted-foreground">
+            There are currently no races available for predictions.
+          </p>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
   // Fetch drivers and teams from DB
   const allDrivers = await fetchDriversFromDb();
   const allTeams = await fetchTeamsFromDb();

@@ -56,11 +56,18 @@ export default async function Home() {
     .select("race_id, points_earned")
     .eq("user_id", user.id);
 
+  // Fetch current season to ensure the raceId→meetingKey mapping is season-aware
+  const { data: currentSeason } = await supabase
+    .from("seasons")
+    .select("id")
+    .eq("is_current", true)
+    .single();
+
   // Build mapping: DB race ID -> meeting key
   const { data: dbRaces } = await supabase
     .from("races")
     .select("id, meeting_key")
-    .eq("season_id", 1);
+    .eq("season_id", currentSeason?.id ?? 0);
 
   const raceIdToMeetingKey = new Map<number, number>();
   for (const r of dbRaces ?? []) {

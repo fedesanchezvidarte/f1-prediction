@@ -41,6 +41,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const parsedStart = new Date(dateStart);
+  const parsedEnd = new Date(dateEnd);
+
+  if (Number.isNaN(parsedStart.getTime()) || Number.isNaN(parsedEnd.getTime())) {
+    return NextResponse.json(
+      { error: "dateStart and dateEnd must be valid date-time strings" },
+      { status: 400 }
+    );
+  }
+
+  if (parsedEnd <= parsedStart) {
+    return NextResponse.json(
+      { error: "dateEnd must be after dateStart" },
+      { status: 400 }
+    );
+  }
+
   const { data, error } = await supabase
     .from("races")
     .update({ date_start: dateStart, date_end: dateEnd })
