@@ -56,7 +56,7 @@ export default async function LeaderboardPage() {
   const { data: dbRaces } = await supabase
     .from("races")
     .select("id, meeting_key")
-    .eq("season_id", currentSeason?.id ?? 0);
+    .eq("season_id", currentSeason?.id ?? -1);
 
   const raceIdToMeetingKey = new Map<number, number>();
   for (const r of dbRaces ?? []) {

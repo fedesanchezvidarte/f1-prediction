@@ -83,6 +83,24 @@ export default async function AdminPage() {
     .from("sprint_predictions")
     .select("race_id, status");
 
+  // Get champion result for current season
+  const { data: championResult } = await supabase
+    .from("champion_results")
+    .select("wdc_driver_id, wcc_team_id")
+    .eq("season_id", season.id)
+    .single();
+
+  // Get champion prediction stats
+  const { data: championPredCounts } = await supabase
+    .from("champion_predictions")
+    .select("status")
+    .eq("season_id", season.id);
+
+  const championPredictions = {
+    submitted: (championPredCounts ?? []).filter((p) => p.status === "submitted").length,
+    scored: (championPredCounts ?? []).filter((p) => p.status === "scored").length,
+  };
+
   // Build result maps
   const raceResultMap: Record<number, typeof raceResults extends (infer T)[] | null ? T : never> = {};
   for (const r of raceResults ?? []) {
@@ -144,6 +162,9 @@ export default async function AdminPage() {
             sprintPredictions: sprintStats[r.id] ?? { submitted: 0, scored: 0 },
           }))}
           drivers={enrichedDrivers}
+          teams={(teams ?? []).map((t) => ({ id: t.id, name: t.name, color: t.color }))}
+          championResult={championResult ?? null}
+          championPredictions={championPredictions}
         />
       </main>
       <Footer />
