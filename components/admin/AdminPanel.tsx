@@ -17,10 +17,12 @@ import {
   RefreshCw,
   Award,
   Trash2,
+  Crown,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { ManualResultForm } from "@/components/admin/ManualResultForm";
 import { DatetimeManager } from "@/components/admin/DatetimeManager";
+import { ChampionResultForm } from "@/components/admin/ChampionResultForm";
 
 interface AdminDriver {
   id: number;
@@ -48,6 +50,17 @@ interface SprintResult {
   fastest_lap_driver_id: number;
 }
 
+interface AdminTeam {
+  id: number;
+  name: string;
+  color: string;
+}
+
+interface AdminChampionResult {
+  wdc_driver_id: number;
+  wcc_team_id: number;
+}
+
 interface AdminRace {
   id: number;
   meetingKey: number;
@@ -68,11 +81,14 @@ interface AdminRace {
 interface AdminPanelProps {
   races: AdminRace[];
   drivers: AdminDriver[];
+  teams: AdminTeam[];
+  championResult: AdminChampionResult | null;
+  championPredictions: { submitted: number; scored: number };
 }
 
 type SessionType = "race" | "sprint";
 
-export function AdminPanel({ races, drivers }: AdminPanelProps) {
+export function AdminPanel({ races, drivers, teams, championResult, championPredictions }: AdminPanelProps) {
   const { t } = useLanguage();
   const router = useRouter();
   const admin = t.admin;
@@ -90,6 +106,10 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
   const [resetResultMessages, setResetResultMessages] = useState<Record<string, string>>({});
   const [globalRescoreState, setGlobalRescoreState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [globalRescoreMsg, setGlobalRescoreMsg] = useState("");
+  const [showChampionForm, setShowChampionForm] = useState(false);
+  const [championRescoreState, setChampionRescoreState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [championResetState, setChampionResetState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [championResetMessage, setChampionResetMessage] = useState("");
 
   const now = new Date();
 
@@ -108,6 +128,11 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
   function getDriverName(driverId: number): string {
     const d = drivers.find((dr) => dr.id === driverId);
     return d ? `${d.name_acronym} (#${d.driver_number})` : `ID ${driverId}`;
+  }
+
+  function getTeamName(teamId: number): string {
+    const team = teams.find((t) => t.id === teamId);
+    return team ? team.name : `ID ${teamId}`;
   }
 
   async function handleFetchOpenF1(raceId: number, meetingKey: number, sessionType: SessionType) {
@@ -275,6 +300,51 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
     }
   }
 
+  async function handleRescoreChampion() {
+    setChampionRescoreState("loading");
+    try {
+      const res = await fetch("/api/results/champion/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setChampionRescoreState("success");
+        router.refresh();
+      } else {
+        setChampionRescoreState("error");
+      }
+    } catch {
+      setChampionRescoreState("error");
+    }
+  }
+
+  async function handleResetChampion() {
+    if (!window.confirm(admin.championResetConfirm)) return;
+    setChampionResetState("loading");
+    setChampionResetMessage("");
+    try {
+      const res = await fetch("/api/results/champion/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setChampionResetState("success");
+        setChampionResetMessage(
+          `${admin.championResetSuccess} (${data.predictionsReverted} ${admin.predictionsReverted})`
+        );
+        router.refresh();
+      } else {
+        setChampionResetState("error");
+        setChampionResetMessage(data.error || admin.championResetError);
+      }
+    } catch {
+      setChampionResetState("error");
+      setChampionResetMessage(admin.championResetError);
+    }
+  }
+
   async function handleCalculateAllAchievements() {
     setGlobalAchievementState("loading");
     setGlobalAchievementMsg("");
@@ -410,6 +480,139 @@ export function AdminPanel({ races, drivers }: AdminPanelProps) {
             >
               {globalAchievementMsg}
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Championship section */}
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Crown size={16} className="text-f1-amber" />
+            <span className="text-sm font-semibold text-f1-white">{admin.championSection}</span>
+          </div>
+          <div className="flex items-center gap-3 text-xs">
+            <div>
+              <span className="text-muted">{admin.predictionsSubmitted}: </span>
+              <span className="font-semibold text-f1-white">{championPredictions.submitted}</span>
+            </div>
+            <div>
+              <span className="text-muted">{admin.predictionsScored}: </span>
+              <span className="font-semibold text-f1-white">{championPredictions.scored}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-border px-4 py-4 space-y-4">
+          {/* Current champion result */}
+          {championResult && (
+            <div className="rounded-lg border border-f1-green/20 bg-f1-green/5 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-f1-green" />
+                <span className="text-xs font-semibold text-f1-green">{admin.currentResult}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div>
+                  <span className="text-muted">{admin.wdcWinner}: </span>
+                  <span className="text-f1-white">{getDriverName(championResult.wdc_driver_id)}</span>
+                </div>
+                <div>
+                  <span className="text-muted">{admin.wccWinner}: </span>
+                  <span className="text-f1-white">{getTeamName(championResult.wcc_team_id)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-2">
+            {/* Manual entry / override */}
+            <button
+              onClick={() => setShowChampionForm((prev) => !prev)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                showChampionForm
+                  ? "bg-f1-amber/25 text-f1-amber"
+                  : "bg-f1-amber/15 text-f1-amber hover:bg-f1-amber/25"
+              }`}
+            >
+              <PenLine size={13} />
+              {championResult ? admin.championOverrideResult : admin.championManualEntry}
+            </button>
+
+            {/* Re-score */}
+            {championResult && (
+              <button
+                onClick={handleRescoreChampion}
+                disabled={championRescoreState === "loading"}
+                className="flex items-center gap-1.5 rounded-lg bg-f1-purple/15 px-3 py-2 text-xs font-medium text-f1-purple transition-colors hover:bg-f1-purple/25 disabled:opacity-50"
+              >
+                {championRescoreState === "loading" ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={13} />
+                )}
+                {championRescoreState === "loading"
+                  ? admin.championRescoring
+                  : admin.championRescore}
+              </button>
+            )}
+
+            {/* Reset */}
+            {championResult && (
+              <button
+                onClick={handleResetChampion}
+                disabled={championResetState === "loading"}
+                className="flex items-center gap-1.5 rounded-lg bg-f1-red/15 px-3 py-2 text-xs font-medium text-f1-red transition-colors hover:bg-f1-red/25 disabled:opacity-50"
+              >
+                {championResetState === "loading" ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Trash2 size={13} />
+                )}
+                {championResetState === "loading"
+                  ? admin.resettingResult
+                  : admin.resetResult}
+              </button>
+            )}
+          </div>
+
+          {/* Re-score status */}
+          {championRescoreState === "success" && (
+            <div className="rounded-lg bg-f1-green/10 px-3 py-2 text-xs text-f1-green">
+              {admin.championRescoreSuccess}
+            </div>
+          )}
+          {championRescoreState === "error" && (
+            <div className="rounded-lg bg-f1-red/10 px-3 py-2 text-xs text-f1-red">
+              {admin.saveError}
+            </div>
+          )}
+
+          {/* Reset status */}
+          {championResetMessage && (
+            <div
+              className={`rounded-lg px-3 py-2 text-xs ${
+                championResetState === "success"
+                  ? "bg-f1-green/10 text-f1-green"
+                  : "bg-f1-red/10 text-f1-red"
+              }`}
+            >
+              {championResetMessage}
+            </div>
+          )}
+
+          {/* Champion form */}
+          {showChampionForm && (
+            <ChampionResultForm
+              drivers={drivers}
+              teams={teams}
+              existingResult={championResult}
+              onSuccess={() => {
+                setShowChampionForm(false);
+                router.refresh();
+              }}
+              onCancel={() => setShowChampionForm(false)}
+            />
           )}
         </div>
       </div>
