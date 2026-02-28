@@ -20,6 +20,9 @@
 # production
 /build
 
+# github
+.github/
+
 # cursor
 .cursor/
 
