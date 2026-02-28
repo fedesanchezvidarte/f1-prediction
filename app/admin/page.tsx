@@ -54,7 +54,7 @@ export default async function AdminPage() {
   // Get all race results
   const { data: raceResults } = await supabase
     .from("race_results")
-    .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id");
+    .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id");
 
   // Get all sprint results
   const { data: sprintResults } = await supabase

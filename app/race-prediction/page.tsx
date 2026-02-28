@@ -131,7 +131,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   // Fetch race predictions for the target user
   const { data: racePredRows } = await supabase
     .from("race_predictions")
-    .select("race_id, status, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, points_earned")
+    .select("race_id, status, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id, points_earned")
     .eq("user_id", viewingUserId);
 
   const racePredByMeetingKey = new Map<number, (typeof racePredRows extends (infer T)[] | null ? T : never)>();
@@ -154,6 +154,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
       restOfTop10: Array.from({ length: 9 }, (_, i) => findDriver(top10Ids[i + 1] ?? null)),
       fastestLap: findDriver(row?.fastest_lap_driver_id ?? null),
       fastestPitStop: findDriver(row?.fastest_pit_stop_driver_id ?? null),
+      driverOfTheDay: findDriver(row?.driver_of_the_day_driver_id ?? null),
       pointsEarned: row?.points_earned ?? null,
     };
   });
@@ -248,7 +249,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   // Fetch race results (same for all users)
   const { data: raceResultRows } = await supabase
     .from("race_results")
-    .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id");
+    .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id");
 
   const raceResults: Record<number, RaceResult> = {};
   for (const row of raceResultRows ?? []) {
@@ -260,6 +261,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     const pole = findDriver(row.pole_position_driver_id);
     const fastestLap = findDriver(row.fastest_lap_driver_id);
     const fastestPit = findDriver(row.fastest_pit_stop_driver_id);
+    const driverOfTheDay = findDriver(row.driver_of_the_day_driver_id);
     if (top10.length > 0 && pole && fastestLap) {
       raceResults[meetingKey] = {
         raceId: meetingKey,
@@ -268,6 +270,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
         top10,
         fastestLap,
         ...(fastestPit ? { fastestPitStop: fastestPit } : {}),
+        ...(driverOfTheDay ? { driverOfTheDay } : {}),
       };
     }
   }
