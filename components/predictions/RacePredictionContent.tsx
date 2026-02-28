@@ -44,6 +44,7 @@ interface RaceMatchStatuses {
   restOfTop10: MatchStatus[];
   fastestLap: MatchStatus;
   fastestPitStop: MatchStatus;
+  driverOfTheDay: MatchStatus;
 }
 
 interface SprintMatchStatuses {
@@ -305,6 +306,7 @@ export function RacePredictionContent({
           restOfTop10: [null, null, null, null, null, null, null, null, null],
           fastestLap: null,
           fastestPitStop: null,
+          driverOfTheDay: null,
           status: "pending",
         });
       }
@@ -359,6 +361,7 @@ export function RacePredictionContent({
           ],
           fastestLapDriverNumber: currentPrediction.fastestLap?.driverNumber ?? null,
           fastestPitStopDriverNumber: currentPrediction.fastestPitStop?.driverNumber ?? null,
+          driverOfTheDayDriverNumber: currentPrediction.driverOfTheDay?.driverNumber ?? null,
         };
       } else {
         return;
@@ -445,6 +448,9 @@ export function RacePredictionContent({
       fastestLap: fieldStatus(currentPrediction.fastestLap, currentResult.fastestLap),
       fastestPitStop: currentResult.fastestPitStop
         ? fieldStatus(currentPrediction.fastestPitStop, currentResult.fastestPitStop)
+        : null,
+      driverOfTheDay: currentResult.driverOfTheDay
+        ? fieldStatus(currentPrediction.driverOfTheDay, currentResult.driverOfTheDay)
         : null,
     };
   }, [currentResult, currentPrediction]);
@@ -988,7 +994,7 @@ function RaceForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <DriverSelect
           label={t.predictionsPage.fastestLap}
           value={prediction.fastestLap}
@@ -1006,6 +1012,15 @@ function RaceForm({
           onChange={(d) => onChange({ fastestPitStop: d })}
           disabled={!isEditable}
           matchStatus={matchStatuses?.fastestPitStop}
+        />
+        <DriverSelect
+          label={t.predictionsPage.driverOfTheDay}
+          value={prediction.driverOfTheDay}
+          drivers={drivers}
+          disabledDrivers={[]}
+          onChange={(d) => onChange({ driverOfTheDay: d })}
+          disabled={!isEditable}
+          matchStatus={matchStatuses?.driverOfTheDay}
         />
       </div>
     </div>
@@ -1338,6 +1353,9 @@ function ResultsDisplay({
         <ResultItem label={t.predictionsPage.fastestLap} driver={result.fastestLap} />
         {result.fastestPitStop && (
           <ResultItem label={t.predictionsPage.fastestPit} driver={result.fastestPitStop} />
+        )}
+        {result.driverOfTheDay && (
+          <ResultItem label={t.predictionsPage.driverOfTheDay} driver={result.driverOfTheDay} />
         )}
       </div>
       <div className="mt-2">

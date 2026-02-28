@@ -21,6 +21,7 @@ interface RaceResult {
   top_10: number[];
   fastest_lap_driver_id: number;
   fastest_pit_stop_driver_id: number;
+  driver_of_the_day_driver_id?: number | null;
 }
 
 interface SprintResult {
@@ -86,10 +87,18 @@ export function ManualResultForm({
     return null;
   };
 
+  const initDriverOfTheDay = (): number | null => {
+    if (sessionType === "race" && existingResult && "driver_of_the_day_driver_id" in existingResult) {
+      return (existingResult as RaceResult).driver_of_the_day_driver_id ?? null;
+    }
+    return null;
+  };
+
   const [positions, setPositions] = useState<(number | null)[]>(initPositions);
   const [pole, setPole] = useState<number | null>(initPole);
   const [fastestLap, setFastestLap] = useState<number | null>(initFastestLap);
   const [fastestPit, setFastestPit] = useState<number | null>(initFastestPit);
+  const [driverOfTheDay, setDriverOfTheDay] = useState<number | null>(initDriverOfTheDay);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,6 +140,7 @@ export function ManualResultForm({
               top10: positions,
               fastestLapDriverId: fastestLap,
               fastestPitStopDriverId: fastestPit,
+              driverOfTheDayDriverId: driverOfTheDay,
             }
           : {
               raceId,
@@ -260,6 +270,27 @@ export function ManualResultForm({
           <select
             value={fastestPit ?? ""}
             onChange={(e) => setFastestPit(e.target.value ? Number(e.target.value) : null)}
+            className="w-full rounded-lg border border-border bg-input-bg px-3 py-2 text-xs text-f1-white outline-none transition-colors focus:border-f1-amber"
+          >
+            <option value="">{admin.selectDriver}</option>
+            {drivers.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name_acronym} — {d.first_name} {d.last_name} ({d.teamName})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Driver of the Day (race only) */}
+      {sessionType === "race" && (
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-muted">
+            {admin.driverOfTheDay}
+          </label>
+          <select
+            value={driverOfTheDay ?? ""}
+            onChange={(e) => setDriverOfTheDay(e.target.value ? Number(e.target.value) : null)}
             className="w-full rounded-lg border border-border bg-input-bg px-3 py-2 text-xs text-f1-white outline-none transition-colors focus:border-f1-amber"
           >
             <option value="">{admin.selectDriver}</option>

@@ -41,6 +41,7 @@ interface RaceResult {
   top_10: number[];
   fastest_lap_driver_id: number;
   fastest_pit_stop_driver_id: number;
+  driver_of_the_day_driver_id?: number | null;
 }
 
 interface SprintResult {
@@ -810,6 +811,12 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
                             <span className="text-muted">{admin.fastestPit}: </span>
                             <span className="text-f1-white">{getDriverName(race.raceResult.fastest_pit_stop_driver_id)}</span>
                           </div>
+                          {race.raceResult.driver_of_the_day_driver_id && (
+                            <div>
+                              <span className="text-muted">{admin.driverOfTheDay}: </span>
+                              <span className="text-f1-white">{getDriverName(race.raceResult.driver_of_the_day_driver_id)}</span>
+                            </div>
+                          )}
                           <div className="col-span-2">
                             <span className="text-muted">{admin.top10}: </span>
                             <span className="text-f1-white">

@@ -50,6 +50,7 @@ export interface FullRacePrediction {
   restOfTop10: (Driver | null)[];
   fastestLap: Driver | null;
   fastestPitStop: Driver | null;
+  driverOfTheDay: Driver | null;
   pointsEarned: number | null;
 }
 
@@ -102,6 +103,7 @@ export interface RaceResult {
   top10: Driver[];
   fastestLap: Driver;
   fastestPitStop?: Driver;
+  driverOfTheDay?: Driver;
 }
 
 export interface SprintResult {
