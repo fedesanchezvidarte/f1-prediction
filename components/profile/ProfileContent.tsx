@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -23,6 +23,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  Camera,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
@@ -45,6 +46,9 @@ interface ProfileContentProps {
 export function ProfileContent({ profile, stats, authProvider }: ProfileContentProps) {
   const router = useRouter();
   const { t, language } = useLanguage();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(profile.avatarUrl);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [nameInput, setNameInput] = useState(profile.displayName);
@@ -76,6 +80,59 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
     language === "es" ? "es-ES" : "en-US",
     { month: "long", year: "numeric" }
   );
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError(t.profilePage.invalidImageFile);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError(t.profilePage.imageTooLarge);
+      return;
+    }
+
+    setUploadingAvatar(true);
+    setError(null);
+
+    const supabase = createClient();
+    const fileExt = file.name.split(".").pop();
+    const filePath = `${profile.id}/${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      setError(t.profilePage.failedToUploadAvatar);
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: publicUrl })
+      .eq("id", profile.id);
+
+    if (updateError) {
+      setError(t.profilePage.failedToUploadAvatar);
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    setCurrentAvatarUrl(publicUrl);
+    setUploadingAvatar(false);
+    setSuccess(t.profilePage.profilePictureUpdated);
+    setTimeout(() => setSuccess(null), 3000);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    router.refresh();
+  }
 
   async function handleSaveName() {
     const trimmed = nameInput.trim();
@@ -208,18 +265,44 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         {/* ── Avatar & Name ── */}
         <div className="flex flex-col items-center gap-4 border-b border-border px-5 py-5 sm:flex-row sm:items-center sm:gap-5">
           {/* Avatar */}
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card ring-2 ring-border">
-            {profile.avatarUrl ? (
-              <Image
-                src={profile.avatarUrl}
-                alt={displayName}
-                width={64}
-                height={64}
-                className="h-16 w-16 rounded-full object-cover"
-              />
-            ) : (
-              <span className="text-xl font-bold text-f1-white">{initials}</span>
-            )}
+          <div className="relative h-16 w-16 shrink-0">
+            <button
+              onClick={() => !uploadingAvatar && fileInputRef.current?.click()}
+              className="group relative flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-card ring-2 ring-border transition-all hover:ring-f1-red disabled:cursor-not-allowed"
+              aria-label={t.profilePage.changeProfilePicture}
+              disabled={uploadingAvatar}
+            >
+              {currentAvatarUrl ? (
+                <Image
+                  src={currentAvatarUrl}
+                  alt={displayName}
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 rounded-full object-cover"
+                />
+              ) : (
+                <span className="text-xl font-bold text-f1-white">{initials}</span>
+              )}
+              {/* Hover / loading overlay */}
+              <div
+                className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-all group-hover:bg-black/50 ${
+                  uploadingAvatar ? "bg-black/50" : ""
+                }`}
+              >
+                {uploadingAvatar ? (
+                  <Loader2 size={18} className="animate-spin text-white" />
+                ) : (
+                  <Camera size={18} className="text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                )}
+              </div>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
           </div>
 
           {/* Name + meta */}
