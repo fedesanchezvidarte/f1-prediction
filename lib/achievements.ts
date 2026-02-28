@@ -1,41 +1,55 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { LucideIcon } from "lucide-react";
+import {
+  Flag, ClipboardList, BookMarked, CalendarCheck,
+  Target, Crosshair, Eye, Telescope,
+  Star, Gem, Sparkles,
+  Trophy, Medal, Zap, Wrench,
+  Award, Layers, Gauge, Timer, Rocket, TrendingUp, LayoutGrid,
+  Wand2, Crown, PartyPopper,
+  Swords, Shield, Anvil, Flame, BadgeCheck,
+  Car, Users, Network,
+} from "lucide-react";
 import type { Achievement, AchievementCategory } from "@/types";
 
-export const ACHIEVEMENT_ICONS: Record<string, string> = {
-  first_prediction: "🏁",
-  "10_predictions": "🏁",
-  "20_predictions": "🏁",
-  all_2026_predictions: "🏁",
-  "1_correct": "🎯",
-  "10_correct": "🎯",
-  "50_correct": "🎯",
-  "100_correct": "🎯",
-  "100_points": "⭐",
-  "200_points": "⭐",
-  "300_points": "⭐",
-  predict_race_winner: "🏆",
-  predict_pole: "🥇",
-  predict_fastest_lap: "⚡",
-  predict_fastest_pit: "🔧",
-  perfect_podium: "🏅",
-  perfect_top_10: "🔮",
-  sprint_winner: "💨",
-  sprint_pole: "💨",
-  sprint_fastest_lap: "💨",
-  sprint_podium: "💨",
-  perfect_top_8: "💨",
-  hat_trick: "🎩",
-  predict_wdc: "👑",
-  predict_wcc: "🏗️",
-  // New champion-related achievements
-  race_prediction_winner: "🏆",
-  race_prediction_winner_10: "🏆",
-  race_prediction_podium: "🏅",
-  sprint_prediction_winner: "💨",
-  sprint_prediction_podium: "💨",
-  predict_1_team_best: "🚗",
-  predict_5_team_best: "🚗",
-  predict_10_team_best: "🚗",
+export const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
+  // Predictions
+  first_prediction: Flag,
+  "10_predictions": ClipboardList,
+  "20_predictions": BookMarked,
+  all_2026_predictions: CalendarCheck,
+  // Accuracy
+  "1_correct": Target,
+  "10_correct": Crosshair,
+  "50_correct": Eye,
+  "100_correct": Telescope,
+  predict_race_winner: Trophy,
+  predict_pole: Medal,
+  predict_fastest_lap: Zap,
+  predict_fastest_pit: Wrench,
+  sprint_winner: Gauge,
+  sprint_pole: Timer,
+  sprint_fastest_lap: Rocket,
+  // Milestones
+  "100_points": Star,
+  "200_points": Gem,
+  "300_points": Sparkles,
+  race_prediction_winner_10: Shield,
+  predict_5_team_best: Users,
+  predict_10_team_best: Network,
+  // Special
+  perfect_podium: Award,
+  perfect_top_10: Layers,
+  sprint_podium: TrendingUp,
+  perfect_top_8: LayoutGrid,
+  hat_trick: Wand2,
+  predict_wdc: Crown,
+  predict_wcc: PartyPopper,
+  race_prediction_winner: Swords,
+  race_prediction_podium: Anvil,
+  sprint_prediction_winner: Flame,
+  sprint_prediction_podium: BadgeCheck,
+  predict_1_team_best: Car,
 };
 
 export const CATEGORY_COLORS: Record<AchievementCategory, { bg: string; text: string; border: string }> = {
@@ -52,8 +66,8 @@ export const CATEGORY_LABELS: Record<AchievementCategory, string> = {
   special: "Special",
 };
 
-export function getAchievementIcon(slug: string): string {
-  return ACHIEVEMENT_ICONS[slug] ?? "🏆";
+export function getAchievementIcon(slug: string): LucideIcon {
+  return ACHIEVEMENT_ICONS[slug] ?? Trophy;
 }
 
 export const CATEGORY_COLORS_FALLBACK = {
@@ -106,16 +120,4 @@ export async function fetchAchievementsData(
   return { achievements, earnedIds };
 }
 
-/**
- * Tiered achievements share the same base icon but get a color upgrade.
- * Bronze → Silver → Gold based on threshold progression.
- */
-export function getTierColor(slug: string): string {
-  if (slug.startsWith("100_") || slug === "first_prediction" || slug === "1_correct")
-    return "from-amber-700 to-amber-900";
-  if (slug.startsWith("200_") || slug === "10_predictions" || slug === "10_correct")
-    return "from-slate-300 to-slate-500";
-  if (slug.startsWith("300_") || slug === "20_predictions" || slug === "50_correct" || slug === "100_correct" || slug === "all_2026_predictions")
-    return "from-yellow-300 to-yellow-500";
-  return "from-zinc-400 to-zinc-600";
-}
+

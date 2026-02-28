@@ -93,6 +93,7 @@ export function AchievementsContent({
         {filtered.map((achievement) => {
           const isEarned = earnedSet.has(achievement.id);
           const colors = getCategoryColors(achievement.category);
+          const AchievementIcon = getAchievementIcon(achievement.slug);
 
           return (
             <div
@@ -106,12 +107,12 @@ export function AchievementsContent({
               <div className="flex items-start gap-3 p-4">
                 {/* Icon */}
                 <div
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl ${
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
                     isEarned ? colors.bg : "bg-card"
                   }`}
                 >
                   {isEarned ? (
-                    getAchievementIcon(achievement.slug)
+                    <AchievementIcon size={18} className={colors.text} />
                   ) : (
                     <Lock size={16} className="text-muted/40" />
                   )}

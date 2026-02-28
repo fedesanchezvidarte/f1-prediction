@@ -43,15 +43,18 @@ export function AchievementsCard({ earned, achievements, total }: AchievementsCa
 
       {previewEarned.length > 0 ? (
         <div className="mt-3 flex items-center gap-2">
-          {previewEarned.map((a) => (
-            <div
-              key={a.id}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-card text-base ring-1 ring-border"
-              title={a.name}
-            >
-              {getAchievementIcon(a.slug)}
-            </div>
-          ))}
+          {previewEarned.map((a) => {
+            const PreviewIcon = getAchievementIcon(a.slug);
+            return (
+              <div
+                key={a.id}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-card ring-1 ring-border"
+                title={a.name}
+              >
+                <PreviewIcon size={14} className="text-muted" />
+              </div>
+            );
+          })}
           {earnedCount > 3 && (
             <span className="text-[10px] text-muted">+{earnedCount - 3} {t.achievementsCard.more}</span>
           )}
