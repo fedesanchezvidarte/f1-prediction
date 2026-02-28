@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminUser } from "@/lib/admin";
 import { scoreChampionForSeason } from "@/lib/scoring-service";
 
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     mostDnfsDriverId?: number | null;
     mostPodiumsDriverId?: number | null;
     mostWinsDriverId?: number | null;
-    teamBestDrivers?: { teamId: number; driverId: number }[];
+    teamBestDrivers?: { teamId: number; driverId: number | null }[];
   };
   try {
     body = (await request.json()) as typeof body;
@@ -113,6 +114,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const adminDb = createAdminClient();
+
     const resultData: Record<string, unknown> = {
       season_id: season.id,
       wdc_driver_id: wdcDriverId,
@@ -123,29 +126,43 @@ export async function POST(request: NextRequest) {
       source: "manual",
     };
 
-    const { data: existing } = await supabase
+    const { data: existing } = await adminDb
       .from("champion_results")
       .select("id")
       .eq("season_id", season.id)
       .single();
 
     if (existing) {
-      const { error } = await supabase
+      const { error } = await adminDb
         .from("champion_results")
         .update(resultData)
         .eq("id", existing.id);
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await supabase
+      const { error } = await adminDb
         .from("champion_results")
         .insert(resultData);
       if (error) throw new Error(error.message);
     }
 
-    // Upsert team best driver results
+    // Upsert / delete team best driver results
     if (teamBestDrivers && teamBestDrivers.length > 0) {
+      const receivedTeamIds = new Set<number>();
+
       for (const tbd of teamBestDrivers) {
-        const { data: existingTbd } = await supabase
+        receivedTeamIds.add(tbd.teamId);
+
+        if (tbd.driverId === null) {
+          // Admin explicitly cleared this team — delete existing result
+          await adminDb
+            .from("team_best_driver_results")
+            .delete()
+            .eq("season_id", season.id)
+            .eq("team_id", tbd.teamId);
+          continue;
+        }
+
+        const { data: existingTbd } = await adminDb
           .from("team_best_driver_results")
           .select("id")
           .eq("season_id", season.id)
@@ -153,13 +170,13 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (existingTbd) {
-          const { error } = await supabase
+          const { error } = await adminDb
             .from("team_best_driver_results")
             .update({ driver_id: tbd.driverId })
             .eq("id", existingTbd.id);
           if (error) throw new Error(error.message);
         } else {
-          const { error } = await supabase
+          const { error } = await adminDb
             .from("team_best_driver_results")
             .insert({
               season_id: season.id,
@@ -169,10 +186,28 @@ export async function POST(request: NextRequest) {
           if (error) throw new Error(error.message);
         }
       }
+
+      // Delete results for teams not included in the payload at all
+      const { data: allExistingTbd } = await adminDb
+        .from("team_best_driver_results")
+        .select("team_id")
+        .eq("season_id", season.id);
+
+      if (allExistingTbd) {
+        for (const row of allExistingTbd) {
+          if (!receivedTeamIds.has(row.team_id)) {
+            await adminDb
+              .from("team_best_driver_results")
+              .delete()
+              .eq("season_id", season.id)
+              .eq("team_id", row.team_id);
+          }
+        }
+      }
     }
 
     // Score all champion predictions for this season
-    const scoring = await scoreChampionForSeason(supabase, season.id);
+    const scoring = await scoreChampionForSeason(adminDb, season.id);
 
     return NextResponse.json({
       success: true,

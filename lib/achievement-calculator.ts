@@ -33,6 +33,11 @@ export interface AchievementCalculationResult {
 /*  Public API                                                            */
 /* ────────────────────────────────────────────────────────────────────── */
 
+interface PrecomputedRankings {
+  raceByRaceId: Map<number, { user_id: string; pts: number }[]>;
+  sprintByRaceId: Map<number, { user_id: string; pts: number }[]>;
+}
+
 /**
  * Calculate and reconcile achievements for a list of users.
  * Inserts newly earned achievements and removes revoked ones.
@@ -50,6 +55,35 @@ export async function calculateAchievementsForUsers(
     return { usersProcessed: 0, achievementsAwarded: 0, achievementsRevoked: 0 };
   }
 
+  // Pre-fetch all scored race/sprint predictions ONCE for ranking computations
+  const [{ data: allScoredRacePreds }, { data: allScoredSprintPreds }] =
+    await Promise.all([
+      supabase
+        .from("race_predictions")
+        .select("race_id, user_id, points_earned")
+        .eq("status", "scored"),
+      supabase
+        .from("sprint_predictions")
+        .select("race_id, user_id, points_earned")
+        .eq("status", "scored"),
+    ]);
+
+  const raceByRaceId = new Map<number, { user_id: string; pts: number }[]>();
+  for (const p of allScoredRacePreds ?? []) {
+    const list = raceByRaceId.get(p.race_id) ?? [];
+    list.push({ user_id: p.user_id, pts: p.points_earned ?? 0 });
+    raceByRaceId.set(p.race_id, list);
+  }
+
+  const sprintByRaceId = new Map<number, { user_id: string; pts: number }[]>();
+  for (const p of allScoredSprintPreds ?? []) {
+    const list = sprintByRaceId.get(p.race_id) ?? [];
+    list.push({ user_id: p.user_id, pts: p.points_earned ?? 0 });
+    sprintByRaceId.set(p.race_id, list);
+  }
+
+  const rankings: PrecomputedRankings = { raceByRaceId, sprintByRaceId };
+
   let totalAwarded = 0;
   let totalRevoked = 0;
 
@@ -57,7 +91,8 @@ export async function calculateAchievementsForUsers(
     const earnedIds = await evaluateAllAchievements(
       supabase,
       userId,
-      achievements
+      achievements,
+      rankings
     );
     const { awarded, revoked } = await reconcileAchievements(
       supabase,
@@ -126,7 +161,8 @@ export async function calculateAchievementsForAllUsers(
 async function evaluateAllAchievements(
   supabase: SupabaseClient,
   userId: string,
-  achievements: AchievementRow[]
+  achievements: AchievementRow[],
+  rankings: PrecomputedRankings
 ): Promise<Set<number>> {
   const earnedIds = new Set<number>();
 
@@ -301,53 +337,25 @@ async function evaluateAllAchievements(
   let sprintFirstCount = 0;
   let sprintTop3Count = 0;
 
-  // Get all scored race predictions for ranking
-  const { data: allScoredRacePreds } = await supabase
-    .from("race_predictions")
-    .select("race_id, user_id, points_earned")
-    .eq("status", "scored");
-
-  if (allScoredRacePreds) {
-    // Group by race_id
-    const byRace = new Map<number, { user_id: string; pts: number }[]>();
-    for (const p of allScoredRacePreds) {
-      const list = byRace.get(p.race_id) ?? [];
-      list.push({ user_id: p.user_id, pts: p.points_earned ?? 0 });
-      byRace.set(p.race_id, list);
-    }
-    for (const [, entries] of byRace) {
-      entries.sort((a, b) => b.pts - a.pts);
-      const userIdx = entries.findIndex((e) => e.user_id === userId);
-      if (userIdx === -1) continue;
-      const userPts = entries[userIdx].pts;
-      // Rank = number of users with strictly more points + 1
-      const rank = entries.filter((e) => e.pts > userPts).length + 1;
-      if (rank === 1) raceFirstCount++;
-      if (rank <= 3) raceTop3Count++;
-    }
+  // Use pre-fetched ranking data instead of querying per user
+  for (const [, entries] of rankings.raceByRaceId) {
+    entries.sort((a, b) => b.pts - a.pts);
+    const userIdx = entries.findIndex((e) => e.user_id === userId);
+    if (userIdx === -1) continue;
+    const userPts = entries[userIdx].pts;
+    const rank = entries.filter((e) => e.pts > userPts).length + 1;
+    if (rank === 1) raceFirstCount++;
+    if (rank <= 3) raceTop3Count++;
   }
 
-  const { data: allScoredSprintPreds } = await supabase
-    .from("sprint_predictions")
-    .select("race_id, user_id, points_earned")
-    .eq("status", "scored");
-
-  if (allScoredSprintPreds) {
-    const bySprint = new Map<number, { user_id: string; pts: number }[]>();
-    for (const p of allScoredSprintPreds) {
-      const list = bySprint.get(p.race_id) ?? [];
-      list.push({ user_id: p.user_id, pts: p.points_earned ?? 0 });
-      bySprint.set(p.race_id, list);
-    }
-    for (const [, entries] of bySprint) {
-      entries.sort((a, b) => b.pts - a.pts);
-      const userIdx = entries.findIndex((e) => e.user_id === userId);
-      if (userIdx === -1) continue;
-      const userPts = entries[userIdx].pts;
-      const rank = entries.filter((e) => e.pts > userPts).length + 1;
-      if (rank === 1) sprintFirstCount++;
-      if (rank <= 3) sprintTop3Count++;
-    }
+  for (const [, entries] of rankings.sprintByRaceId) {
+    entries.sort((a, b) => b.pts - a.pts);
+    const userIdx = entries.findIndex((e) => e.user_id === userId);
+    if (userIdx === -1) continue;
+    const userPts = entries[userIdx].pts;
+    const rank = entries.filter((e) => e.pts > userPts).length + 1;
+    if (rank === 1) sprintFirstCount++;
+    if (rank <= 3) sprintTop3Count++;
   }
 
   // ── Team best driver achievements ─────────────────────────────────

@@ -302,7 +302,7 @@ async function handleChampionPrediction(
 
       const { data: existingTbd } = await supabase
         .from("team_best_driver_predictions")
-        .select("id, driver_id, status")
+        .select("id, driver_id, status, is_half_points")
         .eq("user_id", userId)
         .eq("season_id", season.id)
         .eq("team_id", tbdPred.teamId)
@@ -317,7 +317,7 @@ async function handleChampionPrediction(
         season_id: season.id,
         team_id: tbdPred.teamId,
         driver_id: driverId,
-        is_half_points: isChanged ? true : (existingTbd?.id ? existingTbd.id && false : isHalfPoints),
+        is_half_points: isHalfPoints,
         status: "submitted" as const,
         submitted_at: new Date().toISOString(),
       };
@@ -327,7 +327,7 @@ async function handleChampionPrediction(
           .from("team_best_driver_predictions")
           .update({
             driver_id: driverId,
-            is_half_points: isChanged ? true : existingTbd.id ? false : isHalfPoints,
+            is_half_points: isChanged ? true : existingTbd.is_half_points,
             status: "submitted",
             submitted_at: new Date().toISOString(),
           })

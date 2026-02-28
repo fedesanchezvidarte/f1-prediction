@@ -344,7 +344,7 @@ export async function scoreChampionForSeason(
   // Revert previously scored predictions so we can re-score them fresh.
   const { error: revertError } = await supabase
     .from("champion_predictions")
-    .update({ status: "submitted", points_earned: null, wdc_correct: false, wcc_correct: false })
+    .update({ status: "submitted", points_earned: 0, wdc_correct: false, wcc_correct: false })
     .eq("season_id", seasonId)
     .eq("status", "scored");
 

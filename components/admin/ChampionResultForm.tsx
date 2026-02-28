@@ -103,12 +103,12 @@ export function ChampionResultForm({
     setSaving(true);
     setError(null);
 
-    // Build team best drivers array
+    // Build team best drivers array — include all teams so the server
+    // can reconcile (delete results for teams set back to "none").
     const teamBestDriversPayload = Object.entries(teamBestDrivers)
-      .filter(([, driverId]) => driverId !== null)
       .map(([teamId, driverId]) => ({
         teamId: Number(teamId),
-        driverId: driverId as number,
+        driverId: driverId,
       }));
 
     try {

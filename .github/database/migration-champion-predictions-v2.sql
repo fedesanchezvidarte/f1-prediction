@@ -6,36 +6,20 @@
 -- ============================================================
 -- 1. Add columns to champion_predictions
 -- ============================================================
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'champion_predictions' AND column_name = 'most_dnfs_driver_id'
-  ) THEN
-    ALTER TABLE champion_predictions
-      ADD COLUMN most_dnfs_driver_id BIGINT REFERENCES drivers(id),
-      ADD COLUMN most_podiums_driver_id BIGINT REFERENCES drivers(id),
-      ADD COLUMN most_wins_driver_id BIGINT REFERENCES drivers(id),
-      ADD COLUMN wdc_correct BOOLEAN DEFAULT FALSE,
-      ADD COLUMN wcc_correct BOOLEAN DEFAULT FALSE;
-  END IF;
-END $$;
+ALTER TABLE champion_predictions
+  ADD COLUMN IF NOT EXISTS most_dnfs_driver_id BIGINT REFERENCES drivers(id),
+  ADD COLUMN IF NOT EXISTS most_podiums_driver_id BIGINT REFERENCES drivers(id),
+  ADD COLUMN IF NOT EXISTS most_wins_driver_id BIGINT REFERENCES drivers(id),
+  ADD COLUMN IF NOT EXISTS wdc_correct BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS wcc_correct BOOLEAN DEFAULT FALSE;
 
 -- ============================================================
 -- 2. Add columns to champion_results
 -- ============================================================
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'champion_results' AND column_name = 'most_dnfs_driver_id'
-  ) THEN
-    ALTER TABLE champion_results
-      ADD COLUMN most_dnfs_driver_id BIGINT REFERENCES drivers(id),
-      ADD COLUMN most_podiums_driver_id BIGINT REFERENCES drivers(id),
-      ADD COLUMN most_wins_driver_id BIGINT REFERENCES drivers(id);
-  END IF;
-END $$;
+ALTER TABLE champion_results
+  ADD COLUMN IF NOT EXISTS most_dnfs_driver_id BIGINT REFERENCES drivers(id),
+  ADD COLUMN IF NOT EXISTS most_podiums_driver_id BIGINT REFERENCES drivers(id),
+  ADD COLUMN IF NOT EXISTS most_wins_driver_id BIGINT REFERENCES drivers(id);
 
 -- ============================================================
 -- 3. Create team_best_driver_predictions table
@@ -157,3 +141,46 @@ SELECT * FROM (VALUES
 WHERE NOT EXISTS (
   SELECT 1 FROM achievements WHERE achievements.slug = v.slug
 );
+
+-- ============================================================
+-- 7. Protect scoring columns from direct user manipulation
+-- ============================================================
+-- A trigger ensures that only service_role can modify scoring-related
+-- columns on champion_predictions and team_best_driver_predictions.
+-- Regular authenticated users can only update prediction input columns.
+
+CREATE OR REPLACE FUNCTION protect_champion_scoring_columns()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF current_setting('request.jwt.claim.role', true) IS DISTINCT FROM 'service_role' THEN
+    NEW.status := OLD.status;
+    NEW.points_earned := OLD.points_earned;
+    NEW.wdc_correct := OLD.wdc_correct;
+    NEW.wcc_correct := OLD.wcc_correct;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS champion_predictions_protect_scoring ON champion_predictions;
+CREATE TRIGGER champion_predictions_protect_scoring
+  BEFORE UPDATE ON champion_predictions
+  FOR EACH ROW
+  EXECUTE FUNCTION protect_champion_scoring_columns();
+
+CREATE OR REPLACE FUNCTION protect_tbd_scoring_columns()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF current_setting('request.jwt.claim.role', true) IS DISTINCT FROM 'service_role' THEN
+    NEW.status := OLD.status;
+    NEW.points_earned := OLD.points_earned;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS tbd_predictions_protect_scoring ON team_best_driver_predictions;
+CREATE TRIGGER tbd_predictions_protect_scoring
+  BEFORE UPDATE ON team_best_driver_predictions
+  FOR EACH ROW
+  EXECUTE FUNCTION protect_tbd_scoring_columns();

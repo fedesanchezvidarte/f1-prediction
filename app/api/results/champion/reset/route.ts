@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminUser } from "@/lib/admin";
 import { updateLeaderboard } from "@/lib/scoring-service";
 
@@ -36,6 +37,8 @@ export async function POST() {
     return NextResponse.json({ error: "No active season found" }, { status: 404 });
   }
 
+  const adminDb = createAdminClient();
+
   try {
     // Find all users whose champion predictions were already scored
     const { data: scoredPreds } = await supabase
@@ -57,9 +60,9 @@ export async function POST() {
 
     // Revert scored champion predictions back to "submitted" and clear points
     if (scoredPreds && scoredPreds.length > 0) {
-      const { error: updateErr } = await supabase
+      const { error: updateErr } = await adminDb
         .from("champion_predictions")
-        .update({ status: "submitted", points_earned: null, wdc_correct: null, wcc_correct: null })
+        .update({ status: "submitted", points_earned: 0, wdc_correct: false, wcc_correct: false })
         .eq("season_id", season.id)
         .eq("status", "scored");
 
@@ -73,9 +76,9 @@ export async function POST() {
 
     // Revert scored team best driver predictions back to "submitted" and clear points
     if (scoredTbdPreds && scoredTbdPreds.length > 0) {
-      const { error: updateErr } = await supabase
+      const { error: updateErr } = await adminDb
         .from("team_best_driver_predictions")
-        .update({ status: "submitted", points_earned: null })
+        .update({ status: "submitted", points_earned: 0 })
         .eq("season_id", season.id)
         .eq("status", "scored");
 
@@ -88,7 +91,7 @@ export async function POST() {
     }
 
     // Delete the champion result
-    const { error: deleteErr } = await supabase
+    const { error: deleteErr } = await adminDb
       .from("champion_results")
       .delete()
       .eq("season_id", season.id);
@@ -101,7 +104,7 @@ export async function POST() {
     }
 
     // Delete team best driver results
-    const { error: deleteTbdErr } = await supabase
+    const { error: deleteTbdErr } = await adminDb
       .from("team_best_driver_results")
       .delete()
       .eq("season_id", season.id);
@@ -115,7 +118,7 @@ export async function POST() {
 
     // Recalculate leaderboard for affected users
     if (affectedUserIds.size > 0) {
-      await updateLeaderboard(supabase, [...affectedUserIds], []);
+      await updateLeaderboard(adminDb, [...affectedUserIds], []);
     }
 
     return NextResponse.json({
