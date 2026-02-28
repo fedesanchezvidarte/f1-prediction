@@ -283,6 +283,12 @@ const es: Messages = {
     incorrectPassword: "Contraseña incorrecta. Inténtalo de nuevo.",
     emailDoesNotMatch: "El correo no coincide. Inténtalo de nuevo.",
     failedToDelete: "Error al eliminar la cuenta. Contacta soporte si el problema persiste.",
+    // Avatar
+    changeProfilePicture: "Cambiar foto de perfil",
+    profilePictureUpdated: "¡Foto de perfil actualizada!",
+    invalidImageFile: "Por favor selecciona un archivo de imagen válido.",
+    imageTooLarge: "La imagen debe ser menor a 5MB.",
+    failedToUploadAvatar: "Error al subir la foto de perfil. Inténtalo de nuevo.",
   },
   // ── Admin panel ─────────────────────────────────────────────────────
   admin: {

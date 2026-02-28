@@ -293,6 +293,12 @@ const en = {
     incorrectPassword: "Incorrect password. Please try again.",
     emailDoesNotMatch: "Email address does not match. Please try again.",
     failedToDelete: "Failed to delete account. Please contact support if the issue persists.",
+    // Avatar
+    changeProfilePicture: "Change Profile Picture",
+    profilePictureUpdated: "Profile picture updated!",
+    invalidImageFile: "Please select a valid image file.",
+    imageTooLarge: "Image must be less than 5MB.",
+    failedToUploadAvatar: "Failed to upload profile picture. Please try again.",
   },
   // ── Admin panel ─────────────────────────────────────────────────────
   admin: {
