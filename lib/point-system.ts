@@ -38,7 +38,11 @@ export const POINT_SYSTEM: PointSystemSection[] = [
     rules: [
       { category: "WDC Winner", description: "Correct World Drivers' Champion", points: 20 },
       { category: "WCC Winner", description: "Correct World Constructors' Champion", points: 20 },
+      { category: "Most DNFs", description: "Correct driver with most DNFs", points: 10 },
+      { category: "Most Podiums", description: "Correct driver with most podiums", points: 10 },
+      { category: "Most Wins", description: "Correct driver with most wins", points: 10 },
+      { category: "Team Best Driver", description: "Correct best-performing driver per team (×10 teams)", points: 2 },
     ],
-    maxPoints: 40,
+    maxPoints: 90,
   },
 ];

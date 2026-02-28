@@ -4,13 +4,18 @@ import { isAdminUser } from "@/lib/admin";
 import { scoreChampionForSeason } from "@/lib/scoring-service";
 
 /**
- * Allows an admin to manually enter or override champion (WDC/WCC) results.
- * After saving, it automatically re-scores all champion predictions.
+ * Allows an admin to manually enter or override champion (WDC/WCC) results
+ * plus the new categories: most DNFs, most podiums, most wins,
+ * and the per-team best driver results.
  *
  * Body:
  * {
- *   wdcDriverId: number,   // DB drivers.id of the WDC winner
- *   wccTeamId: number,     // DB teams.id of the WCC winner
+ *   wdcDriverId: number,
+ *   wccTeamId: number,
+ *   mostDnfsDriverId?: number | null,
+ *   mostPodiumsDriverId?: number | null,
+ *   mostWinsDriverId?: number | null,
+ *   teamBestDrivers?: { teamId: number; driverId: number }[],
  * }
  */
 export async function POST(request: NextRequest) {
@@ -30,14 +35,28 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { wdcDriverId?: number; wccTeamId?: number };
+  let body: {
+    wdcDriverId?: number;
+    wccTeamId?: number;
+    mostDnfsDriverId?: number | null;
+    mostPodiumsDriverId?: number | null;
+    mostWinsDriverId?: number | null;
+    teamBestDrivers?: { teamId: number; driverId: number }[];
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { wdcDriverId, wccTeamId } = body;
+  const {
+    wdcDriverId,
+    wccTeamId,
+    mostDnfsDriverId,
+    mostPodiumsDriverId,
+    mostWinsDriverId,
+    teamBestDrivers,
+  } = body;
 
   if (!wdcDriverId || !wccTeamId) {
     return NextResponse.json(
@@ -94,11 +113,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const resultData = {
+    const resultData: Record<string, unknown> = {
       season_id: season.id,
       wdc_driver_id: wdcDriverId,
       wcc_team_id: wccTeamId,
-      source: "manual" as const,
+      most_dnfs_driver_id: mostDnfsDriverId ?? null,
+      most_podiums_driver_id: mostPodiumsDriverId ?? null,
+      most_wins_driver_id: mostWinsDriverId ?? null,
+      source: "manual",
     };
 
     const { data: existing } = await supabase
@@ -118,6 +140,35 @@ export async function POST(request: NextRequest) {
         .from("champion_results")
         .insert(resultData);
       if (error) throw new Error(error.message);
+    }
+
+    // Upsert team best driver results
+    if (teamBestDrivers && teamBestDrivers.length > 0) {
+      for (const tbd of teamBestDrivers) {
+        const { data: existingTbd } = await supabase
+          .from("team_best_driver_results")
+          .select("id")
+          .eq("season_id", season.id)
+          .eq("team_id", tbd.teamId)
+          .single();
+
+        if (existingTbd) {
+          const { error } = await supabase
+            .from("team_best_driver_results")
+            .update({ driver_id: tbd.driverId })
+            .eq("id", existingTbd.id);
+          if (error) throw new Error(error.message);
+        } else {
+          const { error } = await supabase
+            .from("team_best_driver_results")
+            .insert({
+              season_id: season.id,
+              team_id: tbd.teamId,
+              driver_id: tbd.driverId,
+            });
+          if (error) throw new Error(error.message);
+        }
+      }
     }
 
     // Score all champion predictions for this season

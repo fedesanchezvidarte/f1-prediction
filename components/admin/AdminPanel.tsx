@@ -59,6 +59,14 @@ interface AdminTeam {
 interface AdminChampionResult {
   wdc_driver_id: number;
   wcc_team_id: number;
+  most_dnfs_driver_id: number | null;
+  most_podiums_driver_id: number | null;
+  most_wins_driver_id: number | null;
+}
+
+interface AdminTeamBestDriverResult {
+  teamId: number;
+  driverId: number;
 }
 
 interface AdminRace {
@@ -83,12 +91,13 @@ interface AdminPanelProps {
   drivers: AdminDriver[];
   teams: AdminTeam[];
   championResult: AdminChampionResult | null;
+  teamBestDriverResults: AdminTeamBestDriverResult[];
   championPredictions: { submitted: number; scored: number };
 }
 
 type SessionType = "race" | "sprint";
 
-export function AdminPanel({ races, drivers, teams, championResult, championPredictions }: AdminPanelProps) {
+export function AdminPanel({ races, drivers, teams, championResult, teamBestDriverResults, championPredictions }: AdminPanelProps) {
   const { t } = useLanguage();
   const router = useRouter();
   const admin = t.admin;
@@ -521,6 +530,24 @@ export function AdminPanel({ races, drivers, teams, championResult, championPred
                   <span className="text-muted">{admin.wccWinner}: </span>
                   <span className="text-f1-white">{getTeamName(championResult.wcc_team_id)}</span>
                 </div>
+                {championResult.most_dnfs_driver_id && (
+                  <div>
+                    <span className="text-muted">{admin.mostDnfs}: </span>
+                    <span className="text-f1-white">{getDriverName(championResult.most_dnfs_driver_id)}</span>
+                  </div>
+                )}
+                {championResult.most_podiums_driver_id && (
+                  <div>
+                    <span className="text-muted">{admin.mostPodiums}: </span>
+                    <span className="text-f1-white">{getDriverName(championResult.most_podiums_driver_id)}</span>
+                  </div>
+                )}
+                {championResult.most_wins_driver_id && (
+                  <div>
+                    <span className="text-muted">{admin.mostWins}: </span>
+                    <span className="text-f1-white">{getDriverName(championResult.most_wins_driver_id)}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -615,6 +642,7 @@ export function AdminPanel({ races, drivers, teams, championResult, championPred
               drivers={drivers}
               teams={teams}
               existingResult={championResult}
+              existingTeamBestDriverResults={teamBestDriverResults}
               onSuccess={() => {
                 setShowChampionForm(false);
                 setChampionSaveMessage(admin.championSaveSuccess);

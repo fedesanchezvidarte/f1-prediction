@@ -42,6 +42,7 @@ export async function POST() {
     return NextResponse.json({
       success: true,
       championPredictionsScored: result.championPredictionsScored,
+      teamBestDriverPredictionsScored: result.teamBestDriverPredictionsScored,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

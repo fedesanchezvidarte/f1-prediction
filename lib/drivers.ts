@@ -35,6 +35,7 @@ export async function fetchDriversFromDb(): Promise<Driver[]> {
       nameAcronym: d.name_acronym,
       teamName: team?.name ?? "Unknown",
       teamColor: team?.color ?? "FFFFFF",
+      teamId: d.team_id ?? undefined,
       headshotUrl: d.headshot_url ?? undefined,
     };
   });

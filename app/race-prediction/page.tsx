@@ -6,7 +6,7 @@ import { Footer } from "@/components/layout/Footer";
 import { RacePredictionContent } from "@/components/predictions/RacePredictionContent";
 import { fetchRacesFromDb } from "@/lib/races";
 import { fetchDriversFromDb } from "@/lib/drivers";
-import { fetchTeamsFromDb } from "@/lib/teams";
+import { fetchTeamsFromDb, fetchTeamsWithDrivers } from "@/lib/teams";
 import type {
   FullRacePrediction,
   SprintPrediction,
@@ -14,6 +14,7 @@ import type {
   RaceResult,
   SprintResult,
   Driver,
+  TeamBestDriverPrediction,
 } from "@/types";
 
 interface PageProps {
@@ -118,6 +119,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   // Fetch drivers and teams from DB
   const allDrivers = await fetchDriversFromDb();
   const allTeams = await fetchTeamsFromDb();
+  const teamsWithDrivers = await fetchTeamsWithDrivers();
 
   function findDriver(dbDriverId: number | null): Driver | null {
     if (!dbDriverId) return null;
@@ -189,7 +191,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   // Fetch champion prediction
   const { data: champRow } = await supabase
     .from("champion_predictions")
-    .select("status, wdc_driver_id, wcc_team_id, points_earned, is_half_points")
+    .select("status, wdc_driver_id, wcc_team_id, most_dnfs_driver_id, most_podiums_driver_id, most_wins_driver_id, points_earned, is_half_points")
     .eq("user_id", viewingUserId)
     .single();
 
@@ -208,9 +210,40 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     status: champRow?.status ?? "pending",
     wdcWinner: findDriver(champRow?.wdc_driver_id ?? null),
     wccWinner: wccTeamName,
+    mostDnfsDriver: findDriver(champRow?.most_dnfs_driver_id ?? null),
+    mostPodiumsDriver: findDriver(champRow?.most_podiums_driver_id ?? null),
+    mostWinsDriver: findDriver(champRow?.most_wins_driver_id ?? null),
     pointsEarned: champRow?.points_earned ?? null,
     isHalfPoints: champRow?.is_half_points ?? false,
   };
+
+  // Fetch team best driver predictions
+  const { data: teamBestDriverRows } = await supabase
+    .from("team_best_driver_predictions")
+    .select("team_id, driver_id, is_half_points, status, points_earned")
+    .eq("user_id", viewingUserId)
+    .eq("season_id", seasonId);
+
+  const teamBestDriverPredMap = new Map<number, typeof teamBestDriverRows extends (infer T)[] | null ? T : never>();
+  for (const row of teamBestDriverRows ?? []) {
+    teamBestDriverPredMap.set(row.team_id, row);
+  }
+
+  const teamBestDriverPredictions: TeamBestDriverPrediction[] = teamsWithDrivers.map((team) => {
+    const row = teamBestDriverPredMap.get(team.id);
+    const driverId = row?.driver_id ?? null;
+    const matchedDriver = driverId ? team.drivers.find((d) => d.id === driverId) : null;
+    return {
+      teamId: team.id,
+      teamName: team.name,
+      teamColor: team.color,
+      driverId,
+      driverNumber: matchedDriver?.driverNumber ?? null,
+      isHalfPoints: row?.is_half_points ?? false,
+      status: row?.status ?? "pending",
+      pointsEarned: row?.points_earned ?? 0,
+    };
+  });
 
   // Fetch race results (same for all users)
   const { data: raceResultRows } = await supabase
@@ -288,9 +321,11 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
             races={RACES}
             drivers={allDrivers}
             teams={allTeams}
+            teamsWithDrivers={teamsWithDrivers}
             predictions={predictions}
             sprintPredictions={sprintPredictions}
             championPrediction={championPrediction}
+            teamBestDriverPredictions={teamBestDriverPredictions}
             raceResults={raceResults}
             sprintResults={sprintResults}
             isOwner={isOwner}

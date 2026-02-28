@@ -86,9 +86,15 @@ export default async function AdminPage() {
   // Get champion result for current season
   const { data: championResult } = await supabase
     .from("champion_results")
-    .select("wdc_driver_id, wcc_team_id")
+    .select("wdc_driver_id, wcc_team_id, most_dnfs_driver_id, most_podiums_driver_id, most_wins_driver_id")
     .eq("season_id", season.id)
     .single();
+
+  // Get team best driver results for current season
+  const { data: teamBestDriverResults } = await supabase
+    .from("team_best_driver_results")
+    .select("team_id, driver_id")
+    .eq("season_id", season.id);
 
   // Get champion prediction stats
   const { data: championPredCounts } = await supabase
@@ -164,6 +170,7 @@ export default async function AdminPage() {
           drivers={enrichedDrivers}
           teams={(teams ?? []).map((t) => ({ id: t.id, name: t.name, color: t.color }))}
           championResult={championResult ?? null}
+          teamBestDriverResults={(teamBestDriverResults ?? []).map((r) => ({ teamId: r.team_id, driverId: r.driver_id }))}
           championPredictions={championPredictions}
         />
       </main>

@@ -219,10 +219,14 @@ async function handleChampionPrediction(
   body: {
     wdcDriverNumber: number | null;
     wccTeamName: string | null;
+    mostDnfsDriverNumber: number | null;
+    mostPodiumsDriverNumber: number | null;
+    mostWinsDriverNumber: number | null;
     isHalfPoints: boolean;
+    teamBestDrivers?: Array<{ teamId: number; driverNumber: number }>;
   }
 ) {
-  const { wdcDriverNumber, wccTeamName, isHalfPoints } = body;
+  const { wdcDriverNumber, wccTeamName, mostDnfsDriverNumber, mostPodiumsDriverNumber, mostWinsDriverNumber, isHalfPoints, teamBestDrivers } = body;
 
   const { data: season } = await supabase
     .from("seasons")
@@ -236,6 +240,9 @@ async function handleChampionPrediction(
 
   const driverMap = await getDriverNumberToIdMap(supabase);
   const wdcDriverId = wdcDriverNumber !== null ? (driverMap.get(wdcDriverNumber) ?? null) : null;
+  const mostDnfsDriverId = mostDnfsDriverNumber !== null ? (driverMap.get(mostDnfsDriverNumber) ?? null) : null;
+  const mostPodiumsDriverId = mostPodiumsDriverNumber !== null ? (driverMap.get(mostPodiumsDriverNumber) ?? null) : null;
+  const mostWinsDriverId = mostWinsDriverNumber !== null ? (driverMap.get(mostWinsDriverNumber) ?? null) : null;
 
   let wccTeamId: number | null = null;
   if (wccTeamName) {
@@ -264,6 +271,9 @@ async function handleChampionPrediction(
     season_id: season.id,
     wdc_driver_id: wdcDriverId,
     wcc_team_id: wccTeamId,
+    most_dnfs_driver_id: mostDnfsDriverId,
+    most_podiums_driver_id: mostPodiumsDriverId,
+    most_wins_driver_id: mostWinsDriverId,
     status: "submitted",
     is_half_points: isHalfPoints,
     submitted_at: new Date().toISOString(),
@@ -282,6 +292,56 @@ async function handleChampionPrediction(
       .insert(predictionData);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Handle team best driver predictions
+  if (teamBestDrivers && teamBestDrivers.length > 0) {
+    for (const tbdPred of teamBestDrivers) {
+      const driverId = driverMap.get(tbdPred.driverNumber) ?? null;
+      if (!driverId) continue;
+
+      const { data: existingTbd } = await supabase
+        .from("team_best_driver_predictions")
+        .select("id, driver_id, status")
+        .eq("user_id", userId)
+        .eq("season_id", season.id)
+        .eq("team_id", tbdPred.teamId)
+        .single();
+
+      if (existingTbd?.status === "scored") continue;
+
+      const isChanged = existingTbd && existingTbd.driver_id !== driverId;
+
+      const tbdData = {
+        user_id: userId,
+        season_id: season.id,
+        team_id: tbdPred.teamId,
+        driver_id: driverId,
+        is_half_points: isChanged ? true : (existingTbd?.id ? existingTbd.id && false : isHalfPoints),
+        status: "submitted" as const,
+        submitted_at: new Date().toISOString(),
+      };
+
+      if (existingTbd) {
+        const { error } = await supabase
+          .from("team_best_driver_predictions")
+          .update({
+            driver_id: driverId,
+            is_half_points: isChanged ? true : existingTbd.id ? false : isHalfPoints,
+            status: "submitted",
+            submitted_at: new Date().toISOString(),
+          })
+          .eq("id", existingTbd.id);
+
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      } else {
+        const { error } = await supabase
+          .from("team_best_driver_predictions")
+          .insert(tbdData);
+
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+    }
   }
 
   return NextResponse.json({ success: true });

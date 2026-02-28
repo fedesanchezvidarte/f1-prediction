@@ -211,6 +211,12 @@ const en = {
     wcc: "World Constructors' Champion (WCC)",
     selectTeam: "Select team...",
     halfPointsWarning: "Predictions changed after the summer break earn half points.",
+    // New champion categories
+    mostDnfs: "Most DNFs",
+    mostPodiums: "Most Podiums",
+    mostWins: "Most Wins",
+    teamBestDriver: "Team's Best Driver",
+    teamBestDriverSub: "Select the best-performing driver for each team",
     // Champion header
     championshipPredictions: "Championship Predictions",
     championshipInfo: "Championship predictions are locked after the start of the first race. Predictions changed after the summer break earn half points.",
@@ -373,6 +379,10 @@ const en = {
     championResetSuccess: "Champion result reset successfully",
     championResetError: "Failed to reset champion result",
     championSaveSuccess: "Champion result saved and scored successfully",
+    mostDnfs: "Most DNFs",
+    mostPodiums: "Most Podiums",
+    mostWins: "Most Wins",
+    teamBestDrivers: "Team Best Drivers",
     datetimeManager: {
       title: "Event Datetimes",
       startLabel: "Start",
