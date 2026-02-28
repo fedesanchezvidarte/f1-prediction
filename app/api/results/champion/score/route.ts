@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminUser } from "@/lib/admin";
 import { scoreChampionForSeason } from "@/lib/scoring-service";
 
@@ -38,8 +37,7 @@ export async function POST() {
   }
 
   try {
-    const adminDb = createAdminClient();
-    const result = await scoreChampionForSeason(adminDb, season.id);
+    const result = await scoreChampionForSeason(supabase, season.id);
 
     return NextResponse.json({
       success: true,

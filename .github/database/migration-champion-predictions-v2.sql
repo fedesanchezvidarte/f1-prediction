@@ -101,26 +101,49 @@ BEGIN
   END IF;
 END $$;
 
--- Service role can do everything (for admin API routes)
+-- team_best_driver_results: admin can insert/update/delete
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'team_best_driver_predictions' AND policyname = 'Service role full access team_best_driver_predictions'
+    SELECT 1 FROM pg_policies WHERE tablename = 'team_best_driver_results' AND policyname = 'team_best_driver_results: admin can insert'
   ) THEN
-    CREATE POLICY "Service role full access team_best_driver_predictions"
-      ON team_best_driver_predictions FOR ALL
-      USING (auth.role() = 'service_role');
+    CREATE POLICY "team_best_driver_results: admin can insert"
+      ON team_best_driver_results FOR INSERT
+      WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
   END IF;
 END $$;
 
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'team_best_driver_results' AND policyname = 'Service role full access team_best_driver_results'
+    SELECT 1 FROM pg_policies WHERE tablename = 'team_best_driver_results' AND policyname = 'team_best_driver_results: admin can update'
   ) THEN
-    CREATE POLICY "Service role full access team_best_driver_results"
-      ON team_best_driver_results FOR ALL
-      USING (auth.role() = 'service_role');
+    CREATE POLICY "team_best_driver_results: admin can update"
+      ON team_best_driver_results FOR UPDATE
+      USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'team_best_driver_results' AND policyname = 'team_best_driver_results: admin can delete'
+  ) THEN
+    CREATE POLICY "team_best_driver_results: admin can delete"
+      ON team_best_driver_results FOR DELETE
+      USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+  END IF;
+END $$;
+
+-- team_best_driver_predictions: admin can update any row (for scoring)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'team_best_driver_predictions' AND policyname = 'team_best_driver_predictions: admin can update'
+  ) THEN
+    CREATE POLICY "team_best_driver_predictions: admin can update"
+      ON team_best_driver_predictions FOR UPDATE
+      USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
   END IF;
 END $$;
 
@@ -141,46 +164,3 @@ SELECT * FROM (VALUES
 WHERE NOT EXISTS (
   SELECT 1 FROM achievements WHERE achievements.slug = v.slug
 );
-
--- ============================================================
--- 7. Protect scoring columns from direct user manipulation
--- ============================================================
--- A trigger ensures that only service_role can modify scoring-related
--- columns on champion_predictions and team_best_driver_predictions.
--- Regular authenticated users can only update prediction input columns.
-
-CREATE OR REPLACE FUNCTION protect_champion_scoring_columns()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF current_setting('request.jwt.claim.role', true) IS DISTINCT FROM 'service_role' THEN
-    NEW.status := OLD.status;
-    NEW.points_earned := OLD.points_earned;
-    NEW.wdc_correct := OLD.wdc_correct;
-    NEW.wcc_correct := OLD.wcc_correct;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS champion_predictions_protect_scoring ON champion_predictions;
-CREATE TRIGGER champion_predictions_protect_scoring
-  BEFORE UPDATE ON champion_predictions
-  FOR EACH ROW
-  EXECUTE FUNCTION protect_champion_scoring_columns();
-
-CREATE OR REPLACE FUNCTION protect_tbd_scoring_columns()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF current_setting('request.jwt.claim.role', true) IS DISTINCT FROM 'service_role' THEN
-    NEW.status := OLD.status;
-    NEW.points_earned := OLD.points_earned;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS tbd_predictions_protect_scoring ON team_best_driver_predictions;
-CREATE TRIGGER tbd_predictions_protect_scoring
-  BEFORE UPDATE ON team_best_driver_predictions
-  FOR EACH ROW
-  EXECUTE FUNCTION protect_tbd_scoring_columns();

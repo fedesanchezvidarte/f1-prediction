@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminUser } from "@/lib/admin";
 import { updateLeaderboard } from "@/lib/scoring-service";
 
@@ -37,8 +36,6 @@ export async function POST() {
     return NextResponse.json({ error: "No active season found" }, { status: 404 });
   }
 
-  const adminDb = createAdminClient();
-
   try {
     // Find all users whose champion predictions were already scored
     const { data: scoredPreds } = await supabase
@@ -60,7 +57,7 @@ export async function POST() {
 
     // Revert scored champion predictions back to "submitted" and clear points
     if (scoredPreds && scoredPreds.length > 0) {
-      const { error: updateErr } = await adminDb
+      const { error: updateErr } = await supabase
         .from("champion_predictions")
         .update({ status: "submitted", points_earned: 0, wdc_correct: false, wcc_correct: false })
         .eq("season_id", season.id)
@@ -76,7 +73,7 @@ export async function POST() {
 
     // Revert scored team best driver predictions back to "submitted" and clear points
     if (scoredTbdPreds && scoredTbdPreds.length > 0) {
-      const { error: updateErr } = await adminDb
+      const { error: updateErr } = await supabase
         .from("team_best_driver_predictions")
         .update({ status: "submitted", points_earned: 0 })
         .eq("season_id", season.id)
@@ -91,7 +88,7 @@ export async function POST() {
     }
 
     // Delete the champion result
-    const { error: deleteErr } = await adminDb
+    const { error: deleteErr } = await supabase
       .from("champion_results")
       .delete()
       .eq("season_id", season.id);
@@ -104,7 +101,7 @@ export async function POST() {
     }
 
     // Delete team best driver results
-    const { error: deleteTbdErr } = await adminDb
+    const { error: deleteTbdErr } = await supabase
       .from("team_best_driver_results")
       .delete()
       .eq("season_id", season.id);
@@ -118,7 +115,7 @@ export async function POST() {
 
     // Recalculate leaderboard for affected users
     if (affectedUserIds.size > 0) {
-      await updateLeaderboard(adminDb, [...affectedUserIds], []);
+      await updateLeaderboard(supabase, [...affectedUserIds], []);
     }
 
     return NextResponse.json({

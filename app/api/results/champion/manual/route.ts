@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminUser } from "@/lib/admin";
 import { scoreChampionForSeason } from "@/lib/scoring-service";
 
@@ -114,8 +113,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const adminDb = createAdminClient();
-
     const resultData: Record<string, unknown> = {
       season_id: season.id,
       wdc_driver_id: wdcDriverId,
@@ -126,20 +123,20 @@ export async function POST(request: NextRequest) {
       source: "manual",
     };
 
-    const { data: existing } = await adminDb
+    const { data: existing } = await supabase
       .from("champion_results")
       .select("id")
       .eq("season_id", season.id)
       .single();
 
     if (existing) {
-      const { error } = await adminDb
+      const { error } = await supabase
         .from("champion_results")
         .update(resultData)
         .eq("id", existing.id);
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await adminDb
+      const { error } = await supabase
         .from("champion_results")
         .insert(resultData);
       if (error) throw new Error(error.message);
@@ -154,7 +151,7 @@ export async function POST(request: NextRequest) {
 
         if (tbd.driverId === null) {
           // Admin explicitly cleared this team — delete existing result
-          await adminDb
+          await supabase
             .from("team_best_driver_results")
             .delete()
             .eq("season_id", season.id)
@@ -162,7 +159,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const { data: existingTbd } = await adminDb
+        const { data: existingTbd } = await supabase
           .from("team_best_driver_results")
           .select("id")
           .eq("season_id", season.id)
@@ -170,13 +167,13 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (existingTbd) {
-          const { error } = await adminDb
+          const { error } = await supabase
             .from("team_best_driver_results")
             .update({ driver_id: tbd.driverId })
             .eq("id", existingTbd.id);
           if (error) throw new Error(error.message);
         } else {
-          const { error } = await adminDb
+          const { error } = await supabase
             .from("team_best_driver_results")
             .insert({
               season_id: season.id,
@@ -188,7 +185,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Delete results for teams not included in the payload at all
-      const { data: allExistingTbd } = await adminDb
+      const { data: allExistingTbd } = await supabase
         .from("team_best_driver_results")
         .select("team_id")
         .eq("season_id", season.id);
@@ -196,7 +193,7 @@ export async function POST(request: NextRequest) {
       if (allExistingTbd) {
         for (const row of allExistingTbd) {
           if (!receivedTeamIds.has(row.team_id)) {
-            await adminDb
+            await supabase
               .from("team_best_driver_results")
               .delete()
               .eq("season_id", season.id)
@@ -207,7 +204,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Score all champion predictions for this season
-    const scoring = await scoreChampionForSeason(adminDb, season.id);
+    const scoring = await scoreChampionForSeason(supabase, season.id);
 
     return NextResponse.json({
       success: true,
