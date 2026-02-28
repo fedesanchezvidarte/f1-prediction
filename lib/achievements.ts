@@ -6,7 +6,7 @@ import {
   Star, Gem, Sparkles,
   Trophy, Medal, Zap, Wrench,
   Award, Layers, Gauge, Timer, Rocket, TrendingUp, LayoutGrid,
-  Wand2, Crown, Building2,
+  Wand2, Crown, PartyPopper,
   Swords, Shield, Anvil, Flame, BadgeCheck,
   Car, Users, Network,
 } from "lucide-react";
@@ -44,7 +44,7 @@ export const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
   perfect_top_8: LayoutGrid,
   hat_trick: Wand2,
   predict_wdc: Crown,
-  predict_wcc: Building2,
+  predict_wcc: PartyPopper,
   race_prediction_winner: Swords,
   race_prediction_podium: Anvil,
   sprint_prediction_winner: Flame,
