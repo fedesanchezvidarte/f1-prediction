@@ -5,6 +5,7 @@ export interface Driver {
   nameAcronym: string;
   teamName: string;
   teamColor: string;
+  teamId?: number;
   headshotUrl?: string;
 }
 
@@ -69,8 +70,29 @@ export interface ChampionPrediction {
   status: PredictionStatus;
   wdcWinner: Driver | null;
   wccWinner: string | null;
+  mostDnfsDriver: Driver | null;
+  mostPodiumsDriver: Driver | null;
+  mostWinsDriver: Driver | null;
   pointsEarned: number | null;
   isHalfPoints: boolean;
+}
+
+export interface TeamBestDriverPrediction {
+  teamId: number;
+  teamName: string;
+  teamColor: string;
+  driverId: number | null;
+  driverNumber: number | null;
+  isHalfPoints: boolean;
+  status: PredictionStatus;
+  pointsEarned: number;
+}
+
+export interface TeamWithDrivers {
+  id: number;
+  name: string;
+  color: string;
+  drivers: { id: number; driverNumber: number; firstName: string; lastName: string; nameAcronym: string }[];
 }
 
 export interface RaceResult {

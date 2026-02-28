@@ -33,6 +33,11 @@ export interface AchievementCalculationResult {
 /*  Public API                                                            */
 /* ────────────────────────────────────────────────────────────────────── */
 
+interface PrecomputedRankings {
+  raceByRaceId: Map<number, { user_id: string; pts: number }[]>;
+  sprintByRaceId: Map<number, { user_id: string; pts: number }[]>;
+}
+
 /**
  * Calculate and reconcile achievements for a list of users.
  * Inserts newly earned achievements and removes revoked ones.
@@ -50,6 +55,35 @@ export async function calculateAchievementsForUsers(
     return { usersProcessed: 0, achievementsAwarded: 0, achievementsRevoked: 0 };
   }
 
+  // Pre-fetch all scored race/sprint predictions ONCE for ranking computations
+  const [{ data: allScoredRacePreds }, { data: allScoredSprintPreds }] =
+    await Promise.all([
+      supabase
+        .from("race_predictions")
+        .select("race_id, user_id, points_earned")
+        .eq("status", "scored"),
+      supabase
+        .from("sprint_predictions")
+        .select("race_id, user_id, points_earned")
+        .eq("status", "scored"),
+    ]);
+
+  const raceByRaceId = new Map<number, { user_id: string; pts: number }[]>();
+  for (const p of allScoredRacePreds ?? []) {
+    const list = raceByRaceId.get(p.race_id) ?? [];
+    list.push({ user_id: p.user_id, pts: p.points_earned ?? 0 });
+    raceByRaceId.set(p.race_id, list);
+  }
+
+  const sprintByRaceId = new Map<number, { user_id: string; pts: number }[]>();
+  for (const p of allScoredSprintPreds ?? []) {
+    const list = sprintByRaceId.get(p.race_id) ?? [];
+    list.push({ user_id: p.user_id, pts: p.points_earned ?? 0 });
+    sprintByRaceId.set(p.race_id, list);
+  }
+
+  const rankings: PrecomputedRankings = { raceByRaceId, sprintByRaceId };
+
   let totalAwarded = 0;
   let totalRevoked = 0;
 
@@ -57,7 +91,8 @@ export async function calculateAchievementsForUsers(
     const earnedIds = await evaluateAllAchievements(
       supabase,
       userId,
-      achievements
+      achievements,
+      rankings
     );
     const { awarded, revoked } = await reconcileAchievements(
       supabase,
@@ -82,7 +117,7 @@ export async function calculateAchievementsForUsers(
 export async function calculateAchievementsForAllUsers(
   supabase: SupabaseClient
 ): Promise<AchievementCalculationResult> {
-  const [{ data: raceUsers }, { data: sprintUsers }, { data: champUsers }] =
+  const [{ data: raceUsers }, { data: sprintUsers }, { data: champUsers }, { data: tbdUsers }] =
     await Promise.all([
       supabase
         .from("race_predictions")
@@ -96,12 +131,17 @@ export async function calculateAchievementsForAllUsers(
         .from("champion_predictions")
         .select("user_id")
         .in("status", ["submitted", "scored"]),
+      supabase
+        .from("team_best_driver_predictions")
+        .select("user_id")
+        .in("status", ["submitted", "scored"]),
     ]);
 
   const allUserIds = new Set<string>();
   for (const p of raceUsers ?? []) allUserIds.add(p.user_id);
   for (const p of sprintUsers ?? []) allUserIds.add(p.user_id);
   for (const p of champUsers ?? []) allUserIds.add(p.user_id);
+  for (const p of tbdUsers ?? []) allUserIds.add(p.user_id);
 
   if (allUserIds.size === 0) {
     return { usersProcessed: 0, achievementsAwarded: 0, achievementsRevoked: 0 };
@@ -121,7 +161,8 @@ export async function calculateAchievementsForAllUsers(
 async function evaluateAllAchievements(
   supabase: SupabaseClient,
   userId: string,
-  achievements: AchievementRow[]
+  achievements: AchievementRow[],
+  rankings: PrecomputedRankings
 ): Promise<Set<number>> {
   const earnedIds = new Set<number>();
 
@@ -133,6 +174,7 @@ async function evaluateAllAchievements(
     { data: raceResults },
     { data: sprintResults },
     { data: season },
+    { data: tbdPreds },
   ] = await Promise.all([
     supabase
       .from("race_predictions")
@@ -146,17 +188,23 @@ async function evaluateAllAchievements(
       .in("status", ["submitted", "scored"]),
     supabase
       .from("champion_predictions")
-      .select("user_id, status, points_earned")
+      .select("user_id, status, points_earned, wdc_correct, wcc_correct")
       .eq("user_id", userId)
       .in("status", ["submitted", "scored"]),
     supabase.from("race_results").select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id"),
     supabase.from("sprint_results").select("race_id, sprint_pole_driver_id, top_8, fastest_lap_driver_id"),
     supabase.from("seasons").select("id").eq("is_current", true).single(),
+    supabase
+      .from("team_best_driver_predictions")
+      .select("id, status, points_earned")
+      .eq("user_id", userId)
+      .in("status", ["submitted", "scored"]),
   ]);
 
   const racePredictions = racePreds ?? [];
   const sprintPredictions = sprintPreds ?? [];
   const championPredictions = champPreds ?? [];
+  const teamBestDriverPredictions = tbdPreds ?? [];
 
   // Build look-up maps for results
   const raceResultMap = new Map<number, (typeof raceResults extends Array<infer T> | null ? T : never)>();
@@ -167,18 +215,20 @@ async function evaluateAllAchievements(
 
   // ── Prediction-count achievements ─────────────────────────────────
   const totalPredictions =
-    racePredictions.length + sprintPredictions.length + championPredictions.length;
+    racePredictions.length + sprintPredictions.length + championPredictions.length + teamBestDriverPredictions.length;
 
   // ── Scored data ───────────────────────────────────────────────────
   const scoredRace = racePredictions.filter((p) => p.status === "scored");
   const scoredSprint = sprintPredictions.filter((p) => p.status === "scored");
   const scoredChamp = championPredictions.filter((p) => p.status === "scored");
+  const scoredTbd = teamBestDriverPredictions.filter((p) => p.status === "scored");
 
   // ── Total points ──────────────────────────────────────────────────
   const totalPoints =
     scoredRace.reduce((s, p) => s + (p.points_earned ?? 0), 0) +
     scoredSprint.reduce((s, p) => s + (p.points_earned ?? 0), 0) +
-    scoredChamp.reduce((s, p) => s + (p.points_earned ?? 0), 0);
+    scoredChamp.reduce((s, p) => s + (p.points_earned ?? 0), 0) +
+    scoredTbd.reduce((s, p) => s + (p.points_earned ?? 0), 0);
 
   // ── Per-race analysis ─────────────────────────────────────────────
   let totalCorrectPositions = 0;
@@ -263,28 +313,55 @@ async function evaluateAllAchievements(
   }
 
   // ── Championship achievements ─────────────────────────────────────
-  // WDC/WCC achievements are awarded when champion predictions are scored
-  // with points, which means the admin has entered championship results.
-  // A scored champion prediction with points_earned > 0 means at least
-  // one of WDC/WCC was correct. We use the point thresholds to determine
-  // which one: WDC alone = 20pts (10 half), WCC alone = 20pts (10 half).
+  // Use the wdc_correct / wcc_correct boolean columns stored on each
+  // scored champion prediction for precise tracking.
   let hasCorrectWdc = false;
   let hasCorrectWcc = false;
 
   for (const pred of scoredChamp) {
-    const pts = pred.points_earned ?? 0;
-    // If 40pts (or 20 half), both are correct.
-    // If 20pts (or 10 half), one is correct — we can't distinguish which,
-    // so we award both achievement checks optimistically when pts > 0.
-    // This covers the realistic case; fine-grained tracking would require
-    // storing individual match results in a separate column.
-    // TODO: add wdc_correct / wcc_correct boolean columns to champion_predictions
-    // to track each championship prediction individually and avoid this ambiguity.
-    if (pts > 0) {
-      hasCorrectWdc = true;
-      hasCorrectWcc = true;
-    }
+    if (pred.wdc_correct === true) hasCorrectWdc = true;
+    if (pred.wcc_correct === true) hasCorrectWcc = true;
   }
+
+  // ── Race / Sprint leaderboard placement achievements ──────────────
+  // "race_prediction_winner" – user finished 1st on a race leaderboard
+  // "race_prediction_winner_10" – user finished 1st 10 times
+  // "race_prediction_podium" – user finished top-3 on a race leaderboard
+  // "sprint_prediction_winner" – user finished 1st on a sprint leaderboard
+  // "sprint_prediction_podium" – user finished top-3 on a sprint leaderboard
+  //
+  // We compute this by comparing the user's points to all other users'
+  // points per race_id for scored predictions.
+  let raceFirstCount = 0;
+  let raceTop3Count = 0;
+  let sprintFirstCount = 0;
+  let sprintTop3Count = 0;
+
+  // Use pre-fetched ranking data instead of querying per user
+  for (const [, entries] of rankings.raceByRaceId) {
+    entries.sort((a, b) => b.pts - a.pts);
+    const userIdx = entries.findIndex((e) => e.user_id === userId);
+    if (userIdx === -1) continue;
+    const userPts = entries[userIdx].pts;
+    const rank = entries.filter((e) => e.pts > userPts).length + 1;
+    if (rank === 1) raceFirstCount++;
+    if (rank <= 3) raceTop3Count++;
+  }
+
+  for (const [, entries] of rankings.sprintByRaceId) {
+    entries.sort((a, b) => b.pts - a.pts);
+    const userIdx = entries.findIndex((e) => e.user_id === userId);
+    if (userIdx === -1) continue;
+    const userPts = entries[userIdx].pts;
+    const rank = entries.filter((e) => e.pts > userPts).length + 1;
+    if (rank === 1) sprintFirstCount++;
+    if (rank <= 3) sprintTop3Count++;
+  }
+
+  // ── Team best driver achievements ─────────────────────────────────
+  const tbdCorrectCount = scoredTbd.filter(
+    (p) => (p.points_earned ?? 0) > 0
+  ).length;
 
   // ── Map slugs to earned status ────────────────────────────────────
   for (const ach of achievements) {
@@ -387,6 +464,34 @@ async function evaluateAllAchievements(
         break;
       case "predict_wcc":
         earned = hasCorrectWcc;
+        break;
+
+      /* ── New: Race/Sprint leaderboard placement ──────────────── */
+      case "race_prediction_winner":
+        earned = raceFirstCount >= (threshold || 1);
+        break;
+      case "race_prediction_winner_10":
+        earned = raceFirstCount >= (threshold || 10);
+        break;
+      case "race_prediction_podium":
+        earned = raceTop3Count >= (threshold || 1);
+        break;
+      case "sprint_prediction_winner":
+        earned = sprintFirstCount >= (threshold || 1);
+        break;
+      case "sprint_prediction_podium":
+        earned = sprintTop3Count >= (threshold || 1);
+        break;
+
+      /* ── New: Team best driver ───────────────────────────────── */
+      case "predict_1_team_best":
+        earned = tbdCorrectCount >= (threshold || 1);
+        break;
+      case "predict_5_team_best":
+        earned = tbdCorrectCount >= (threshold || 5);
+        break;
+      case "predict_10_team_best":
+        earned = tbdCorrectCount >= (threshold || 10);
         break;
     }
 

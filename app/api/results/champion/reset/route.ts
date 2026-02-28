@@ -4,11 +4,10 @@ import { isAdminUser } from "@/lib/admin";
 import { updateLeaderboard } from "@/lib/scoring-service";
 
 /**
- * Resets the champion (WDC/WCC) result for the current season.
- * Deletes the champion_results row, reverts all scored champion predictions
- * back to "submitted", and recalculates the leaderboard for affected users.
- *
- * Body: (none required)
+ * Resets all champion/team-best-driver results for the current season.
+ * Deletes champion_results + team_best_driver_results, reverts all scored
+ * champion_predictions and team_best_driver_predictions back to "submitted",
+ * and recalculates the leaderboard for affected users.
  */
 export async function POST() {
   const supabase = await createClient();
@@ -45,19 +44,44 @@ export async function POST() {
       .eq("season_id", season.id)
       .eq("status", "scored");
 
-    const affectedUserIds = (scoredPreds ?? []).map((p) => p.user_id);
+    // Also find users with scored team best driver predictions
+    const { data: scoredTbdPreds } = await supabase
+      .from("team_best_driver_predictions")
+      .select("id, user_id")
+      .eq("season_id", season.id)
+      .eq("status", "scored");
 
-    // Revert scored predictions back to "submitted" and clear points
+    const affectedUserIds = new Set<string>();
+    for (const p of scoredPreds ?? []) affectedUserIds.add(p.user_id);
+    for (const p of scoredTbdPreds ?? []) affectedUserIds.add(p.user_id);
+
+    // Revert scored champion predictions back to "submitted" and clear points
     if (scoredPreds && scoredPreds.length > 0) {
       const { error: updateErr } = await supabase
         .from("champion_predictions")
-        .update({ status: "submitted", points_earned: null })
+        .update({ status: "submitted", points_earned: 0, wdc_correct: false, wcc_correct: false })
         .eq("season_id", season.id)
         .eq("status", "scored");
 
       if (updateErr) {
         return NextResponse.json(
           { error: `Failed to revert predictions: ${updateErr.message}` },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Revert scored team best driver predictions back to "submitted" and clear points
+    if (scoredTbdPreds && scoredTbdPreds.length > 0) {
+      const { error: updateErr } = await supabase
+        .from("team_best_driver_predictions")
+        .update({ status: "submitted", points_earned: 0 })
+        .eq("season_id", season.id)
+        .eq("status", "scored");
+
+      if (updateErr) {
+        return NextResponse.json(
+          { error: `Failed to revert team best driver predictions: ${updateErr.message}` },
           { status: 500 }
         );
       }
@@ -76,14 +100,27 @@ export async function POST() {
       );
     }
 
+    // Delete team best driver results
+    const { error: deleteTbdErr } = await supabase
+      .from("team_best_driver_results")
+      .delete()
+      .eq("season_id", season.id);
+
+    if (deleteTbdErr) {
+      return NextResponse.json(
+        { error: `Failed to delete team best driver results: ${deleteTbdErr.message}` },
+        { status: 500 }
+      );
+    }
+
     // Recalculate leaderboard for affected users
-    if (affectedUserIds.length > 0) {
-      await updateLeaderboard(supabase, [...new Set(affectedUserIds)], []);
+    if (affectedUserIds.size > 0) {
+      await updateLeaderboard(supabase, [...affectedUserIds], []);
     }
 
     return NextResponse.json({
       success: true,
-      predictionsReverted: scoredPreds?.length ?? 0,
+      predictionsReverted: (scoredPreds?.length ?? 0) + (scoredTbdPreds?.length ?? 0),
     });
   } catch (error) {
     const message =

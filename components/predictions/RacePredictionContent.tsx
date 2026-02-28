@@ -29,6 +29,8 @@ import type {
   RaceResult,
   SprintResult,
   RaceStatus,
+  TeamBestDriverPrediction,
+  TeamWithDrivers,
 } from "@/types";
 import { getRaceStatus } from "@/lib/race-utils";
 import { DriverSelect, type MatchStatus } from "./DriverSelect";
@@ -55,9 +57,11 @@ interface RacePredictionContentProps {
   races: Race[];
   drivers: Driver[];
   teams: string[];
+  teamsWithDrivers: TeamWithDrivers[];
   predictions: FullRacePrediction[];
   sprintPredictions: SprintPrediction[];
   championPrediction: ChampionPrediction;
+  teamBestDriverPredictions: TeamBestDriverPrediction[];
   raceResults: Record<number, RaceResult>;
   sprintResults: Record<number, SprintResult>;
   isOwner: boolean;
@@ -101,9 +105,11 @@ export function RacePredictionContent({
   races,
   drivers,
   teams,
+  teamsWithDrivers,
   predictions: initialPredictions,
   sprintPredictions: initialSprintPredictions,
   championPrediction: initialChampionPrediction,
+  teamBestDriverPredictions: initialTeamBestDriverPredictions,
   raceResults,
   sprintResults,
   isOwner,
@@ -115,6 +121,7 @@ export function RacePredictionContent({
   const [predictions, setPredictions] = useState(initialPredictions);
   const [sprintPreds, setSprintPreds] = useState(initialSprintPredictions);
   const [champPred, setChampPred] = useState(initialChampionPrediction);
+  const [teamBestDriverPreds, setTeamBestDriverPreds] = useState(initialTeamBestDriverPredictions);
   const [showResults, setShowResults] = useState(false);
 
   const currentRace = races[raceIndex];
@@ -134,6 +141,9 @@ export function RacePredictionContent({
     return new Date() < new Date(races[0].dateStart);
   }, [races]);
 
+  // Always highlight the champion tab while it's open and not yet scored.
+  const champNeedsAttention = isChampionOpen && champPred.status !== "scored";
+
   const currentPrediction = predictions.find((p) => p.raceId === currentRace.meetingKey);
   const currentSprintPred = sprintPreds.find((p) => p.raceId === currentRace.meetingKey);
   const currentResult = raceResults[currentRace.meetingKey];
@@ -148,7 +158,11 @@ export function RacePredictionContent({
   );
 
   const hasEdits = useMemo(() => {
-    if (isChampionTab) return champPred.wdcWinner !== null || champPred.wccWinner !== null;
+    if (isChampionTab) {
+      return champPred.wdcWinner !== null || champPred.wccWinner !== null
+        || champPred.mostDnfsDriver !== null || champPred.mostPodiumsDriver !== null || champPred.mostWinsDriver !== null
+        || teamBestDriverPreds.some((p) => p.driverNumber !== null);
+    }
     if (tab === "sprint" && currentSprintPred) {
       return currentSprintPred.sprintPole !== null || currentSprintPred.sprintWinner !== null || currentSprintPred.restOfTop8.some((d) => d !== null);
     }
@@ -274,7 +288,8 @@ export function RacePredictionContent({
       }
 
       if (isChampionTab) {
-        setChampPred({ ...champPred, wdcWinner: null, wccWinner: null, status: "pending" });
+        setChampPred({ ...champPred, wdcWinner: null, wccWinner: null, mostDnfsDriver: null, mostPodiumsDriver: null, mostWinsDriver: null, status: "pending" });
+        setTeamBestDriverPreds((prev) => prev.map((p) => ({ ...p, driverId: null, driverNumber: null, status: "pending" as const })));
       } else if (tab === "sprint") {
         updateSprintPrediction({
           sprintPole: null,
@@ -314,7 +329,13 @@ export function RacePredictionContent({
           type: "champion",
           wdcDriverNumber: champPred.wdcWinner?.driverNumber ?? null,
           wccTeamName: champPred.wccWinner,
+          mostDnfsDriverNumber: champPred.mostDnfsDriver?.driverNumber ?? null,
+          mostPodiumsDriverNumber: champPred.mostPodiumsDriver?.driverNumber ?? null,
+          mostWinsDriverNumber: champPred.mostWinsDriver?.driverNumber ?? null,
           isHalfPoints: seasonStarted,
+          teamBestDrivers: teamBestDriverPreds
+            .filter((p) => p.driverNumber !== null)
+            .map((p) => ({ teamId: p.teamId, driverNumber: p.driverNumber! })),
         };
       } else if (tab === "sprint" && currentSprintPred) {
         payload = {
@@ -531,12 +552,12 @@ export function RacePredictionContent({
             className={`relative flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium transition-colors sm:px-2.5 ${
               isChampionTab
                 ? "bg-f1-amber text-black"
-                : isChampionOpen && champPred.status === "pending"
+                : champNeedsAttention
                   ? "bg-f1-amber/15 text-f1-amber ring-1 ring-f1-amber/40"
                   : "text-muted hover:bg-card-hover hover:text-f1-white"
             }`}
           >
-            {isChampionOpen && !isChampionTab && champPred.status === "pending" && (
+            {champNeedsAttention && !isChampionTab && (
               <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-f1-amber animate-pulse" />
             )}
             <Crown size={10} />
@@ -635,9 +656,12 @@ export function RacePredictionContent({
             prediction={champPred}
             drivers={drivers}
             teams={teams}
+            teamsWithDrivers={teamsWithDrivers}
+            teamBestDriverPredictions={teamBestDriverPreds}
             teamColors={teamColors}
             isEditable={isEditable}
             onChange={setChampPred}
+            onTeamBestDriverChange={setTeamBestDriverPreds}
           />
         ) : tab === "sprint" ? (
           currentSprintPred ? (
@@ -1080,16 +1104,22 @@ function ChampionForm({
   prediction,
   drivers,
   teams,
+  teamsWithDrivers,
+  teamBestDriverPredictions,
   teamColors,
   isEditable,
   onChange,
+  onTeamBestDriverChange,
 }: {
   prediction: ChampionPrediction;
   drivers: Driver[];
   teams: string[];
+  teamsWithDrivers: TeamWithDrivers[];
+  teamBestDriverPredictions: TeamBestDriverPrediction[];
   teamColors: Record<string, string>;
   isEditable: boolean;
   onChange: (pred: ChampionPrediction) => void;
+  onTeamBestDriverChange: (preds: TeamBestDriverPrediction[]) => void;
 }) {
   const { t } = useLanguage();
   const [teamOpen, setTeamOpen] = useState(false);
@@ -1186,6 +1216,103 @@ function ChampionForm({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-border pt-2" />
+
+      {/* Most Wins / Most Podiums / Most DNFs */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <DriverSelect
+          label={t.predictionsPage.mostWins}
+          value={prediction.mostWinsDriver}
+          drivers={drivers}
+          disabledDrivers={[]}
+          onChange={(d) => onChange({ ...prediction, mostWinsDriver: d })}
+          disabled={!isEditable}
+        />
+        <DriverSelect
+          label={t.predictionsPage.mostPodiums}
+          value={prediction.mostPodiumsDriver}
+          drivers={drivers}
+          disabledDrivers={[]}
+          onChange={(d) => onChange({ ...prediction, mostPodiumsDriver: d })}
+          disabled={!isEditable}
+        />
+        <DriverSelect
+          label={t.predictionsPage.mostDnfs}
+          value={prediction.mostDnfsDriver}
+          drivers={drivers}
+          disabledDrivers={[]}
+          onChange={(d) => onChange({ ...prediction, mostDnfsDriver: d })}
+          disabled={!isEditable}
+        />
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-border pt-2" />
+
+      {/* Team Best Driver section */}
+      <div>
+        <div className="mb-2 flex items-center gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+            {t.predictionsPage.teamBestDriver}
+          </span>
+          <span className="text-[9px] text-muted/50">{t.predictionsPage.teamBestDriverSub}</span>
+        </div>
+        <div className="space-y-2">
+          {teamsWithDrivers.map((team) => {
+            const pred = teamBestDriverPredictions.find((p) => p.teamId === team.id);
+            const selectedDriverNumber = pred?.driverNumber ?? null;
+            return (
+              <div
+                key={team.id}
+                className="flex items-center gap-3 rounded-lg border border-border px-3 py-2"
+              >
+                <span
+                  className="h-3 w-3 shrink-0 rounded-full"
+                  style={{ backgroundColor: `#${team.color}` }}
+                />
+                <span className="min-w-25 text-xs font-medium text-f1-white sm:min-w-35">
+                  {team.name}
+                </span>
+                {pred?.isHalfPoints && (
+                  <span className="text-[9px] text-f1-amber" title={t.predictionsPage.halfPointsWarning}>½</span>
+                )}
+                <div className="ml-auto flex gap-1.5">
+                  {team.drivers.map((d) => {
+                    const isSelected = selectedDriverNumber === d.driverNumber;
+                    return (
+                      <button
+                        key={d.id}
+                        type="button"
+                        disabled={!isEditable}
+                        onClick={() => {
+                          if (!isEditable) return;
+                          const newPreds = teamBestDriverPredictions.map((p) =>
+                            p.teamId === team.id
+                              ? { ...p, driverId: d.id, driverNumber: d.driverNumber }
+                              : p
+                          );
+                          onTeamBestDriverChange(newPreds);
+                        }}
+                        className={`rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
+                          isSelected
+                            ? "bg-f1-red text-white"
+                            : !isEditable
+                              ? "bg-card/50 text-muted/50 cursor-not-allowed"
+                              : "bg-card text-muted hover:bg-card-hover hover:text-f1-white"
+                        }`}
+                      >
+                        {d.nameAcronym}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

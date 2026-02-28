@@ -208,6 +208,12 @@ const es: Messages = {
     wcc: "Campeón Mundial de Constructores (WCC)",
     selectTeam: "Seleccionar equipo...",
     halfPointsWarning: "Las predicciones modificadas tras el parón de verano otorgan la mitad de puntos.",
+    // New champion categories
+    mostDnfs: "Más Abandonos",
+    mostPodiums: "Más Podios",
+    mostWins: "Más Victorias",
+    teamBestDriver: "Mejor Piloto del Equipo",
+    teamBestDriverSub: "Selecciona el piloto con mejor rendimiento de cada equipo",
     championshipPredictions: "Predicciones de Campeonato",
     championshipInfo: "Las predicciones de campeonato se bloquean al inicio de la primera carrera. Las predicciones modificadas tras el parón de verano otorgan la mitad de puntos.",
     upcoming: "Próximamente",
@@ -363,6 +369,10 @@ const es: Messages = {
     championResetSuccess: "Resultado del campeonato reseteado correctamente",
     championResetError: "Error al resetear el resultado del campeonato",
     championSaveSuccess: "Resultado del campeonato guardado y puntuado correctamente",
+    mostDnfs: "Más Abandonos",
+    mostPodiums: "Más Podios",
+    mostWins: "Más Victorias",
+    teamBestDrivers: "Mejores Pilotos por Equipo",
     datetimeManager: {
       title: "Fechas del Evento",
       startLabel: "Inicio",

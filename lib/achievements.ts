@@ -27,6 +27,15 @@ export const ACHIEVEMENT_ICONS: Record<string, string> = {
   hat_trick: "🎩",
   predict_wdc: "👑",
   predict_wcc: "🏗️",
+  // New champion-related achievements
+  race_prediction_winner: "🏆",
+  race_prediction_winner_10: "🏆",
+  race_prediction_podium: "🏅",
+  sprint_prediction_winner: "💨",
+  sprint_prediction_podium: "💨",
+  predict_1_team_best: "🚗",
+  predict_5_team_best: "🚗",
+  predict_10_team_best: "🚗",
 };
 
 export const CATEGORY_COLORS: Record<AchievementCategory, { bg: string; text: string; border: string }> = {

@@ -27,8 +27,14 @@ export interface SprintScoringInput {
 export interface ChampionScoringInput {
   predWdc: number | null;
   predWcc: number | null;            // team ID
+  predMostDnfs: number | null;
+  predMostPodiums: number | null;
+  predMostWins: number | null;
   resultWdc: number;
   resultWcc: number;                 // team ID
+  resultMostDnfs: number | null;
+  resultMostPodiums: number | null;
+  resultMostWins: number | null;
   isHalfPoints: boolean;
 }
 
@@ -47,6 +53,9 @@ export interface ScoringBreakdown {
 export interface ChampionScoringBreakdown {
   wdcMatch: boolean;
   wccMatch: boolean;
+  mostDnfsMatch: boolean;
+  mostPodiumsMatch: boolean;
+  mostWinsMatch: boolean;
   isHalfPoints: boolean;
   total: number;
 }
@@ -150,15 +159,21 @@ export function scoreSprintPrediction(input: SprintScoringInput): ScoringBreakdo
 }
 
 export function scoreChampionPrediction(input: ChampionScoringInput): ChampionScoringBreakdown {
-  const { predWdc, predWcc, resultWdc, resultWcc, isHalfPoints } = input;
+  const { predWdc, predWcc, predMostDnfs, predMostPodiums, predMostWins, resultWdc, resultWcc, resultMostDnfs, resultMostPodiums, resultMostWins, isHalfPoints } = input;
 
   const wdcMatch = predWdc !== null && predWdc === resultWdc;
   const wccMatch = predWcc !== null && predWcc === resultWcc;
+  const mostDnfsMatch = predMostDnfs !== null && resultMostDnfs !== null && predMostDnfs === resultMostDnfs;
+  const mostPodiumsMatch = predMostPodiums !== null && resultMostPodiums !== null && predMostPodiums === resultMostPodiums;
+  const mostWinsMatch = predMostWins !== null && resultMostWins !== null && predMostWins === resultMostWins;
 
   let total = 0;
   if (wdcMatch) total += 20;
   if (wccMatch) total += 20;
+  if (mostDnfsMatch) total += 10;
+  if (mostPodiumsMatch) total += 10;
+  if (mostWinsMatch) total += 10;
   if (isHalfPoints) total = Math.floor(total / 2);
 
-  return { wdcMatch, wccMatch, isHalfPoints, total };
+  return { wdcMatch, wccMatch, mostDnfsMatch, mostPodiumsMatch, mostWinsMatch, isHalfPoints, total };
 }
