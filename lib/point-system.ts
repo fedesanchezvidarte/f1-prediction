@@ -18,7 +18,7 @@ export const POINT_SYSTEM: PointSystemSection[] = [
       { category: "Perfect Top 10", description: "Exact top 10 in correct order", points: 10 },
       { category: "Match Top 10", description: "Correct top 10 in any order (if not perfect)", points: 5 },
     ],
-    maxPoints: 42,
+    maxPoints: 33,
   },
   {
     title: "Sprint Race Predictions",
@@ -41,8 +41,8 @@ export const POINT_SYSTEM: PointSystemSection[] = [
       { category: "Most DNFs", description: "Correct driver with most DNFs", points: 10 },
       { category: "Most Podiums", description: "Correct driver with most podiums", points: 10 },
       { category: "Most Wins", description: "Correct driver with most wins", points: 10 },
-      { category: "Team Best Driver", description: "Correct best-performing driver per team (×10 teams)", points: 2 },
+      { category: "Team Best Driver", description: "Correct best-performing driver per team (×11 teams)", points: 2 },
     ],
-    maxPoints: 90,
+    maxPoints: 92,
   },
 ];
