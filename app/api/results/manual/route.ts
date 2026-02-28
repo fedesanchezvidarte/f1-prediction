@@ -34,6 +34,7 @@ interface RaceResultBody {
   top10: number[];
   fastestLapDriverId: number;
   fastestPitStopDriverId: number;
+  driverOfTheDayDriverId?: number | null;
 }
 
 interface SprintResultBody {
@@ -104,6 +105,7 @@ export async function POST(request: NextRequest) {
         top10,
         fastestLapDriverId,
         fastestPitStopDriverId,
+        driverOfTheDayDriverId,
       } = body as RaceResultBody;
 
       if (!polePositionDriverId || !top10 || top10.length !== 10 || !fastestLapDriverId || !fastestPitStopDriverId) {
@@ -130,6 +132,7 @@ export async function POST(request: NextRequest) {
         top_10: top10,
         fastest_lap_driver_id: fastestLapDriverId,
         fastest_pit_stop_driver_id: fastestPitStopDriverId,
+        driver_of_the_day_driver_id: driverOfTheDayDriverId ?? null,
         source: "manual" as const,
       };
 

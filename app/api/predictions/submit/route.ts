@@ -80,9 +80,10 @@ async function handleRacePrediction(
     top10: (number | null)[]; // driver numbers
     fastestLapDriverNumber: number | null;
     fastestPitStopDriverNumber: number | null;
+    driverOfTheDayDriverNumber: number | null;
   }
 ) {
-  const { raceId: meetingKey, polePositionDriverNumber, top10, fastestLapDriverNumber, fastestPitStopDriverNumber } = body;
+  const { raceId: meetingKey, polePositionDriverNumber, top10, fastestLapDriverNumber, fastestPitStopDriverNumber, driverOfTheDayDriverNumber } = body;
 
   if (!Array.isArray(top10) || top10.length !== 10) {
     return NextResponse.json({ error: "top10 must be an array of exactly 10 elements" }, { status: 400 });
@@ -121,6 +122,7 @@ async function handleRacePrediction(
     top_10: top10.map(mapDriver),
     fastest_lap_driver_id: mapDriver(fastestLapDriverNumber),
     fastest_pit_stop_driver_id: mapDriver(fastestPitStopDriverNumber),
+    driver_of_the_day_driver_id: mapDriver(driverOfTheDayDriverNumber),
     status: "submitted",
     submitted_at: new Date().toISOString(),
   };

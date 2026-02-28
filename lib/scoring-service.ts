@@ -68,7 +68,7 @@ async function scoreRacePredictions(
   const { data: result } = await supabase
     .from("race_results")
     .select(
-      "pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id"
+      "pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id"
     )
     .eq("race_id", raceId)
     .single();
@@ -84,7 +84,7 @@ async function scoreRacePredictions(
   const { data: predictions } = await supabase
     .from("race_predictions")
     .select(
-      "id, user_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id"
+      "id, user_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id"
     )
     .eq("race_id", raceId)
     .eq("status", "submitted");
@@ -109,10 +109,12 @@ async function scoreRacePredictions(
       predPole: pred.pole_position_driver_id,
       predFastestLap: pred.fastest_lap_driver_id,
       predFastestPitStop: pred.fastest_pit_stop_driver_id,
+      predDriverOfTheDay: pred.driver_of_the_day_driver_id,
       resultTop10,
       resultPole: result.pole_position_driver_id,
       resultFastestLap: result.fastest_lap_driver_id,
       resultFastestPitStop: result.fastest_pit_stop_driver_id,
+      resultDriverOfTheDay: result.driver_of_the_day_driver_id,
     });
 
     const { error } = await supabase
