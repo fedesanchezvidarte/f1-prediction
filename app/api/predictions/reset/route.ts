@@ -74,6 +74,7 @@ async function handleRaceReset(
       top_10: [],
       fastest_lap_driver_id: null,
       fastest_pit_stop_driver_id: null,
+      driver_of_the_day_driver_id: null,
       status: "pending",
       submitted_at: null,
     })
