@@ -178,7 +178,7 @@ async function evaluateAllAchievements(
   ] = await Promise.all([
     supabase
       .from("race_predictions")
-      .select("race_id, user_id, status, points_earned, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id")
+      .select("race_id, user_id, status, points_earned, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id")
       .eq("user_id", userId)
       .in("status", ["submitted", "scored"]),
     supabase
@@ -191,7 +191,7 @@ async function evaluateAllAchievements(
       .select("user_id, status, points_earned, wdc_correct, wcc_correct")
       .eq("user_id", userId)
       .in("status", ["submitted", "scored"]),
-    supabase.from("race_results").select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id"),
+    supabase.from("race_results").select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id"),
     supabase.from("sprint_results").select("race_id, sprint_pole_driver_id, top_8, fastest_lap_driver_id"),
     supabase.from("seasons").select("id").eq("is_current", true).single(),
     supabase
@@ -236,6 +236,7 @@ async function evaluateAllAchievements(
   let hasCorrectPole = false;
   let hasCorrectFastestLap = false;
   let hasCorrectFastestPit = false;
+  let hasCorrectDriverOfTheDay = false;
   let hasPerfectPodium = false;
   let hasPerfectTop10 = false;
   let hasHatTrick = false;
@@ -252,10 +253,12 @@ async function evaluateAllAchievements(
       predPole: pred.pole_position_driver_id,
       predFastestLap: pred.fastest_lap_driver_id,
       predFastestPitStop: pred.fastest_pit_stop_driver_id,
+      predDriverOfTheDay: pred.driver_of_the_day_driver_id,
       resultTop10,
       resultPole: result.pole_position_driver_id ?? 0,
       resultFastestLap: result.fastest_lap_driver_id ?? 0,
       resultFastestPitStop: result.fastest_pit_stop_driver_id ?? 0,
+      resultDriverOfTheDay: result.driver_of_the_day_driver_id ?? null,
     });
 
     totalCorrectPositions += breakdown.positionMatches;
@@ -265,6 +268,7 @@ async function evaluateAllAchievements(
     if (breakdown.poleMatch) hasCorrectPole = true;
     if (breakdown.fastestLapMatch) hasCorrectFastestLap = true;
     if (breakdown.fastestPitStopMatch) hasCorrectFastestPit = true;
+    if (breakdown.driverOfTheDayMatch) hasCorrectDriverOfTheDay = true;
     if (breakdown.perfectPodium) hasPerfectPodium = true;
     if (breakdown.perfectTopN) hasPerfectTop10 = true;
 
@@ -430,6 +434,9 @@ async function evaluateAllAchievements(
         break;
       case "predict_fastest_pit":
         earned = hasCorrectFastestPit;
+        break;
+      case "fans_choice":
+        earned = hasCorrectDriverOfTheDay;
         break;
       case "perfect_podium":
         earned = hasPerfectPodium;

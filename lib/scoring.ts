@@ -9,10 +9,12 @@ export interface RaceScoringInput {
   predPole: number | null;
   predFastestLap: number | null;
   predFastestPitStop: number | null;
+  predDriverOfTheDay: number | null;
   resultTop10: number[];              // [P1, P2, ..., P10] driver IDs
   resultPole: number;
   resultFastestLap: number;
   resultFastestPitStop: number;
+  resultDriverOfTheDay: number | null;
 }
 
 export interface SprintScoringInput {
@@ -43,6 +45,7 @@ export interface ScoringBreakdown {
   poleMatch: boolean;
   fastestLapMatch: boolean;
   fastestPitStopMatch?: boolean;
+  driverOfTheDayMatch?: boolean;
   perfectPodium: boolean;
   matchPodium: boolean;
   perfectTopN: boolean;
@@ -80,7 +83,7 @@ function arraysMatchAnyOrder(pred: (number | null)[], result: number[], start: n
 }
 
 export function scoreRacePrediction(input: RaceScoringInput): ScoringBreakdown {
-  const { predTop10, predPole, predFastestLap, predFastestPitStop, resultTop10, resultPole, resultFastestLap, resultFastestPitStop } = input;
+  const { predTop10, predPole, predFastestLap, predFastestPitStop, predDriverOfTheDay, resultTop10, resultPole, resultFastestLap, resultFastestPitStop, resultDriverOfTheDay } = input;
 
   let positionMatches = 0;
   for (let i = 0; i < 10; i++) {
@@ -92,6 +95,7 @@ export function scoreRacePrediction(input: RaceScoringInput): ScoringBreakdown {
   const poleMatch = predPole !== null && predPole === resultPole;
   const fastestLapMatch = predFastestLap !== null && predFastestLap === resultFastestLap;
   const fastestPitStopMatch = predFastestPitStop !== null && predFastestPitStop === resultFastestPitStop;
+  const driverOfTheDayMatch = predDriverOfTheDay !== null && resultDriverOfTheDay !== null && predDriverOfTheDay === resultDriverOfTheDay;
 
   const perfectPodium = arraysMatchExact(predTop10, resultTop10, 0, 3);
   const matchPodium = !perfectPodium && arraysMatchAnyOrder(predTop10, resultTop10, 0, 3);
@@ -102,6 +106,7 @@ export function scoreRacePrediction(input: RaceScoringInput): ScoringBreakdown {
   if (poleMatch) total += 1;
   if (fastestLapMatch) total += 1;
   if (fastestPitStopMatch) total += 1;
+  if (driverOfTheDayMatch) total += 1;
   if (perfectPodium) total += 10;
   else if (matchPodium) total += 5;
   if (perfectTopN) total += 10;
@@ -112,6 +117,7 @@ export function scoreRacePrediction(input: RaceScoringInput): ScoringBreakdown {
     poleMatch,
     fastestLapMatch,
     fastestPitStopMatch,
+    driverOfTheDayMatch,
     perfectPodium,
     matchPodium,
     perfectTopN,
