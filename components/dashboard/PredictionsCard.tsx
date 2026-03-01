@@ -7,14 +7,23 @@ import {
   AlertCircle,
   CheckCircle2,
   Radio,
+  Crown,
+  AlertTriangle,
 } from "lucide-react";
-import type { Race, RacePrediction } from "@/types";
+import type { Race, RacePrediction, PredictionStatus } from "@/types";
 import { getRaceStatus } from "@/lib/race-utils";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+
+export interface ChampionPredictionSummary {
+  status: PredictionStatus;
+  pointsEarned: number | null;
+  isHalfPoints: boolean;
+}
 
 interface PredictionsCardProps {
   predictions: RacePrediction[];
   races: (Race | null)[];
+  championPrediction?: ChampionPredictionSummary;
 }
 
 function PredictionStatusBadge({ status }: { status: RacePrediction["status"] }) {
@@ -106,8 +115,55 @@ function RaceSlot({
   );
 }
 
-export function PredictionsCard({ predictions, races }: PredictionsCardProps) {
+function ChampionSlot({ champion }: { champion: ChampionPredictionSummary }) {
   const { t } = useLanguage();
+
+  return (
+    <div className="rounded-lg border border-f1-amber/30 bg-f1-amber/5 p-3 transition-colors hover:border-f1-amber/50">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <Crown size={12} className="text-f1-amber" />
+            <p className="text-xs font-medium text-f1-white">
+              {t.predictionsCard.championPrediction}
+            </p>
+          </div>
+          {champion.isHalfPoints && champion.status !== "scored" && (
+            <div className="mt-1 flex items-center gap-1">
+              <AlertTriangle size={9} className="text-f1-amber" />
+              <span className="text-[9px] font-medium text-f1-amber">
+                {t.predictionsCard.halfPoints}
+              </span>
+            </div>
+          )}
+        </div>
+        <PredictionStatusBadge status={champion.status} />
+      </div>
+
+      {champion.status === "scored" && champion.pointsEarned != null && (
+        <div className="mt-2 flex items-center justify-between border-t border-f1-amber/20 pt-2">
+          <span className="text-[10px] text-muted">{t.predictionsCard.pointsEarned}</span>
+          <span className="text-xs font-semibold text-f1-green">
+            +{champion.pointsEarned}
+          </span>
+        </div>
+      )}
+      {champion.status === "pending" && (
+        <Link
+          href="/race-prediction?tab=champion"
+          className="mt-2 block w-full rounded-md bg-f1-amber/10 py-1.5 text-center text-[10px] font-medium text-f1-amber transition-colors hover:bg-f1-amber/20"
+        >
+          {t.predictionsCard.makeChampionPrediction}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+export function PredictionsCard({ predictions, races, championPrediction }: PredictionsCardProps) {
+  const { t } = useLanguage();
+
+  const showChampion = championPrediction && championPrediction.status !== "scored";
 
   return (
     <div className="flex h-full flex-col p-5 sm:p-6">
@@ -128,6 +184,7 @@ export function PredictionsCard({ predictions, races }: PredictionsCardProps) {
       </div>
 
       <div className="mt-3 flex flex-1 flex-col gap-2">
+        {showChampion && <ChampionSlot champion={championPrediction} />}
         {races.map((race, i) => {
           const prediction = race
             ? predictions.find((p) => p.raceId === race.meetingKey)

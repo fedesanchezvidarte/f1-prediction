@@ -68,6 +68,7 @@ interface RacePredictionContentProps {
   isOwner: boolean;
   displayName?: string;
   initialRaceIndex?: number;
+  initialTab?: TabMode;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -116,9 +117,10 @@ export function RacePredictionContent({
   isOwner,
   displayName,
   initialRaceIndex = 0,
+  initialTab = "race",
 }: RacePredictionContentProps) {
   const [raceIndex, setRaceIndex] = useState(initialRaceIndex);
-  const [tab, setTab] = useState<TabMode>("race");
+  const [tab, setTab] = useState<TabMode>(initialTab);
   const [predictions, setPredictions] = useState(initialPredictions);
   const [sprintPreds, setSprintPreds] = useState(initialSprintPredictions);
   const [champPred, setChampPred] = useState(initialChampionPrediction);

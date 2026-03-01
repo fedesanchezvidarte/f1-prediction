@@ -18,7 +18,7 @@ import type {
 } from "@/types";
 
 interface PageProps {
-  searchParams: Promise<{ user?: string; round?: string }>;
+  searchParams: Promise<{ user?: string; round?: string; tab?: string }>;
 }
 
 export default async function RacePredictionPage({ searchParams }: PageProps) {
@@ -34,6 +34,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const viewingUserId = params.user ?? user.id;
   const roundParam = params.round ? parseInt(params.round, 10) : null;
+  const tabParam = params.tab === "champion" ? "champion" as const : undefined;
   const isOwner = viewingUserId === user.id;
 
   const fallbackName =
@@ -334,6 +335,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
             isOwner={isOwner}
             displayName={viewingDisplayName}
             initialRaceIndex={initialRaceIndex}
+            initialTab={tabParam}
           />
         </div>
       </main>

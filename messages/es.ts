@@ -119,6 +119,9 @@ const es: Messages = {
     pointsEarned: "Puntos obtenidos",
     makePrediction: "Hacer Predicción",
     live: "En Vivo",
+    championPrediction: "Campeonato",
+    makeChampionPrediction: "Hacer Predicción",
+    halfPoints: "Mitad pts",
   },
 
   leaderboardCard: {

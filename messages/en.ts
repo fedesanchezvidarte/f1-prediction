@@ -117,6 +117,9 @@ const en = {
     pointsEarned: "Points earned",
     makePrediction: "Make Prediction",
     live: "Live",
+    championPrediction: "Championship",
+    makeChampionPrediction: "Make Prediction",
+    halfPoints: "Half pts",
   },
 
   leaderboardCard: {

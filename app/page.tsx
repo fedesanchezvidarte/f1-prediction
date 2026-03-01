@@ -15,7 +15,7 @@ import {
 } from "@/components/dashboard";
 import { fetchRacesFromDb, getNextRace, getPredictionCardRaces } from "@/lib/races";
 import { fetchAchievementsData } from "@/lib/achievements";
-import type { UserStats, LeaderboardEntry, RacePrediction } from "@/types";
+import type { UserStats, LeaderboardEntry, RacePrediction, PredictionStatus } from "@/types";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -166,6 +166,19 @@ export default async function Home() {
 
   const { achievements, earnedIds: earnedAchievementIds } = await fetchAchievementsData(supabase, user.id);
 
+  // Fetch champion prediction status
+  const { data: champRow } = await supabase
+    .from("champion_predictions")
+    .select("status, points_earned, is_half_points")
+    .eq("user_id", user.id)
+    .single();
+
+  const championPredictionSummary = {
+    status: (champRow?.status as PredictionStatus) ?? "pending",
+    pointsEarned: champRow?.points_earned ?? null,
+    isHalfPoints: champRow?.is_half_points ?? false,
+  };
+
   const nextRace = getNextRace(races);
   const predictionCardRaces = getPredictionCardRaces(races);
 
@@ -198,6 +211,7 @@ export default async function Home() {
                 <PredictionsCard
                   predictions={predictions}
                   races={predictionCardRaces}
+                  championPrediction={championPredictionSummary}
                 />
               </div>
               {/* Leaderboard - spans 2 cols */}
