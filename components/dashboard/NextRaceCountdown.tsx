@@ -41,14 +41,14 @@ function TimeUnit({ value, label }: { value: number; label: string }) {
 
 export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(
-    calculateTimeLeft(race.dateStart)
+    calculateTimeLeft(race.dateEnd)
   );
   const [status, setStatus] = useState(getRaceStatus(race));
   const { t } = useLanguage();
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft(race.dateStart));
+      setTimeLeft(calculateTimeLeft(race.dateEnd));
       setStatus(getRaceStatus(race));
     }, 1000);
     return () => clearInterval(timer);

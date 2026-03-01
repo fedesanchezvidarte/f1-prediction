@@ -378,7 +378,7 @@ const es: Messages = {
     datetimeManager: {
       title: "Fechas del Evento",
       startLabel: "Inicio",
-      endLabel: "Fin",
+      endLabel: "Plazo",
       yourTimezone: "Hora local (tu zona horaria)",
       save: "Guardar",
       saving: "Guardando...",
@@ -388,7 +388,7 @@ const es: Messages = {
       restoring: "Restaurando...",
       restoreSuccess: "Fechas restauradas desde OpenF1",
       restoreError: "Error al restaurar las fechas desde OpenF1",
-      countdownTitle: "Tiempo hasta la carrera",
+      countdownTitle: "Tiempo hasta la clasificación",
       liveNow: "EN VIVO",
       completed: "Completada",
     },

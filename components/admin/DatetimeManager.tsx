@@ -91,13 +91,13 @@ export function DatetimeManager({
   const [restoreState, setRestoreState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [restoreMsg, setRestoreMsg] = useState("");
 
-  // Countdown — based on savedStart/savedEnd so it updates after a save/restore
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft(savedStart));
+  // Countdown — based on savedEnd (qualifying/prediction deadline) so it updates after a save/restore
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft(savedEnd));
   const [eventStatus, setEventStatus] = useState(getEventStatus(savedStart, savedEnd));
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft(savedStart));
+      setTimeLeft(calculateTimeLeft(savedEnd));
       setEventStatus(getEventStatus(savedStart, savedEnd));
     }, 1000);
     return () => clearInterval(timer);

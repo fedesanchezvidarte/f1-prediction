@@ -388,7 +388,7 @@ const en = {
     datetimeManager: {
       title: "Event Datetimes",
       startLabel: "Start",
-      endLabel: "End",
+      endLabel: "Deadline",
       yourTimezone: "Local time (your timezone)",
       save: "Save",
       saving: "Saving...",
@@ -398,7 +398,7 @@ const en = {
       restoring: "Restoring...",
       restoreSuccess: "Datetimes restored from OpenF1",
       restoreError: "Failed to restore datetimes from OpenF1",
-      countdownTitle: "Time until race",
+      countdownTitle: "Time until qualifying",
       liveNow: "LIVE NOW",
       completed: "Completed",
     },
