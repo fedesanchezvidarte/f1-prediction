@@ -361,8 +361,16 @@ export async function scoreChampionForSeason(
     .eq("status", "submitted");
 
   if (!predictions || predictions.length === 0) {
-    // Still score team best drivers
+    // Still score team best drivers and update leaderboard/achievements
     const tbdResult = await scoreTeamBestDriverPredictions(supabase, seasonId);
+    if (tbdResult.userIds.length > 0) {
+      await updateLeaderboard(supabase, tbdResult.userIds, []);
+      try {
+        await calculateAchievementsForUsers(supabase, tbdResult.userIds);
+      } catch (error) {
+        console.error("[scoring] Failed to calculate achievements after TBD-only scoring", { error });
+      }
+    }
     return { championPredictionsScored: 0, teamBestDriverPredictionsScored: tbdResult.count };
   }
 
