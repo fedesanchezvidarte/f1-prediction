@@ -49,11 +49,11 @@ INSERT INTO races (meeting_key, race_name, official_name, circuit_short_name, co
    '2026-05-01T17:30:00+00:00', '2026-05-03T20:00:00+00:00', 6, TRUE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
-  -- Round 7: Canada
+  -- Round 7: Canada (Sprint)
   (1286, 'Canadian Grand Prix',
    'FORMULA 1 LENOVO GRAND PRIX DU CANADA 2026',
    'Montreal', 'Canada', 'CAN', 'Montreal',
-   '2026-05-22T17:30:00+00:00', '2026-05-24T20:00:00+00:00', 7, FALSE,
+   '2026-05-22T17:30:00+00:00', '2026-05-24T20:00:00+00:00', 7, TRUE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
   -- Round 8: Monaco
@@ -70,18 +70,18 @@ INSERT INTO races (meeting_key, race_name, official_name, circuit_short_name, co
    '2026-06-12T11:30:00+00:00', '2026-06-14T15:00:00+00:00', 9, FALSE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
-  -- Round 10: Austria (Sprint)
+  -- Round 10: Austria
   (1289, 'Austrian Grand Prix',
    'FORMULA 1 LENOVO AUSTRIAN GRAND PRIX 2026',
    'Spielberg', 'Austria', 'AUT', 'Spielberg',
-   '2026-06-26T11:30:00+00:00', '2026-06-28T15:00:00+00:00', 10, TRUE,
+   '2026-06-26T11:30:00+00:00', '2026-06-28T15:00:00+00:00', 10, FALSE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
-  -- Round 11: Great Britain
+  -- Round 11: Great Britain (Sprint)
   (1290, 'British Grand Prix',
    'FORMULA 1 PIRELLI BRITISH GRAND PRIX 2026',
    'Silverstone', 'Great Britain', 'GBR', 'Silverstone',
-   '2026-07-03T12:30:00+00:00', '2026-07-05T15:00:00+00:00', 11, FALSE,
+   '2026-07-03T12:30:00+00:00', '2026-07-05T15:00:00+00:00', 11, TRUE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
   -- Round 12: Belgium
@@ -98,11 +98,11 @@ INSERT INTO races (meeting_key, race_name, official_name, circuit_short_name, co
    '2026-07-24T11:30:00+00:00', '2026-07-26T15:00:00+00:00', 13, FALSE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
-  -- Round 14: Netherlands
+  -- Round 14: Netherlands (Sprint)
   (1293, 'Dutch Grand Prix',
    'FORMULA 1 HEINEKEN DUTCH GRAND PRIX 2026',
    'Zandvoort', 'Netherlands', 'NLD', 'Zandvoort',
-   '2026-08-21T11:30:00+00:00', '2026-08-23T15:00:00+00:00', 14, FALSE,
+   '2026-08-21T11:30:00+00:00', '2026-08-23T15:00:00+00:00', 14, TRUE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
   -- Round 15: Italy
@@ -126,18 +126,18 @@ INSERT INTO races (meeting_key, race_name, official_name, circuit_short_name, co
    '2026-09-24T09:30:00+00:00', '2026-09-26T13:00:00+00:00', 17, FALSE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
-  -- Round 18: Singapore
+  -- Round 18: Singapore (Sprint)
   (1297, 'Singapore Grand Prix',
    'FORMULA 1 SINGAPORE AIRLINES SINGAPORE GRAND PRIX 2026',
    'Marina Bay', 'Singapore', 'SGP', 'Marina Bay',
-   '2026-10-09T09:30:00+00:00', '2026-10-11T14:00:00+00:00', 18, FALSE,
+   '2026-10-09T09:30:00+00:00', '2026-10-11T14:00:00+00:00', 18, TRUE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
-  -- Round 19: United States (Sprint)
+  -- Round 19: United States
   (1298, 'United States Grand Prix',
    'FORMULA 1 MSC CRUISES UNITED STATES GRAND PRIX 2026',
    'Austin', 'United States', 'USA', 'Austin',
-   '2026-10-23T17:30:00+00:00', '2026-10-25T21:00:00+00:00', 19, TRUE,
+   '2026-10-23T17:30:00+00:00', '2026-10-25T21:00:00+00:00', 19, FALSE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
   -- Round 20: Mexico
@@ -147,11 +147,11 @@ INSERT INTO races (meeting_key, race_name, official_name, circuit_short_name, co
    '2026-10-30T18:30:00+00:00', '2026-11-01T21:00:00+00:00', 20, FALSE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
-  -- Round 21: Brazil (Sprint)
+  -- Round 21: Brazil
   (1300, 'São Paulo Grand Prix',
    'FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026',
    'Interlagos', 'Brazil', 'BRA', 'São Paulo',
-   '2026-11-06T14:30:00+00:00', '2026-11-08T18:00:00+00:00', 21, TRUE,
+   '2026-11-06T14:30:00+00:00', '2026-11-08T18:00:00+00:00', 21, FALSE,
    (SELECT id FROM seasons WHERE year = 2026)),
 
   -- Round 22: Las Vegas

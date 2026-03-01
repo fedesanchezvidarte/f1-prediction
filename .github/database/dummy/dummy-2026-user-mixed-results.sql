@@ -30,11 +30,11 @@
 --     5-6 position matches + matchTop10(5) = 10–11 pts
 --
 --   Race total:     437 pts
---   Sprint total:    21 pts  (Rd2=11, Rd6=10)
+--   Sprint total:    75 pts  (Rd2=11, Rd6=10, Rd7=11, Rd11=11, Rd14=11, Rd18=11, Rd23=10)
 --   Champion:        30 pts  (WCC=20 + MostDNFs=10)
 --   Team best:       12 pts  (6 correct × 2)
 --   ─────────────────────────
---   Grand total:    500 pts
+--   Grand total:    554 pts
 --
 -- ──────────────────────────────────────────────────────────
 --   PER-RACE POINTS
@@ -43,7 +43,8 @@
 --   Rd7=19  Rd8=21   Rd9=18  Rd10=18 Rd11=21 Rd12=11
 --   Rd13=19 Rd14=21  Rd15=18 Rd16=20 Rd17=19 Rd18=10
 --   Rd19=19 Rd20=22  Rd21=18 Rd22=11 Rd23=11 Rd24=21
---   Sprint Rd2=11  Sprint Rd6=10
+--   Sprint Rd2=11  Sprint Rd6=10  Sprint Rd7=11
+--   Sprint Rd11=11  Sprint Rd14=11  Sprint Rd18=11  Sprint Rd23=10
 --
 -- ──────────────────────────────────────────────────────────
 --   CHAMPION PREDICTION DETAIL
@@ -214,12 +215,27 @@ ON CONFLICT (user_id, race_id) DO UPDATE SET
 
 
 -- ═══════════════════════════════════════════════════════════
--- SECTION 2 — SPRINT PREDICTIONS (Rounds 2 and 6 — P1/P2 swapped)
+-- SECTION 2 — SPRINT PREDICTIONS (7 sprint rounds — P1/P2 swapped)
 --
 -- Sprint Rd2: actual=[VER,NOR,PIA,...] pred=[NOR,VER,PIA,...]
 --   pos=6 + FL✓(1) + matchPod(2) + matchTop8(2) = 11
 --
 -- Sprint Rd6: actual=[PIA,NOR,VER,...] pred=[NOR,PIA,VER,...]
+--   pos=6 + matchPod(2) + matchTop8(2) = 10
+--
+-- Sprint Rd7: actual=[NOR,LEC,PIA,...] pred=[LEC,NOR,PIA,...]
+--   pos=6 + pole✓(1) + matchPod(2) + matchTop8(2) = 11
+--
+-- Sprint Rd11: actual=[VER,NOR,RUS,...] pred=[NOR,VER,RUS,...]
+--   pos=6 + FL✓(1) + matchPod(2) + matchTop8(2) = 11
+--
+-- Sprint Rd14: actual=[PIA,NOR,VER,...] pred=[NOR,PIA,VER,...]
+--   pos=6 + FL✓(1) + matchPod(2) + matchTop8(2) = 11
+--
+-- Sprint Rd18: actual=[LEC,NOR,HAM,...] pred=[NOR,LEC,HAM,...]
+--   pos=6 + FL✓(1) + matchPod(2) + matchTop8(2) = 11
+--
+-- Sprint Rd23: actual=[VER,NOR,HAM,...] pred=[NOR,VER,HAM,...]
 --   pos=6 + matchPod(2) + matchTop8(2) = 10
 -- ═══════════════════════════════════════════════════════════
 
@@ -229,7 +245,17 @@ sprint_pred(rnd, pole, p1, p2, p3, p4, p5, p6, p7, p8, fl, pts) AS (VALUES
   -- Rd2 sprint: P1/P2 swapped  FL✓  → 11 pts
   (2::int, 'NOR'::text,'NOR'::text,'VER'::text,'PIA'::text,'LEC'::text,'HAM'::text,'RUS'::text,'ANT'::text,'ALB'::text,'NOR'::text, 11::int),
   -- Rd6 sprint: P1/P2 swapped  → 10 pts
-  (6,      'NOR',      'NOR',      'PIA',      'VER',      'LEC',      'HAM',      'RUS',      'ANT',      'SAI',      'NOR',       10)
+  (6,      'NOR',      'NOR',      'PIA',      'VER',      'LEC',      'HAM',      'RUS',      'ANT',      'SAI',      'NOR',       10),
+  -- Rd7 sprint: P1/P2 swapped  pole✓  → 11 pts
+  (7,      'NOR',      'LEC',      'NOR',      'PIA',      'VER',      'RUS',      'HAM',      'ANT',      'SAI',      'NOR',       11),
+  -- Rd11 sprint: P1/P2 swapped  FL✓  → 11 pts
+  (11,     'NOR',      'NOR',      'VER',      'RUS',      'PIA',      'HAM',      'LEC',      'ANT',      'ALB',      'NOR',       11),
+  -- Rd14 sprint: P1/P2 swapped  FL✓  → 11 pts
+  (14,     'NOR',      'NOR',      'PIA',      'VER',      'LEC',      'RUS',      'HAM',      'ALB',      'ANT',      'NOR',       11),
+  -- Rd18 sprint: P1/P2 swapped  FL✓  → 11 pts
+  (18,     'NOR',      'NOR',      'LEC',      'HAM',      'PIA',      'VER',      'RUS',      'ANT',      'SAI',      'NOR',       11),
+  -- Rd23 sprint: P1/P2 swapped  → 10 pts
+  (23,     'NOR',      'NOR',      'VER',      'HAM',      'PIA',      'LEC',      'RUS',      'ANT',      'SAI',      'NOR',       10)
 )
 INSERT INTO sprint_predictions
   (user_id, race_id, sprint_pole_driver_id, top_8,
@@ -356,5 +382,5 @@ ON CONFLICT (user_id, season_id, team_id) DO UPDATE SET
 -- ─────────────────────────────────────────────────────────────
 -- END OF MIXED USER PREDICTIONS
 --
--- Total: 437 (races) + 21 (sprints) + 30 (champion) + 12 (team best) = 500 pts
+-- Total: 437 (races) + 75 (sprints) + 30 (champion) + 12 (team best) = 554 pts
 -- ─────────────────────────────────────────────────────────────

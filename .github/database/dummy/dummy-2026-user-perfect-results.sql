@@ -14,11 +14,11 @@
 --   SCORING SUMMARY
 -- ──────────────────────────────────────────────────────────
 --   24 races  × 34 pts   = 816
---   2 sprints × 20 pts   =  40
+--   7 sprints × 20 pts   = 140
 --   Champion prediction   =  70  (WDC=20 + WCC=20 + DNFs=10 + Podiums=10 + Wins=10)
 --   Team best drivers     =  22  (11 × 2)
 --   ─────────────────────────────
---   Grand total           = 948
+--   Grand total           = 1048
 --
 -- ──────────────────────────────────────────────────────────
 --   RACE SCORING BREAKDOWN (each = 34 pts)
@@ -165,7 +165,7 @@ ON CONFLICT (user_id, race_id) DO UPDATE SET
 
 
 -- ═══════════════════════════════════════════════════════════
--- SECTION 2 — SPRINT PREDICTIONS (Rounds 2 and 6 — perfect)
+-- SECTION 2 — SPRINT PREDICTIONS (7 sprint rounds — perfect)
 --
 -- Predictions are IDENTICAL to actual sprint results → 20 pts each
 -- ═══════════════════════════════════════════════════════════
@@ -173,8 +173,13 @@ ON CONFLICT (user_id, race_id) DO UPDATE SET
 WITH s AS (SELECT id FROM seasons WHERE year = 2026),
 d AS (SELECT name_acronym AS a, id FROM drivers WHERE season_id = (SELECT id FROM s)),
 sprint_pred(rnd, pole, p1, p2, p3, p4, p5, p6, p7, p8, fl) AS (VALUES
-  (2::int, 'VER'::text,'VER'::text,'NOR'::text,'PIA'::text,'LEC'::text,'HAM'::text,'RUS'::text,'ANT'::text,'ALB'::text,'NOR'::text),
-  (6,      'PIA',      'PIA',      'NOR',      'VER',      'LEC',      'HAM',      'RUS',      'ANT',      'SAI',      'PIA')
+  ( 2::int, 'VER'::text,'VER'::text,'NOR'::text,'PIA'::text,'LEC'::text,'HAM'::text,'RUS'::text,'ANT'::text,'ALB'::text,'NOR'::text),
+  ( 6,      'PIA',      'PIA',      'NOR',      'VER',      'LEC',      'HAM',      'RUS',      'ANT',      'SAI',      'PIA'),
+  ( 7,      'NOR',      'NOR',      'LEC',      'PIA',      'VER',      'RUS',      'HAM',      'ANT',      'SAI',      'LEC'),
+  (11,      'VER',      'VER',      'NOR',      'RUS',      'PIA',      'HAM',      'LEC',      'ANT',      'ALB',      'NOR'),
+  (14,      'PIA',      'PIA',      'NOR',      'VER',      'LEC',      'RUS',      'HAM',      'ALB',      'ANT',      'NOR'),
+  (18,      'LEC',      'LEC',      'NOR',      'HAM',      'PIA',      'VER',      'RUS',      'ANT',      'SAI',      'NOR'),
+  (23,      'VER',      'VER',      'NOR',      'HAM',      'PIA',      'LEC',      'RUS',      'ANT',      'SAI',      'HAM')
 )
 INSERT INTO sprint_predictions
   (user_id, race_id, sprint_pole_driver_id, top_8,
@@ -297,5 +302,5 @@ ON CONFLICT (user_id, season_id, team_id) DO UPDATE SET
 -- ─────────────────────────────────────────────────────────────
 -- END OF PERFECT USER PREDICTIONS
 --
--- Total points: 816 (races) + 40 (sprints) + 70 (champion) + 22 (team best) = 948
+-- Total points: 816 (races) + 140 (sprints) + 70 (champion) + 22 (team best) = 1048
 -- ─────────────────────────────────────────────────────────────

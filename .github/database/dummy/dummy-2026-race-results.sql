@@ -4,7 +4,7 @@
 --
 -- PURPOSE:
 --   Complete race results for all 24 rounds of the 2026 season
---   plus 2 sprint results (Rounds 2 and 6).
+--   plus 7 sprint results (Rounds 2, 6, 7, 11, 14, 18, and 23).
 --   Designed to pair with dummy user prediction files.
 --   Fully idempotent — safe to re-run at any time.
 --
@@ -53,8 +53,13 @@
 -- ──────────────────────────────────────────────────────────
 --   SPRINT RESULTS
 -- ──────────────────────────────────────────────────────────
---   Rd2s CHN: pole=VER top8=[VER,NOR,PIA,LEC,HAM,RUS,ANT,ALB] FL=NOR
---   Rd6s MIA: pole=PIA top8=[PIA,NOR,VER,LEC,HAM,RUS,ANT,SAI] FL=PIA
+--   Rd2s  CHN: pole=VER top8=[VER,NOR,PIA,LEC,HAM,RUS,ANT,ALB] FL=NOR
+--   Rd6s  MIA: pole=PIA top8=[PIA,NOR,VER,LEC,HAM,RUS,ANT,SAI] FL=PIA
+--   Rd7s  CAN: pole=NOR top8=[NOR,LEC,PIA,VER,RUS,HAM,ANT,SAI] FL=LEC
+--   Rd11s GBR: pole=VER top8=[VER,NOR,RUS,PIA,HAM,LEC,ANT,ALB] FL=NOR
+--   Rd14s NED: pole=PIA top8=[PIA,NOR,VER,LEC,RUS,HAM,ALB,ANT] FL=NOR
+--   Rd18s SGP: pole=LEC top8=[LEC,NOR,HAM,PIA,VER,RUS,ANT,SAI] FL=NOR
+--   Rd23s QAT: pole=VER top8=[VER,NOR,HAM,PIA,LEC,RUS,ANT,SAI] FL=HAM
 -- ============================================================
 
 
@@ -151,15 +156,20 @@ ON CONFLICT (race_id) DO UPDATE SET
 
 
 -- ═══════════════════════════════════════════════════════════
--- SECTION 2 — SPRINT RESULTS (Rounds 2 and 6 only)
+-- SECTION 2 — SPRINT RESULTS (7 sprint rounds: 2, 6, 7, 11, 14, 18, 23)
 -- ═══════════════════════════════════════════════════════════
 
 WITH s AS (SELECT id FROM seasons WHERE year = 2026),
 d AS (SELECT name_acronym AS a, id FROM drivers WHERE season_id = (SELECT id FROM s)),
 sprint_data(rnd, pole, p1, p2, p3, p4, p5, p6, p7, p8, fl) AS (VALUES
   --     pole   P1     P2     P3     P4     P5     P6     P7     P8     FL
-  (2::int, 'VER'::text,'VER'::text,'NOR'::text,'PIA'::text,'LEC'::text,'HAM'::text,'RUS'::text,'ANT'::text,'ALB'::text,'NOR'::text),
-  (6,      'PIA',      'PIA',      'NOR',      'VER',      'LEC',      'HAM',      'RUS',      'ANT',      'SAI',      'PIA')
+  ( 2::int, 'VER'::text,'VER'::text,'NOR'::text,'PIA'::text,'LEC'::text,'HAM'::text,'RUS'::text,'ANT'::text,'ALB'::text,'NOR'::text),
+  ( 6,      'PIA',      'PIA',      'NOR',      'VER',      'LEC',      'HAM',      'RUS',      'ANT',      'SAI',      'PIA'),
+  ( 7,      'NOR',      'NOR',      'LEC',      'PIA',      'VER',      'RUS',      'HAM',      'ANT',      'SAI',      'LEC'),
+  (11,      'VER',      'VER',      'NOR',      'RUS',      'PIA',      'HAM',      'LEC',      'ANT',      'ALB',      'NOR'),
+  (14,      'PIA',      'PIA',      'NOR',      'VER',      'LEC',      'RUS',      'HAM',      'ALB',      'ANT',      'NOR'),
+  (18,      'LEC',      'LEC',      'NOR',      'HAM',      'PIA',      'VER',      'RUS',      'ANT',      'SAI',      'NOR'),
+  (23,      'VER',      'VER',      'NOR',      'HAM',      'PIA',      'LEC',      'RUS',      'ANT',      'SAI',      'HAM')
 )
 INSERT INTO sprint_results
   (race_id, sprint_pole_driver_id, top_8, fastest_lap_driver_id, source)

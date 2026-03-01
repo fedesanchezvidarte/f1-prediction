@@ -1452,7 +1452,7 @@ ON CONFLICT (user_id, race_id) DO UPDATE SET
 
 
 -- ═══════════════════════════════════════════════════════════
--- SECTION 3C — ADDITIONAL SPRINT PREDICTIONS  (Rounds 10,19,21,23)
+-- SECTION 3C — ADDITIONAL SPRINT PREDICTIONS  (Rounds 7,11,14,18,23)
 -- ═══════════════════════════════════════════════════════════
 
 -- User 1 sprint exact
@@ -1472,7 +1472,7 @@ SELECT
 FROM sprint_results sr
 JOIN races r ON r.id = sr.race_id
 WHERE r.season_id = (SELECT id FROM seasons WHERE year = 2026)
-  AND r.round IN (10, 19, 21, 23)
+  AND r.round IN (7, 11, 14, 18, 23)
 ON CONFLICT (user_id, race_id) DO UPDATE SET
   sprint_pole_driver_id = EXCLUDED.sprint_pole_driver_id,
   top_8                 = EXCLUDED.top_8,
@@ -1507,7 +1507,7 @@ SELECT
 FROM sprint_results sr
 JOIN races r ON r.id = sr.race_id
 WHERE r.season_id = (SELECT id FROM seasons WHERE year = 2026)
-  AND r.round IN (10, 19, 21, 23)
+  AND r.round IN (7, 11, 14, 18, 23)
 ON CONFLICT (user_id, race_id) DO UPDATE SET
   sprint_pole_driver_id = EXCLUDED.sprint_pole_driver_id,
   top_8                 = EXCLUDED.top_8,
@@ -1542,7 +1542,7 @@ SELECT
 FROM sprint_results sr
 JOIN races r ON r.id = sr.race_id
 WHERE r.season_id = (SELECT id FROM seasons WHERE year = 2026)
-  AND r.round IN (10, 19, 21, 23)
+  AND r.round IN (7, 11, 14, 18, 23)
 ON CONFLICT (user_id, race_id) DO UPDATE SET
   sprint_pole_driver_id = EXCLUDED.sprint_pole_driver_id,
   top_8                 = EXCLUDED.top_8,
@@ -1581,7 +1581,7 @@ CROSS JOIN LATERAL (
     )
 ) AS wrong
 WHERE r.season_id = (SELECT id FROM seasons WHERE year = 2026)
-  AND r.round IN (10, 19, 21, 23)
+  AND r.round IN (7, 11, 14, 18, 23)
 ON CONFLICT (user_id, race_id) DO UPDATE SET
   sprint_pole_driver_id = EXCLUDED.sprint_pole_driver_id,
   top_8                 = EXCLUDED.top_8,
