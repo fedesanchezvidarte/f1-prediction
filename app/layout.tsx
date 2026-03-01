@@ -17,11 +17,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "F1 Prediction",
   description: "Predict the Formula 1 season results and compete with friends",
-  icons: {
-    icon: "/logo.svg",
-    shortcut: "/logo.svg",
-    apple: "/logo.svg",
-  },
 };
 
 export default function RootLayout({
