@@ -903,23 +903,53 @@ function RaceInfoBar({
 
 function ChampionHeader() {
   const { t } = useLanguage();
+  const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
-      <div className="flex items-center gap-2">
-        <Crown size={16} className="text-f1-amber" />
-        <h2 className="text-sm font-semibold text-f1-white">
-          {t.predictionsPage.championshipPredictions}
-        </h2>
-      </div>
-      <div className="group relative">
-        <Info size={14} className="cursor-help text-muted" />
-        <div className="pointer-events-none absolute right-0 top-full z-50 mt-1 w-64 rounded-lg border border-border bg-card p-3 opacity-0 shadow-xl transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
-          <p className="text-[11px] leading-relaxed text-muted">
-            {t.predictionsPage.championshipInfo}
-          </p>
+    <>
+      {/* Transparent backdrop — closes the popover when tapping outside on mobile */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+      <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-2">
+          <Crown size={16} className="text-f1-amber" />
+          <h2 className="text-sm font-semibold text-f1-white">
+            {t.predictionsPage.championshipPredictions}
+          </h2>
+        </div>
+        <div className="group relative">
+          <button
+            onClick={() => setIsOpen((v) => !v)}
+            aria-label="Championship info"
+            className="flex items-center justify-center"
+          >
+            <Info size={14} className="cursor-help text-f1-amber animate-pulse" />
+          </button>
+          <div
+            className={`absolute right-0 top-full z-50 mt-1 w-64 rounded-lg border border-border bg-card p-3 shadow-xl transition-opacity ${
+              isOpen
+                ? "pointer-events-auto opacity-100"
+                : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100"
+            }`}
+          >
+            <div className="space-y-2">
+              <p className="text-[11px] leading-relaxed text-muted">
+                {t.predictionsPage.championshipInfoLocked}
+              </p>
+              <p className="text-[11px] leading-relaxed text-muted">
+                {t.predictionsPage.championshipInfoSummerPre}{" "}
+                <span className="font-semibold text-f1-white">{t.predictionsPage.championshipInfoSummerBreak}</span>
+                {" "}{t.predictionsPage.championshipInfoSummerPost}{" "}
+                <span className="font-semibold text-f1-amber">{t.predictionsPage.championshipInfoHalfPoints}</span>.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

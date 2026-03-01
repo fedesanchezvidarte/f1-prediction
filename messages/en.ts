@@ -220,7 +220,11 @@ const en = {
     teamBestDriverSub: "Select the best-performing driver for each team",
     // Champion header
     championshipPredictions: "Championship Predictions",
-    championshipInfo: "Championship predictions are locked after the start of the first race. Predictions changed after the summer break earn half points.",
+    championshipInfoLocked: "Championship predictions are locked after the first race starts.",
+    championshipInfoSummerPre: "Predictions re-open during the",
+    championshipInfoSummerBreak: "summer break",
+    championshipInfoSummerPost: "— only those you update will earn",
+    championshipInfoHalfPoints: "half points",
     // Race status
     upcoming: "Upcoming",
     live: "LIVE",
