@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs for the same branch/PR to avoid redundant work
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint · Type Check · Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Static analysis ─────────────────────────────────────────────
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      # ── Tests ────────────────────────────────────────────────────────
+      - name: Run tests with coverage
+        run: |
+          npx jest \
+            --ci \
+            --forceExit \
+            --coverage \
+            --json --outputFile=reports/jest-results.json \
+            --coverageReporters=json-summary \
+            --coverageDirectory=reports/coverage
+
+      # ── Summary ──────────────────────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          node << 'EOF'
+          const fs = require('fs');
+
+          let results, coverage;
+          try {
+            results = JSON.parse(fs.readFileSync('reports/jest-results.json', 'utf8'));
+          } catch {
+            process.exit(0);
+          }
+          try {
+            coverage = JSON.parse(fs.readFileSync('reports/coverage/coverage-summary.json', 'utf8'));
+          } catch {
+            coverage = null;
+          }
+
+          const total    = results.numTotalTests;
+          const passed   = results.numPassedTests;
+          const failed   = results.numFailedTests;
+          const skipped  = results.numPendingTests;
+          const suites   = results.numTotalTestSuites;
+          const passRate = total > 0 ? ((passed / total) * 100).toFixed(1) : '0';
+          const duration = (
+            (results.testResults || []).reduce((s, t) => s + (t.perfStats?.runtime || 0), 0) / 1000
+          ).toFixed(2);
+
+          const icon = failed > 0 ? '❌' : '✅';
+
+          const lines = [
+            `## ${icon} Test Results`,
+            '',
+            `> **${suites}** suite${suites !== 1 ? 's' : ''} &nbsp;·&nbsp; **${total}** tests &nbsp;·&nbsp; ${duration}s`,
+            '',
+            '| | Count |',
+            '|:---|---:|',
+            `| ✅ Passed  | **${passed}** |`,
+            `| ❌ Failed  | **${failed}** |`,
+            `| ⏭️ Skipped | **${skipped}** |`,
+            `| 📈 Pass rate | **${passRate}%** |`,
+          ];
+
+          if (coverage) {
+            const c = coverage.total;
+            lines.push(
+              '',
+              '## 📊 Coverage',
+              '',
+              '| Type | % |',
+              '|:---|---:|',
+              `| Statements | ${c.statements.pct}% |`,
+              `| Branches   | ${c.branches.pct}% |`,
+              `| Functions  | ${c.functions.pct}% |`,
+              `| Lines      | ${c.lines.pct}% |`,
+            );
+          }
+
+          const failedSuites = (results.testResults || []).filter(t => t.status === 'failed');
+          if (failedSuites.length > 0) {
+            lines.push('', '---', '', '## ❌ Failed Tests', '');
+            for (const suite of failedSuites) {
+              const rel = suite.testFilePath.replace(process.cwd(), '').replace(/\\/g, '/');
+              lines.push(`**\`${rel}\`**`, '');
+              for (const t of (suite.testResults || [])) {
+                if (t.status === 'failed') {
+                  lines.push(`- ❌ ${t.fullName}`);
+                  if (t.failureMessages && t.failureMessages[0]) {
+                    const msg = t.failureMessages[0].split('\n')[0].trim();
+                    lines.push(`  \`${msg}\``);
+                  }
+                }
+              }
+              lines.push('');
+            }
+          }
+
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
+          EOF
+
+      # ── Artifacts ────────────────────────────────────────────────────
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: reports/coverage/
+          retention-days: 7
