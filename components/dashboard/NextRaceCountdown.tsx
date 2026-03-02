@@ -84,14 +84,19 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
       </div>
 
       {!isLive && (
-        <div className="mt-4 flex justify-between gap-2 rounded-lg bg-background/50 px-3 py-2">
-          <TimeUnit value={timeLeft.days} label={t.nextRace.days} />
-          <span className="self-start pt-1 text-lg text-muted">:</span>
-          <TimeUnit value={timeLeft.hours} label={t.nextRace.hrs} />
-          <span className="self-start pt-1 text-lg text-muted">:</span>
-          <TimeUnit value={timeLeft.minutes} label={t.nextRace.min} />
-          <span className="self-start pt-1 text-lg text-muted">:</span>
-          <TimeUnit value={timeLeft.seconds} label={t.nextRace.sec} />
+        <div className="mt-4">
+          <div className="flex justify-between gap-2 rounded-lg bg-background/50 px-3 py-2">
+            <TimeUnit value={timeLeft.days} label={t.nextRace.days} />
+            <span className="self-start pt-1 text-lg text-muted">:</span>
+            <TimeUnit value={timeLeft.hours} label={t.nextRace.hrs} />
+            <span className="self-start pt-1 text-lg text-muted">:</span>
+            <TimeUnit value={timeLeft.minutes} label={t.nextRace.min} />
+            <span className="self-start pt-1 text-lg text-muted">:</span>
+            <TimeUnit value={timeLeft.seconds} label={t.nextRace.sec} />
+          </div>
+          <p className="mt-2 text-center text-[10px] text-f1-blue">
+            {t.nextRace.predictionDeadline}
+          </p>
         </div>
       )}
 

@@ -106,6 +106,7 @@ const en = {
     sec: "Sec",
     lightsOut: "Lights out, and away we go!",
     noUpcoming: "No upcoming races",
+    predictionDeadline: "Time left to submit your prediction",
   },
 
   predictionsCard: {

@@ -108,6 +108,7 @@ const es: Messages = {
     sec: "Seg",
     lightsOut: "¡Luces apagadas, y a correr!",
     noUpcoming: "Sin carreras próximas",
+    predictionDeadline: "Tiempo restante para enviar tu predicción",
   },
 
   predictionsCard: {
