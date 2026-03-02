@@ -21,7 +21,7 @@ export async function fetchDriversFromDb(): Promise<Driver[]> {
     .select("driver_number, first_name, last_name, name_acronym, headshot_url, team_id, teams(name, color)")
     .eq("season_id", season.id)
     .eq("is_active", true)
-    .order("driver_number", { ascending: true });
+    .order("last_name", { ascending: true });
 
   if (!dbDrivers || dbDrivers.length === 0) return [];
 
