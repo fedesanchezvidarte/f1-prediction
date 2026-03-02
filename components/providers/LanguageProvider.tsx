@@ -21,6 +21,19 @@ const LanguageContext = createContext<LanguageContextType>({
   t: en,
 });
 
+function getBrowserLanguage(): Language {
+  try {
+    const langs = navigator.languages?.length ? navigator.languages : [navigator.language];
+    for (const lang of langs) {
+      if (lang.startsWith("es")) return "es";
+      if (lang.startsWith("en")) return "en";
+    }
+  } catch {
+    // navigator unavailable (SSR guard)
+  }
+  return "en";
+}
+
 function getInitialLanguage(): Language {
   try {
     const stored = localStorage.getItem("language");
@@ -28,7 +41,7 @@ function getInitialLanguage(): Language {
   } catch {
     // localStorage unavailable (SSR guard)
   }
-  return "en";
+  return getBrowserLanguage();
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {

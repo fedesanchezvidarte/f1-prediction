@@ -30,7 +30,7 @@ const es: Messages = {
 
   // ── Auth pages ──────────────────────────────────────────────────────────
   login: {
-    title: "Bienvenido de vuelta",
+    title: "Bienvenido",
     subtitle: "Inicia sesión para gestionar tus predicciones",
     disclaimerLine1: "Esta app es para divertirse entre amigos y fanáticos del automovilismo.",
     disclaimerLine2Emphasis: "Sin apuestas, sin juego de azar",

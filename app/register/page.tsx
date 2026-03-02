@@ -9,6 +9,7 @@ import { F1Logo } from "@/components/F1Logo";
 import { AuthFooter } from "@/components/AuthFooter";
 import { GoogleIcon } from "@/components/GoogleIcon";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { AuthLanguageSwitcher } from "@/components/auth/AuthLanguageSwitcher";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -66,7 +67,10 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-between bg-background px-4">
+      <div className="relative flex min-h-screen flex-col items-center justify-between bg-background px-4">
+        <div className="absolute top-4 right-4">
+          <AuthLanguageSwitcher />
+        </div>
         <div className="flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-8">
           <F1Logo />
           <div className="w-full space-y-4 text-center">
@@ -107,7 +111,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-between bg-background px-4">
+    <div className="relative flex min-h-screen flex-col items-center justify-between bg-background px-4">
+      <div className="absolute top-4 right-4">
+        <AuthLanguageSwitcher />
+      </div>
       <div className="flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-8">
         <F1Logo />
 
