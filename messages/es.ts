@@ -234,6 +234,15 @@ const es: Messages = {
     resetting: "Reiniciando...",
     resetConfirm: "Reiniciar predicción",
     championship: "Campeonato",
+    // Modales de confirmación de envío / actualización
+    updateConfirmTitle: "¿Actualizar Predicción?",
+    updateConfirmBody: "Ya enviaste una predicción. Al actualizarla se reemplazarán las selecciones actuales.",
+    confirmUpdate: "Actualizar",
+    updating: "Actualizando...",
+    // Modal de media puntuación en campeonato
+    championUpdateTitle: "¿Actualizar Predicción de Campeonato?",
+    championHalfPointsNote: "Como la temporada ya ha comenzado, los siguientes campos actualizados obtendrán la mitad de puntos:",
+    championHalfPointsFirstNote: "Como la temporada ya ha comenzado, este envío obtendrá la mitad de puntos para todas tus selecciones.",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────

@@ -144,6 +144,11 @@ export function RacePredictionContent({
     return new Date() < new Date(races[0].dateStart);
   }, [races]);
 
+  const seasonStarted = useMemo(() => {
+    if (races.length === 0) return false;
+    return new Date(races[0].dateStart) < new Date();
+  }, [races]);
+
   // Always highlight the champion tab while it's open and not yet scored.
   const champNeedsAttention = isChampionOpen && champPred.status !== "scored";
 
@@ -265,6 +270,11 @@ export function RacePredictionContent({
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+
+  // Refs tracking the last successfully saved champion state (for changed-field detection)
+  const savedChampPred = useRef(initialChampionPrediction);
+  const savedTeamBestDriverPreds = useRef(initialTeamBestDriverPredictions);
 
   async function handleReset() {
     if (isSaving) return;
@@ -384,6 +394,9 @@ export function RacePredictionContent({
 
       if (isChampionTab) {
         setChampPred({ ...champPred, status: "submitted" });
+        // Update saved-state refs so changed-field detection is correct on the next update
+        savedChampPred.current = { ...champPred, status: "submitted" };
+        savedTeamBestDriverPreds.current = teamBestDriverPreds.map((p) => ({ ...p }));
       } else if (tab === "sprint") {
         updateSprintPrediction({ status: "submitted" });
       } else {
@@ -408,6 +421,28 @@ export function RacePredictionContent({
           ? (racePts ?? 0) + (sprintPts ?? 0)
           : null
         : racePts;
+
+  const changedChampionFields = useMemo((): string[] => {
+    if (!isChampionTab || champPred.status !== "submitted") return [];
+    const saved = savedChampPred.current;
+    const fields: string[] = [];
+    if (champPred.wdcWinner?.driverNumber !== saved.wdcWinner?.driverNumber)
+      fields.push(t.predictionsPage.wdc);
+    if (champPred.wccWinner !== saved.wccWinner)
+      fields.push(t.predictionsPage.wcc);
+    if (champPred.mostDnfsDriver?.driverNumber !== saved.mostDnfsDriver?.driverNumber)
+      fields.push(t.predictionsPage.mostDnfs);
+    if (champPred.mostPodiumsDriver?.driverNumber !== saved.mostPodiumsDriver?.driverNumber)
+      fields.push(t.predictionsPage.mostPodiums);
+    if (champPred.mostWinsDriver?.driverNumber !== saved.mostWinsDriver?.driverNumber)
+      fields.push(t.predictionsPage.mostWins);
+    teamBestDriverPreds.forEach((curr) => {
+      const prev = savedTeamBestDriverPreds.current.find((p) => p.teamId === curr.teamId);
+      if (curr.driverNumber !== prev?.driverNumber)
+        fields.push(`${t.predictionsPage.teamBestDriver}: ${curr.teamName}`);
+    });
+    return fields;
+  }, [isChampionTab, champPred, teamBestDriverPreds, t]);
 
   const teamColors = useMemo(() => {
     const map: Record<string, string> = {};
@@ -753,7 +788,19 @@ export function RacePredictionContent({
               </button>
             )}
             <button
-              onClick={handleSubmit}
+              onClick={() => {
+                const needsModal =
+                  (isChampionTab && seasonStarted) ||
+                  (!isChampionTab &&
+                    (tab === "sprint"
+                      ? currentSprintPred?.status === "submitted"
+                      : currentPrediction?.status === "submitted"));
+                if (needsModal) {
+                  setShowSubmitModal(true);
+                } else {
+                  handleSubmit();
+                }
+              }}
               disabled={!isEditable || isSaving}
               className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[11px] font-semibold transition-colors ${submitConfig.color} ${isSaving ? "opacity-70" : ""}`}
             >
@@ -775,6 +822,22 @@ export function RacePredictionContent({
             handleReset();
           }}
           onCancel={() => setShowResetModal(false)}
+        />
+      )}
+
+      {showSubmitModal && (
+        <SubmitConfirmModal
+          tab={tab}
+          raceName={isChampionTab ? undefined : currentRace.raceName}
+          isChampionHalfPoints={isChampionTab && seasonStarted}
+          isFirstChampionSubmit={champPred.status !== "submitted"}
+          changedFields={changedChampionFields}
+          isSaving={isSaving}
+          onConfirm={() => {
+            setShowSubmitModal(false);
+            handleSubmit();
+          }}
+          onCancel={() => setShowSubmitModal(false)}
         />
       )}
     </div>
@@ -854,6 +917,134 @@ function ResetConfirmModal({
           >
             {isSaving ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
             {isSaving ? t.predictionsPage.resetting : t.predictionsPage.resetConfirm}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Submit / Update Confirmation Modal ---------- */
+
+function SubmitConfirmModal({
+  tab,
+  raceName,
+  isChampionHalfPoints,
+  isFirstChampionSubmit,
+  changedFields,
+  isSaving,
+  onConfirm,
+  onCancel,
+}: {
+  tab: TabMode;
+  raceName?: string;
+  isChampionHalfPoints: boolean;
+  isFirstChampionSubmit: boolean;
+  changedFields: string[];
+  isSaving: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useLanguage();
+
+  const label =
+    tab === "champion"
+      ? t.predictionsPage.championship
+      : tab === "sprint"
+        ? `${t.predictionsPage.sprint} — ${raceName}`
+        : raceName ?? t.predictionsPage.race;
+
+  const isChampionModal = isChampionHalfPoints;
+  const title = isChampionModal
+    ? t.predictionsPage.championUpdateTitle
+    : t.predictionsPage.updateConfirmTitle;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onCancel}
+      />
+
+      {/* Modal panel */}
+      <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+          <div
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+              isChampionModal ? "bg-f1-amber/15" : "bg-f1-blue/15"
+            }`}
+          >
+            {isChampionModal ? (
+              <Crown size={15} className="text-f1-amber" />
+            ) : (
+              <Send size={15} className="text-f1-blue" />
+            )}
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-f1-white">{title}</h2>
+            <p className="mt-0.5 text-[11px] text-muted">{label}</p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4">
+          {isChampionModal ? (
+            isFirstChampionSubmit ? (
+              <p className="text-xs leading-relaxed text-muted">
+                {t.predictionsPage.championHalfPointsFirstNote}
+              </p>
+            ) : changedFields.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-xs leading-relaxed text-muted">
+                  {t.predictionsPage.championHalfPointsNote}
+                </p>
+                <ul className="space-y-1.5">
+                  {changedFields.map((field) => (
+                    <li key={field} className="flex items-center gap-2 text-xs">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-f1-amber" />
+                      <span className="font-medium text-f1-white">{field}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-xs leading-relaxed text-muted">
+                {t.predictionsPage.updateConfirmBody}
+              </p>
+            )
+          ) : (
+            <p className="text-xs leading-relaxed text-muted">
+              {t.predictionsPage.updateConfirmBody}
+            </p>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
+          <button
+            onClick={onCancel}
+            disabled={isSaving}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-1.5 text-[11px] font-medium text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-50"
+          >
+            {t.navbar.cancel}
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isSaving}
+            className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[11px] font-semibold text-white transition-colors disabled:opacity-50 ${
+              isChampionModal
+                ? "bg-f1-amber text-black hover:bg-f1-amber/80"
+                : "bg-f1-blue hover:bg-f1-blue/80"
+            }`}
+          >
+            {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+            {isSaving ? t.predictionsPage.updating : t.predictionsPage.confirmUpdate}
           </button>
         </div>
       </div>

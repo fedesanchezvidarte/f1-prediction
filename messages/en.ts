@@ -240,6 +240,15 @@ const en = {
     resetting: "Resetting...",
     resetConfirm: "Reset prediction",
     championship: "Championship",
+    // Submit / update confirm modal
+    updateConfirmTitle: "Update Prediction?",
+    updateConfirmBody: "You've already submitted a prediction. Updating it will replace your current selections.",
+    confirmUpdate: "Update",
+    updating: "Updating...",
+    // Champion half-points confirm modal
+    championUpdateTitle: "Update Championship Prediction?",
+    championHalfPointsNote: "Since the season has started, the following updated fields will earn half points:",
+    championHalfPointsFirstNote: "Since the season has already started, this submission will earn half points for all your selections.",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────
