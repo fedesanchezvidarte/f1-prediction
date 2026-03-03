@@ -4,8 +4,6 @@
  * Covers: auth guard (401), admin guard (403), missing body (400), success (200).
  */
 
-import { NextRequest } from "next/server";
-
 // ── Mocks ────────────────────────────────────────────────────────────
 
 const mockGetUser = jest.fn();

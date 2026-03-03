@@ -78,12 +78,20 @@ export function buildMockCreateClient(user: MockUser | null = null) {
   return { createClient, mockSupabase };
 }
 
+export interface MockSupabaseForApi {
+  from: (table: string) => Record<string, unknown>;
+  auth: {
+    getUser: jest.Mock;
+  };
+  __mockTable: (table: string, ...responses: { data: unknown; error: unknown }[]) => void;
+}
+
 /**
  * Builds a light chainable Supabase mock for API route tests.
  * Every chain method returns itself and terminal calls return { data: null, error: null }.
- * Override specific table responses via `.from(table).__mockResponse(data, error)`.
+ * Override specific table responses via `__mockTable(table, ...responses)`.
  */
-export function buildMockSupabaseForApi() {
+export function buildMockSupabaseForApi(): MockSupabaseForApi {
   const tableOverrides = new Map<string, { data: unknown; error: unknown }[]>();
 
   function consume(table: string) {
@@ -133,5 +141,5 @@ export function buildMockSupabaseForApi() {
     },
   };
 
-  return supabase as ReturnType<typeof buildMockSupabaseForApi>;
+  return supabase as unknown as MockSupabaseForApi;
 }

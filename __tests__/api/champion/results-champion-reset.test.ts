@@ -25,7 +25,6 @@ jest.mock("@/lib/scoring-service", () => ({
 
 import { POST } from "@/app/api/results/champion/reset/route";
 import { isAdminUser } from "@/lib/admin";
-import { updateLeaderboard } from "@/lib/scoring-service";
 import { parseResponse } from "../../helpers/mockApiRoute";
 
 function setUser(user: { id: string; app_metadata?: Record<string, unknown> } | null) {
