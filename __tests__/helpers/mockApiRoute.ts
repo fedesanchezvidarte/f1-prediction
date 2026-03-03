@@ -111,8 +111,17 @@ export function buildMockSupabaseForApi(): MockSupabaseForApi {
       single: () => consume(table),
       update: () => chain,
       insert: () => {
-        consume(table);
-        return chain;
+            const result = consume(table);
+        return {
+          then: (
+            resolve: ((v: unknown) => unknown) | null | undefined,
+            reject?: ((e: unknown) => unknown) | null | undefined,
+          ) =>
+            Promise.resolve(result).then(
+              resolve ?? undefined,
+              reject ?? undefined,
+            ),
+        };
       },
       delete: () => chain,
       upsert: () => chain,
