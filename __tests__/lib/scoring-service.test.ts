@@ -306,7 +306,7 @@ describe("scoreChampionForSeason", () => {
 
 describe("updateLeaderboard", () => {
   it("inserts a new leaderboard entry when none exists", async () => {
-    const { supabase, mockTable, getInsertCalls } = createMockSupabase();
+    const { supabase, mockTable } = createMockSupabase();
 
     mockTable("seasons", { data: { id: 1 }, error: null });
     mockTable("race_predictions", { data: [{ points_earned: 10 }], error: null });
