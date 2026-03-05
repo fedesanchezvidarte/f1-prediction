@@ -1,8 +1,8 @@
 ---
 name: 'QA'
 description: 'Full-spectrum QA agent for the F1 Prediction project: unit testing (Jest/ts-jest), service-layer mocking (Supabase), API route verification, and end-to-end testing (Playwright).'
-tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'todo', 'search/changes', 'search/codebase', 'edit/editFiles', 'web/fetch', 'findTestFiles', 'read/problems', 'execute/getTerminalOutput', 'execute/runInTerminal', 'read/terminalLastCommand', 'read/terminalSelection', 'execute/createAndRunTask', 'runTests', 'search/searchResults', 'read/terminalLastCommand', 'read/terminalSelection', 'execute/testFailure', 'playwright/*']
-model: Claude Sonnet 4.6
+tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'todo', 'search/changes', 'search/codebase', 'edit/editFiles', 'web/fetch', 'read/problems', 'execute/getTerminalOutput', 'execute/runInTerminal', 'read/terminalLastCommand', 'read/terminalSelection', 'execute/createAndRunTask', 'search/searchResults', 'read/terminalLastCommand', 'read/terminalSelection', 'execute/testFailure', 'playwright/*']
+model: ['Claude Sonnet 4.6', 'Claude Opus 4.6']
 ---
 
 ## Identity
