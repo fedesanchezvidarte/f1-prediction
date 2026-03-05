@@ -24,6 +24,20 @@ Whenever you are asked to design, build, or improve UI/UX features, you should r
 -   **Component Structure:** Prefer functional components with Tailwind CSS for styling.
 -   **Security:** Always verify Supabase sessions in Server Components or Middleware.
 
+## Specialized Agents
+
+Three custom agents live in `.github/agents/` and should be invoked for the tasks below:
+
+| Agent | File | When to use |
+|---|---|---|
+| **Next.js Expert** | [`expert-nextjs-developer.agent.md`](agents/expert-nextjs-developer.agent.md) | App Router architecture, Server/Client Components, caching, Turbopack |
+| **QA** | [`qa-subagent.agent.md`](agents/qa-subagent.agent.md) | Unit tests (Jest/ts-jest), service-layer mocking, API route verification, Playwright E2E — **primary agent for all testing work** |
+| **VS Code Insiders A11y Tracker** | [`insider-a11y-tracker.agent.md`](agents/insider-a11y-tracker.agent.md) | Accessibility improvements and tracking |
+
+> **Testing workflow:** When executing tasks from `.github/prompts/plan-unitTestingFoundation.prompt.md`, delegate all test planning, writing, and verification to the **QA** agent. Use the **Next.js Expert** agent for App Router or service-layer implementation questions that arise during testing.
+
+---
+
 ## Testing Standards
 
 The project uses **Jest + ts-jest** for unit and service-layer tests. All tests live under `__tests__/`, mirroring the `lib/` folder structure. Refer to [`.github/prompts/plan-unitTestingFoundation.prompt.md`](prompts/plan-unitTestingFoundation.prompt.md) for the full testing strategy.
