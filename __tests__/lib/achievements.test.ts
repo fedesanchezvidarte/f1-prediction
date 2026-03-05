@@ -1,17 +1,19 @@
 /**
- * Tests for lib/achievements.ts — pure helpers only.
+ * Tests for lib/achievements.ts — pure helpers + fetchAchievementsData.
  *
- * Covers: getAchievementIcon, getCategoryColors, static data integrity.
- * Skips fetchAchievementsData (requires Supabase, tested in Phase 2).
+ * Covers: getAchievementIcon, getCategoryColors, static data integrity,
+ *         fetchAchievementsData with mocked Supabase.
  */
 import {
   getAchievementIcon,
   getCategoryColors,
+  fetchAchievementsData,
   ACHIEVEMENT_ICONS,
   CATEGORY_COLORS,
   CATEGORY_COLORS_FALLBACK,
 } from "@/lib/achievements";
 import { Trophy } from "lucide-react";
+import { createMockSupabase } from "../helpers/mockSupabase";
 
 describe("getAchievementIcon", () => {
   it("returns the correct icon for a known slug", () => {
@@ -81,5 +83,139 @@ describe("ACHIEVEMENT_ICONS static data", () => {
     for (const [_slug, icon] of Object.entries(ACHIEVEMENT_ICONS)) {
       expect(typeof icon).toBe("object"); // lucide icons are ForwardRef objects
     }
+  });
+});
+
+/* ════════════════════════════════════════════════════════════════════ */
+/*  fetchAchievementsData — Supabase integration via mock              */
+/* ════════════════════════════════════════════════════════════════════ */
+
+describe("fetchAchievementsData", () => {
+  it("returns empty arrays when DB has no achievements", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("achievements", { data: [], error: null });
+    mockTable("user_achievements", { data: [], error: null });
+
+    const result = await fetchAchievementsData(supabase, "user-1");
+    expect(result.achievements).toEqual([]);
+    expect(result.earnedIds).toEqual([]);
+  });
+
+  it("returns empty arrays when both queries return null", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("achievements", { data: null, error: null });
+    mockTable("user_achievements", { data: null, error: null });
+
+    const result = await fetchAchievementsData(supabase, "user-1");
+    expect(result.achievements).toEqual([]);
+    expect(result.earnedIds).toEqual([]);
+  });
+
+  it("maps DB rows to Achievement type correctly", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("achievements", {
+      data: [
+        {
+          id: 1,
+          slug: "first_prediction",
+          name: "First Prediction",
+          description: "Make your first prediction",
+          icon_url: null,
+          category: "predictions",
+          threshold: 1,
+          created_at: "2025-01-01T00:00:00Z",
+        },
+      ],
+      error: null,
+    });
+    mockTable("user_achievements", { data: [], error: null });
+
+    const { achievements } = await fetchAchievementsData(supabase, "user-1");
+    expect(achievements).toHaveLength(1);
+    expect(achievements[0]).toEqual({
+      id: 1,
+      slug: "first_prediction",
+      name: "First Prediction",
+      description: "Make your first prediction",
+      iconUrl: null,
+      category: "predictions",
+      threshold: 1,
+      createdAt: "2025-01-01T00:00:00Z",
+    });
+  });
+
+  it("sorts achievements by ACHIEVEMENT_SORT_ORDER", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("achievements", {
+      data: [
+        { id: 3, slug: "100_points", name: "100 Points", description: "", icon_url: null, category: "milestones", threshold: 100, created_at: "" },
+        { id: 2, slug: "1_correct", name: "1 Correct", description: "", icon_url: null, category: "accuracy", threshold: 1, created_at: "" },
+        { id: 1, slug: "first_prediction", name: "First", description: "", icon_url: null, category: "predictions", threshold: 1, created_at: "" },
+      ],
+      error: null,
+    });
+    mockTable("user_achievements", { data: [], error: null });
+
+    const { achievements } = await fetchAchievementsData(supabase, "user-1");
+    expect(achievements.map((a) => a.slug)).toEqual([
+      "first_prediction",
+      "1_correct",
+      "100_points",
+    ]);
+  });
+
+  it("places unlisted slugs at the end sorted by id", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("achievements", {
+      data: [
+        { id: 99, slug: "unknown_b", name: "B", description: "", icon_url: null, category: "special", threshold: null, created_at: "" },
+        { id: 50, slug: "unknown_a", name: "A", description: "", icon_url: null, category: "special", threshold: null, created_at: "" },
+        { id: 1, slug: "first_prediction", name: "First", description: "", icon_url: null, category: "predictions", threshold: 1, created_at: "" },
+      ],
+      error: null,
+    });
+    mockTable("user_achievements", { data: [], error: null });
+
+    const { achievements } = await fetchAchievementsData(supabase, "user-1");
+    expect(achievements.map((a) => a.slug)).toEqual([
+      "first_prediction",
+      "unknown_a",
+      "unknown_b",
+    ]);
+  });
+
+  it("returns correct earnedIds from user_achievements", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("achievements", {
+      data: [
+        { id: 1, slug: "first_prediction", name: "First", description: "", icon_url: null, category: "predictions", threshold: 1, created_at: "" },
+        { id: 2, slug: "10_predictions", name: "10 Predictions", description: "", icon_url: null, category: "predictions", threshold: 10, created_at: "" },
+      ],
+      error: null,
+    });
+    mockTable("user_achievements", {
+      data: [
+        { achievement_id: 1 },
+        { achievement_id: 2 },
+      ],
+      error: null,
+    });
+
+    const { earnedIds } = await fetchAchievementsData(supabase, "user-1");
+    expect(earnedIds).toEqual([1, 2]);
+  });
+
+  it("returns empty earnedIds when user has no achievements", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("achievements", {
+      data: [
+        { id: 1, slug: "first_prediction", name: "First", description: "", icon_url: null, category: "predictions", threshold: 1, created_at: "" },
+      ],
+      error: null,
+    });
+    mockTable("user_achievements", { data: [], error: null });
+
+    const { earnedIds } = await fetchAchievementsData(supabase, "user-1");
+    expect(earnedIds).toEqual([]);
   });
 });
