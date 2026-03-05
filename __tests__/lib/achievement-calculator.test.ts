@@ -13,7 +13,7 @@ import {
 
 /**
  * Sets up the minimum mock tables for a single user evaluation.
- * Callers can override specific tables after calling this.
+ * Callers can override specific tables via the `overrides` parameter.
  */
 function setupBaseTablesForUser(
   mockTable: ReturnType<typeof createMockSupabase>["mockTable"],
@@ -875,61 +875,67 @@ describe("calculateAchievementsForUsers", () => {
     const { supabase, mockTable } = createMockSupabase();
     const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
-    setupBaseTablesForUser(mockTable, {
-      achievements: {
-        data: [{ id: 1, slug: "first_prediction", threshold: 1 }],
-        error: null,
-      },
-      racePredictions: [
-        { data: [], error: null },
-        {
-          data: [
-            {
-              race_id: 1,
-              user_id: "user-a",
-              status: "submitted",
-              points_earned: null,
-              pole_position_driver_id: 1,
-              top_10: [1],
-              fastest_lap_driver_id: 1,
-              fastest_pit_stop_driver_id: 1,
-              driver_of_the_day_driver_id: 1,
-            },
-          ],
+    try {
+      setupBaseTablesForUser(mockTable, {
+        achievements: {
+          data: [{ id: 1, slug: "first_prediction", threshold: 1 }],
           error: null,
         },
-      ],
-      userAchievements: [
-        { data: [], error: null },
-        { data: null, error: { message: "insert failed" } }, // insert error
-      ],
-    });
+        racePredictions: [
+          { data: [], error: null },
+          {
+            data: [
+              {
+                race_id: 1,
+                user_id: "user-a",
+                status: "submitted",
+                points_earned: null,
+                pole_position_driver_id: 1,
+                top_10: [1],
+                fastest_lap_driver_id: 1,
+                fastest_pit_stop_driver_id: 1,
+                driver_of_the_day_driver_id: 1,
+              },
+            ],
+            error: null,
+          },
+        ],
+        userAchievements: [
+          { data: [], error: null },
+          { data: null, error: { message: "insert failed" } }, // insert error
+        ],
+      });
 
-    const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
-    expect(result.achievementsAwarded).toBe(0); // error means 0 awarded
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
+      const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
+      expect(result.achievementsAwarded).toBe(0); // error means 0 awarded
+      expect(consoleSpy).toHaveBeenCalled();
+    } finally {
+      consoleSpy.mockRestore();
+    }
   });
 
   it("handles delete error gracefully during revocation", async () => {
     const { supabase, mockTable } = createMockSupabase();
     const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
-    setupBaseTablesForUser(mockTable, {
-      achievements: {
-        data: [{ id: 1, slug: "100_points", threshold: 100 }],
-        error: null,
-      },
-      userAchievements: [
-        { data: [{ id: 999, achievement_id: 1 }], error: null },
-        { data: null, error: { message: "delete failed" } }, // delete error
-      ],
-    });
+    try {
+      setupBaseTablesForUser(mockTable, {
+        achievements: {
+          data: [{ id: 1, slug: "100_points", threshold: 100 }],
+          error: null,
+        },
+        userAchievements: [
+          { data: [{ id: 999, achievement_id: 1 }], error: null },
+          { data: null, error: { message: "delete failed" } }, // delete error
+        ],
+      });
 
-    const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
-    expect(result.achievementsRevoked).toBe(0); // error means 0 revoked
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
+      const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
+      expect(result.achievementsRevoked).toBe(0); // error means 0 revoked
+      expect(consoleSpy).toHaveBeenCalled();
+    } finally {
+      consoleSpy.mockRestore();
+    }
   });
 
   /* ── race_prediction_winner_10 ───────────────────────────────────── */
