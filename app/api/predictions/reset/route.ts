@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getChampionPredictionPhase } from "@/lib/race-utils";
+import type { Race } from "@/types";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -147,6 +149,35 @@ async function handleChampionReset(
 
   if (existing.status === "scored") {
     return NextResponse.json({ error: "Cannot reset a scored prediction" }, { status: 400 });
+  }
+
+  // Enforce champion prediction deadline
+  const { data: racesRaw } = await supabase
+    .from("races")
+    .select("meeting_key, race_name, official_name, circuit_short_name, country_name, country_code, location, date_start, date_end, round, has_sprint")
+    .eq("season_id", season.id)
+    .order("round", { ascending: true });
+
+  const races: Race[] = (racesRaw ?? []).map((r: Record<string, unknown>) => ({
+    meetingKey: r.meeting_key as number,
+    raceName: r.race_name as string,
+    officialName: r.official_name as string,
+    circuitShortName: r.circuit_short_name as string,
+    countryName: r.country_name as string,
+    countryCode: r.country_code as string,
+    location: r.location as string,
+    dateStart: r.date_start as string,
+    dateEnd: r.date_end as string,
+    round: r.round as number,
+    hasSprint: r.has_sprint as boolean,
+  }));
+
+  const phase = getChampionPredictionPhase(races);
+  if (phase === "closed") {
+    return NextResponse.json(
+      { error: "Champion predictions are permanently closed after the summer break" },
+      { status: 403 }
+    );
   }
 
   const { error } = await supabase

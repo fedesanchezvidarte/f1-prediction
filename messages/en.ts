@@ -215,7 +215,7 @@ const en = {
     wdc: "World Drivers' Champion (WDC)",
     wcc: "World Constructors' Champion (WCC)",
     selectTeam: "Select team...",
-    halfPointsWarning: "Predictions changed after the summer break earn half points.",
+    halfPointsWarning: "Predictions submitted or updated after Round 2 earn half points.",
     // New champion categories
     mostDnfs: "Most DNFs",
     mostPodiums: "Most Podiums",
@@ -224,10 +224,14 @@ const en = {
     teamBestDriverSub: "Select the best-performing driver for each team",
     // Champion header
     championshipPredictions: "Championship Predictions",
-    championshipInfoLocked: "Championship predictions are locked after the first race starts.",
-    championshipInfoSummerPre: "Predictions re-open during the",
+    championHalfPointsPhase: "Half pts",
+    championClosedWarning: "Champion predictions are permanently closed after the summer break.",
+    championshipInfoPhase1: "Submit your championship picks before Round 2 starts for full points. Round 1 serves as your hint!",
+    championshipInfoPhase2Pre: "After Round 2 starts, you can still submit or update — but changes earn",
+    championshipInfoPhase2Post: ".",
+    championshipInfoPhase3Pre: "After the",
     championshipInfoSummerBreak: "summer break",
-    championshipInfoSummerPost: "— only those you update will earn",
+    championshipInfoPhase3Post: "champion predictions are permanently locked.",
     championshipInfoHalfPoints: "half points",
     // Race status
     upcoming: "Upcoming",
@@ -250,8 +254,8 @@ const en = {
     updating: "Updating...",
     // Champion half-points confirm modal
     championUpdateTitle: "Update Championship Prediction?",
-    championHalfPointsNote: "Since the season has started, the following updated fields will earn half points:",
-    championHalfPointsFirstNote: "Since the season has already started, this submission will earn half points for all your selections.",
+    championHalfPointsNote: "Since Round 2 has started, the following updated fields will earn half points:",
+    championHalfPointsFirstNote: "Since Round 2 has already started, this submission will earn half points for all your selections.",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────

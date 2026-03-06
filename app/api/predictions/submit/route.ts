@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getChampionPredictionPhase } from "@/lib/race-utils";
+import type { Race } from "@/types";
 
 /**
  * Saves a prediction to the database.
@@ -224,11 +226,10 @@ async function handleChampionPrediction(
     mostDnfsDriverNumber: number | null;
     mostPodiumsDriverNumber: number | null;
     mostWinsDriverNumber: number | null;
-    isHalfPoints: boolean;
     teamBestDrivers?: Array<{ teamId: number; driverNumber: number }>;
   }
 ) {
-  const { wdcDriverNumber, wccTeamName, mostDnfsDriverNumber, mostPodiumsDriverNumber, mostWinsDriverNumber, isHalfPoints, teamBestDrivers } = body;
+  const { wdcDriverNumber, wccTeamName, mostDnfsDriverNumber, mostPodiumsDriverNumber, mostWinsDriverNumber, teamBestDrivers } = body;
 
   const { data: season } = await supabase
     .from("seasons")
@@ -239,6 +240,38 @@ async function handleChampionPrediction(
   if (!season) {
     return NextResponse.json({ error: "No active season" }, { status: 404 });
   }
+
+  // Fetch race calendar to enforce champion prediction deadlines
+  const { data: racesRaw } = await supabase
+    .from("races")
+    .select("meeting_key, race_name, official_name, circuit_short_name, country_name, country_code, location, date_start, date_end, round, has_sprint")
+    .eq("season_id", season.id)
+    .order("round", { ascending: true });
+
+  const races: Race[] = (racesRaw ?? []).map((r: Record<string, unknown>) => ({
+    meetingKey: r.meeting_key as number,
+    raceName: r.race_name as string,
+    officialName: r.official_name as string,
+    circuitShortName: r.circuit_short_name as string,
+    countryName: r.country_name as string,
+    countryCode: r.country_code as string,
+    location: r.location as string,
+    dateStart: r.date_start as string,
+    dateEnd: r.date_end as string,
+    round: r.round as number,
+    hasSprint: r.has_sprint as boolean,
+  }));
+
+  const phase = getChampionPredictionPhase(races);
+
+  if (phase === "closed") {
+    return NextResponse.json(
+      { error: "Champion predictions are permanently closed after the summer break" },
+      { status: 403 }
+    );
+  }
+
+  const isHalfPoints = phase === "half";
 
   const driverMap = await getDriverNumberToIdMap(supabase);
   const wdcDriverId = wdcDriverNumber !== null ? (driverMap.get(wdcDriverNumber) ?? null) : null;

@@ -4,7 +4,7 @@
  * Covers: getRaceStatus, getNextRace, getPredictionCardRaces
  * Uses jest.useFakeTimers() to control Date.
  */
-import { getRaceStatus, getNextRace, getPredictionCardRaces } from "@/lib/race-utils";
+import { getRaceStatus, getNextRace, getPredictionCardRaces, getChampionPredictionPhase, CHAMPION_CLOSE_ROUND } from "@/lib/race-utils";
 import type { Race } from "@/types";
 
 /* ── Helper: minimal Race object factory ── */
@@ -219,5 +219,107 @@ describe("getPredictionCardRaces", () => {
     });
     const result = getPredictionCardRaces([pastRace, upcoming1, upcoming2]);
     expect(result).toEqual([upcoming1, upcoming2, null]);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   getChampionPredictionPhase
+   ═══════════════════════════════════════════════════════════════════════ */
+describe("getChampionPredictionPhase", () => {
+  // Realistic 2026 calendar with Round 14 as the close-round (Dutch GP after summer break)
+  const seasonRaces = [
+    makeRace({ round: 1, dateStart: "2026-03-08T14:00:00Z", dateEnd: "2026-03-08T16:00:00Z" }),
+    makeRace({ round: 2, dateStart: "2026-03-22T14:00:00Z", dateEnd: "2026-03-22T16:00:00Z" }),
+    makeRace({ round: 3, dateStart: "2026-04-05T14:00:00Z", dateEnd: "2026-04-05T16:00:00Z" }),
+    makeRace({ round: 4, dateStart: "2026-04-19T14:00:00Z", dateEnd: "2026-04-19T16:00:00Z" }),
+    makeRace({ round: 5, dateStart: "2026-05-03T14:00:00Z", dateEnd: "2026-05-03T16:00:00Z" }),
+    makeRace({ round: 6, dateStart: "2026-05-17T14:00:00Z", dateEnd: "2026-05-17T16:00:00Z" }),
+    makeRace({ round: 7, dateStart: "2026-06-07T14:00:00Z", dateEnd: "2026-06-07T16:00:00Z" }),
+    makeRace({ round: 8, dateStart: "2026-06-21T14:00:00Z", dateEnd: "2026-06-21T16:00:00Z" }),
+    makeRace({ round: 9, dateStart: "2026-07-05T14:00:00Z", dateEnd: "2026-07-05T16:00:00Z" }),
+    makeRace({ round: 10, dateStart: "2026-07-19T14:00:00Z", dateEnd: "2026-07-19T16:00:00Z" }),
+    makeRace({ round: 11, dateStart: "2026-07-26T14:00:00Z", dateEnd: "2026-07-26T16:00:00Z" }),
+    makeRace({ round: 12, dateStart: "2026-08-02T14:00:00Z", dateEnd: "2026-08-02T16:00:00Z" }),
+    makeRace({ round: 13, dateStart: "2026-08-09T14:00:00Z", dateEnd: "2026-08-09T16:00:00Z" }),
+    // Round 14 — Dutch GP (first race after summer break) — CHAMPION_CLOSE_ROUND
+    makeRace({ round: 14, dateStart: "2026-08-21T11:30:00Z", dateEnd: "2026-08-21T14:30:00Z" }),
+    makeRace({ round: 15, dateStart: "2026-09-06T14:00:00Z", dateEnd: "2026-09-06T16:00:00Z" }),
+  ];
+
+  it("CHAMPION_CLOSE_ROUND is 14", () => {
+    expect(CHAMPION_CLOSE_ROUND).toBe(14);
+  });
+
+  it("returns 'closed' for empty races array", () => {
+    expect(getChampionPredictionPhase([])).toBe("closed");
+  });
+
+  it("returns 'full' before Round 2 starts", () => {
+    jest.setSystemTime(new Date("2026-03-01T00:00:00Z"));
+    expect(getChampionPredictionPhase(seasonRaces)).toBe("full");
+  });
+
+  it("returns 'full' during Round 1 (before Round 2 dateStart)", () => {
+    jest.setSystemTime(new Date("2026-03-08T15:00:00Z"));
+    expect(getChampionPredictionPhase(seasonRaces)).toBe("full");
+  });
+
+  it("returns 'full' between Round 1 end and Round 2 start", () => {
+    jest.setSystemTime(new Date("2026-03-15T12:00:00Z"));
+    expect(getChampionPredictionPhase(seasonRaces)).toBe("full");
+  });
+
+  it("returns 'half' at exactly Round 2 start", () => {
+    jest.setSystemTime(new Date("2026-03-22T14:00:00Z"));
+    expect(getChampionPredictionPhase(seasonRaces)).toBe("half");
+  });
+
+  it("returns 'half' during the mid-season (between Round 2 and Round 14)", () => {
+    jest.setSystemTime(new Date("2026-06-01T12:00:00Z"));
+    expect(getChampionPredictionPhase(seasonRaces)).toBe("half");
+  });
+
+  it("returns 'half' just before Round 14 dateStart", () => {
+    jest.setSystemTime(new Date("2026-08-21T11:29:59Z"));
+    expect(getChampionPredictionPhase(seasonRaces)).toBe("half");
+  });
+
+  it("returns 'closed' at exactly Round 14 dateStart", () => {
+    jest.setSystemTime(new Date("2026-08-21T11:30:00Z"));
+    expect(getChampionPredictionPhase(seasonRaces)).toBe("closed");
+  });
+
+  it("returns 'closed' after Round 14 starts", () => {
+    jest.setSystemTime(new Date("2026-08-21T14:00:00Z"));
+    expect(getChampionPredictionPhase(seasonRaces)).toBe("closed");
+  });
+
+  it("returns 'closed' well into the second half of the season", () => {
+    jest.setSystemTime(new Date("2026-09-10T12:00:00Z"));
+    expect(getChampionPredictionPhase(seasonRaces)).toBe("closed");
+  });
+
+  it("returns 'full' when there is only Round 1 (no Round 2)", () => {
+    jest.setSystemTime(new Date("2026-03-10T00:00:00Z"));
+    const singleRace = [seasonRaces[0]];
+    expect(getChampionPredictionPhase(singleRace)).toBe("full");
+  });
+
+  it("handles unsorted races array", () => {
+    jest.setSystemTime(new Date("2026-03-15T12:00:00Z"));
+    const reversed = [...seasonRaces].reverse();
+    expect(getChampionPredictionPhase(reversed)).toBe("full");
+  });
+
+  it("returns 'half' when close-round is missing but Round 2 has started", () => {
+    jest.setSystemTime(new Date("2026-04-10T00:00:00Z"));
+    // Only early rounds — no Round 14 in the calendar
+    const earlyRaces = seasonRaces.slice(0, 4);
+    expect(getChampionPredictionPhase(earlyRaces)).toBe("half");
+  });
+
+  it("returns 'half' during the summer break gap before Round 14", () => {
+    jest.setSystemTime(new Date("2026-08-15T00:00:00Z"));
+    expect(getChampionPredictionPhase(seasonRaces)).toBe("half");
   });
 });

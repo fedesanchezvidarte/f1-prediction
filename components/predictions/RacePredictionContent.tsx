@@ -32,7 +32,8 @@ import type {
   TeamBestDriverPrediction,
   TeamWithDrivers,
 } from "@/types";
-import { getRaceStatus } from "@/lib/race-utils";
+import { getRaceStatus, getChampionPredictionPhase } from "@/lib/race-utils";
+import type { ChampionPredictionPhase } from "@/lib/race-utils";
 import { DriverSelect, type MatchStatus } from "./DriverSelect";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
@@ -139,18 +140,18 @@ export function RacePredictionContent({
     return -1;
   }, [races]);
 
-  const isChampionOpen = useMemo(() => {
-    if (races.length === 0) return false;
-    return new Date() < new Date(races[0].dateStart);
+  const championPhase: ChampionPredictionPhase = useMemo(() => {
+    return getChampionPredictionPhase(races);
   }, [races]);
 
-  const seasonStarted = useMemo(() => {
-    if (races.length === 0) return false;
-    return new Date(races[0].dateStart) < new Date();
-  }, [races]);
+  // Champion tab is "open" (accepting submissions) when phase is full or half
+  const isChampionOpen = championPhase !== "closed";
+
+  // Season has started (for half-points logic) when phase is "half" or "closed"
+  const seasonStarted = championPhase !== "full";
 
   // Always highlight the champion tab while it's open and not yet scored.
-  const champNeedsAttention = isChampionOpen && champPred.status !== "scored";
+  const champNeedsAttention = championPhase === "full" && champPred.status !== "scored";
 
   const currentPrediction = predictions.find((p) => p.raceId === currentRace.meetingKey);
   const currentSprintPred = sprintPreds.find((p) => p.raceId === currentRace.meetingKey);
@@ -159,7 +160,7 @@ export function RacePredictionContent({
 
   const isEditable = isOwner && (
     isChampionTab
-      ? champPred.status !== "scored"
+      ? champPred.status !== "scored" && championPhase !== "closed"
       : tab === "sprint"
         ? currentSprintPred?.status !== "scored"
         : currentPrediction?.status !== "scored"
@@ -337,8 +338,6 @@ export function RacePredictionContent({
       let payload: Record<string, unknown>;
 
       if (isChampionTab) {
-        const firstRace = races[0];
-        const seasonStarted = firstRace && new Date(firstRace.dateStart) < new Date();
         payload = {
           type: "champion",
           wdcDriverNumber: champPred.wdcWinner?.driverNumber ?? null,
@@ -346,7 +345,6 @@ export function RacePredictionContent({
           mostDnfsDriverNumber: champPred.mostDnfsDriver?.driverNumber ?? null,
           mostPodiumsDriverNumber: champPred.mostPodiumsDriver?.driverNumber ?? null,
           mostWinsDriverNumber: champPred.mostWinsDriver?.driverNumber ?? null,
-          isHalfPoints: seasonStarted,
           teamBestDrivers: teamBestDriverPreds
             .filter((p) => p.driverNumber !== null)
             .map((p) => ({ teamId: p.teamId, driverNumber: p.driverNumber! })),
@@ -626,7 +624,7 @@ export function RacePredictionContent({
 
       {/* Race Info / Champion Header */}
       {isChampionTab ? (
-        <ChampionHeader />
+        <ChampionHeader championPhase={championPhase} />
       ) : (
         <RaceInfoBar
           race={currentRace}
@@ -703,6 +701,7 @@ export function RacePredictionContent({
             teamBestDriverPredictions={teamBestDriverPreds}
             teamColors={teamColors}
             isEditable={isEditable}
+            championPhase={championPhase}
             onChange={setChampPred}
             onTeamBestDriverChange={setTeamBestDriverPreds}
           />
@@ -1100,7 +1099,7 @@ function RaceInfoBar({
   const pad = (n: number) => String(n).padStart(2, "0");
 
   return (
-    <div className="relative border-b border-border px-4 py-3 sm:px-5">
+    <div className={`relative border-b border-border px-4 sm:px-5 ${showCountdown ? "pt-3 pb-7" : "py-3"}`}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div>
@@ -1140,7 +1139,7 @@ function RaceInfoBar({
 
 /* ---------- Champion Header ---------- */
 
-function ChampionHeader() {
+function ChampionHeader({ championPhase }: { championPhase: ChampionPredictionPhase }) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   return (
@@ -1158,6 +1157,16 @@ function ChampionHeader() {
           <h2 className="text-sm font-semibold text-f1-white">
             {t.predictionsPage.championshipPredictions}
           </h2>
+          {championPhase === "closed" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-f1-red/15 px-2 py-0.5 text-[10px] font-semibold text-f1-red">
+              {t.predictionsPage.deadlinePassed}
+            </span>
+          )}
+          {championPhase === "half" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-f1-amber/15 px-2 py-0.5 text-[10px] font-semibold text-f1-amber">
+              {t.predictionsPage.championHalfPointsPhase}
+            </span>
+          )}
         </div>
         <div className="group relative">
           <button
@@ -1176,13 +1185,17 @@ function ChampionHeader() {
           >
             <div className="space-y-2">
               <p className="text-[11px] leading-relaxed text-muted">
-                {t.predictionsPage.championshipInfoLocked}
+                {t.predictionsPage.championshipInfoPhase1}
               </p>
               <p className="text-[11px] leading-relaxed text-muted">
-                {t.predictionsPage.championshipInfoSummerPre}{" "}
+                {t.predictionsPage.championshipInfoPhase2Pre}{" "}
+                <span className="font-semibold text-f1-amber">{t.predictionsPage.championshipInfoHalfPoints}</span>
+                {t.predictionsPage.championshipInfoPhase2Post}
+              </p>
+              <p className="text-[11px] leading-relaxed text-muted">
+                {t.predictionsPage.championshipInfoPhase3Pre}{" "}
                 <span className="font-semibold text-f1-white">{t.predictionsPage.championshipInfoSummerBreak}</span>
-                {" "}{t.predictionsPage.championshipInfoSummerPost}{" "}
-                <span className="font-semibold text-f1-amber">{t.predictionsPage.championshipInfoHalfPoints}</span>.
+                {" "}{t.predictionsPage.championshipInfoPhase3Post}
               </p>
             </div>
           </div>
@@ -1392,6 +1405,7 @@ function ChampionForm({
   teamBestDriverPredictions,
   teamColors,
   isEditable,
+  championPhase,
   onChange,
   onTeamBestDriverChange,
 }: {
@@ -1402,6 +1416,7 @@ function ChampionForm({
   teamBestDriverPredictions: TeamBestDriverPrediction[];
   teamColors: Record<string, string>;
   isEditable: boolean;
+  championPhase: ChampionPredictionPhase;
   onChange: (pred: ChampionPrediction) => void;
   onTeamBestDriverChange: (preds: TeamBestDriverPrediction[]) => void;
 }) {
@@ -1421,7 +1436,16 @@ function ChampionForm({
 
   return (
     <div className="space-y-4">
-      {prediction.isHalfPoints && (
+      {championPhase === "closed" && (
+        <div className="flex items-center gap-2 rounded-lg border border-f1-red/30 bg-f1-red/5 px-3 py-2">
+          <Info size={14} className="shrink-0 text-f1-red" />
+          <p className="text-[11px] text-f1-red">
+            {t.predictionsPage.championClosedWarning}
+          </p>
+        </div>
+      )}
+
+      {championPhase === "half" && (
         <div className="flex items-center gap-2 rounded-lg border border-f1-amber/30 bg-f1-amber/5 px-3 py-2">
           <Info size={14} className="shrink-0 text-f1-amber" />
           <p className="text-[11px] text-f1-amber">

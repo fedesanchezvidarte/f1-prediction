@@ -212,7 +212,7 @@ const es: Messages = {
     wdc: "Campeón Mundial de Pilotos (WDC)",
     wcc: "Campeón Mundial de Constructores (WCC)",
     selectTeam: "Seleccionar equipo...",
-    halfPointsWarning: "Las predicciones modificadas tras el parón de verano otorgan la mitad de puntos.",
+    halfPointsWarning: "Las predicciones enviadas o actualizadas después de la Ronda 2 otorgan la mitad de puntos.",
     // New champion categories
     mostDnfs: "Más Abandonos",
     mostPodiums: "Más Podios",
@@ -220,10 +220,14 @@ const es: Messages = {
     teamBestDriver: "Mejor Piloto del Equipo",
     teamBestDriverSub: "Selecciona el piloto con mejor rendimiento de cada equipo",
     championshipPredictions: "Predicciones de Campeonato",
-    championshipInfoLocked: "Las predicciones de campeonato se bloquean al inicio de la primera carrera.",
-    championshipInfoSummerPre: "Las predicciones se vuelven a abrir durante el",
+    championHalfPointsPhase: "Mitad pts",
+    championClosedWarning: "Las predicciones de campeonato están cerradas permanentemente tras el parón de verano.",
+    championshipInfoPhase1: "Envía tus predicciones de campeonato antes de que comience la Ronda 2 para puntos completos. ¡La Ronda 1 te sirve de pista!",
+    championshipInfoPhase2Pre: "Después de que comience la Ronda 2, aún puedes enviar o actualizar — pero los cambios otorgan",
+    championshipInfoPhase2Post: ".",
+    championshipInfoPhase3Pre: "Después del",
     championshipInfoSummerBreak: "parón de verano",
-    championshipInfoSummerPost: "— solo las que actualices otorgarán",
+    championshipInfoPhase3Post: "las predicciones de campeonato se bloquean permanentemente.",
     championshipInfoHalfPoints: "la mitad de puntos",
     upcoming: "Próximamente",
     live: "EN VIVO",
@@ -244,8 +248,8 @@ const es: Messages = {
     updating: "Actualizando...",
     // Modal de media puntuación en campeonato
     championUpdateTitle: "¿Actualizar Predicción de Campeonato?",
-    championHalfPointsNote: "Como la temporada ya ha comenzado, los siguientes campos actualizados obtendrán la mitad de puntos:",
-    championHalfPointsFirstNote: "Como la temporada ya ha comenzado, este envío obtendrá la mitad de puntos para todas tus selecciones.",
+    championHalfPointsNote: "Como la Ronda 2 ya ha comenzado, los siguientes campos actualizados obtendrán la mitad de puntos:",
+    championHalfPointsFirstNote: "Como la Ronda 2 ya ha comenzado, este envío obtendrá la mitad de puntos para todas tus selecciones.",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────
