@@ -15,6 +15,7 @@ import type {
   SprintResult,
   Driver,
   TeamBestDriverPrediction,
+  SeasonAwardPrediction,
 } from "@/types";
 
 interface PageProps {
@@ -190,50 +191,72 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     };
   });
 
-  // Fetch champion prediction
-  const { data: champRow } = await supabase
-    .from("champion_predictions")
-    .select("status, wdc_driver_id, wcc_team_id, most_dnfs_driver_id, most_podiums_driver_id, most_wins_driver_id, points_earned, is_half_points")
+  // Fetch season award predictions (unified champion + team best driver)
+  const { data: seasonAwardRows } = await supabase
+    .from("season_award_predictions")
+    .select("id, award_type_id, driver_id, team_id, is_half_points, status, points_earned, season_award_types(slug, name, subject_type, scope_team_id, points_value, sort_order)")
     .eq("user_id", viewingUserId)
-    .single();
+    .eq("season_id", seasonId);
+
+  const seasonAwardPredictions: SeasonAwardPrediction[] = (seasonAwardRows ?? []).map((row) => {
+    const rawAwardType = row.season_award_types;
+    const awardType = (Array.isArray(rawAwardType) ? rawAwardType[0] : rawAwardType) as { slug: string; name: string; subject_type: string; scope_team_id: number | null; points_value: number; sort_order: number } | null;
+    return {
+      id: row.id,
+      awardTypeId: row.award_type_id,
+      slug: awardType?.slug ?? "",
+      name: awardType?.name ?? "",
+      subjectType: (awardType?.subject_type ?? "driver") as "driver" | "team",
+      scopeTeamId: awardType?.scope_team_id ?? null,
+      pointsValue: awardType?.points_value ?? 0,
+      driverId: row.driver_id,
+      teamId: row.team_id,
+      isHalfPoints: row.is_half_points ?? false,
+      status: row.status ?? "pending",
+      pointsEarned: row.points_earned ?? 0,
+    };
+  });
+
+  // Build legacy ChampionPrediction from season award data
+  const awardBySlug = new Map(seasonAwardPredictions.map((p) => [p.slug, p]));
+  const wdcAward = awardBySlug.get("wdc");
+  const wccAward = awardBySlug.get("wcc");
+  const mostDnfsAward = awardBySlug.get("most_dnfs");
+  const mostPodiumsAward = awardBySlug.get("most_podiums");
+  const mostWinsAward = awardBySlug.get("most_wins");
 
   let wccTeamName: string | null = null;
-  if (champRow?.wcc_team_id) {
+  if (wccAward?.teamId) {
     const { data: teamRow } = await supabase
       .from("teams")
       .select("name")
-      .eq("id", champRow.wcc_team_id)
+      .eq("id", wccAward.teamId)
       .single();
     wccTeamName = teamRow?.name ?? null;
   }
 
+  // Determine overall champion status from individual awards
+  const championAwards = [wdcAward, wccAward, mostDnfsAward, mostPodiumsAward, mostWinsAward];
+  const hasAnyChampionSubmitted = championAwards.some((a) => a?.status === "submitted" || a?.status === "scored");
+  const hasAnyChampionScored = championAwards.some((a) => a?.status === "scored");
+  const anyHalfPoints = championAwards.some((a) => a?.isHalfPoints);
+
   const championPrediction: ChampionPrediction = {
     userId: viewingUserId,
-    status: champRow?.status ?? "pending",
-    wdcWinner: findDriver(champRow?.wdc_driver_id ?? null),
+    status: hasAnyChampionScored ? "scored" : hasAnyChampionSubmitted ? "submitted" : "pending",
+    wdcWinner: findDriver(wdcAward?.driverId ?? null),
     wccWinner: wccTeamName,
-    mostDnfsDriver: findDriver(champRow?.most_dnfs_driver_id ?? null),
-    mostPodiumsDriver: findDriver(champRow?.most_podiums_driver_id ?? null),
-    mostWinsDriver: findDriver(champRow?.most_wins_driver_id ?? null),
-    pointsEarned: champRow?.points_earned ?? null,
-    isHalfPoints: champRow?.is_half_points ?? false,
+    mostDnfsDriver: findDriver(mostDnfsAward?.driverId ?? null),
+    mostPodiumsDriver: findDriver(mostPodiumsAward?.driverId ?? null),
+    mostWinsDriver: findDriver(mostWinsAward?.driverId ?? null),
+    pointsEarned: championAwards.reduce((sum, a) => sum + (a?.pointsEarned ?? 0), 0),
+    isHalfPoints: anyHalfPoints,
   };
 
-  // Fetch team best driver predictions
-  const { data: teamBestDriverRows } = await supabase
-    .from("team_best_driver_predictions")
-    .select("team_id, driver_id, is_half_points, status, points_earned")
-    .eq("user_id", viewingUserId)
-    .eq("season_id", seasonId);
-
-  const teamBestDriverPredMap = new Map<number, typeof teamBestDriverRows extends (infer T)[] | null ? T : never>();
-  for (const row of teamBestDriverRows ?? []) {
-    teamBestDriverPredMap.set(row.team_id, row);
-  }
-
+  // Build legacy TeamBestDriverPrediction[] from season award data
   const teamBestDriverPredictions: TeamBestDriverPrediction[] = teamsWithDrivers.map((team) => {
-    const row = teamBestDriverPredMap.get(team.id);
-    const driverId = row?.driver_id ?? null;
+    const award = awardBySlug.get(`best_driver_${team.id}`);
+    const driverId = award?.driverId ?? null;
     const matchedDriver = driverId ? team.drivers.find((d) => d.id === driverId) : null;
     return {
       teamId: team.id,
@@ -241,9 +264,9 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
       teamColor: team.color,
       driverId,
       driverNumber: matchedDriver?.driverNumber ?? null,
-      isHalfPoints: row?.is_half_points ?? false,
-      status: row?.status ?? "pending",
-      pointsEarned: row?.points_earned ?? 0,
+      isHalfPoints: award?.isHalfPoints ?? false,
+      status: award?.status ?? "pending",
+      pointsEarned: award?.pointsEarned ?? 0,
     };
   });
 
