@@ -233,6 +233,8 @@ const en = {
     upcoming: "Upcoming",
     live: "LIVE",
     completed: "Completed",
+    deadlineCountdown: "Prediction deadline",
+    deadlinePassed: "Predictions closed",
     // Reset modal
     resetPrediction: "Reset prediction?",
     resetBody: "This will clear all your selections for this prediction and set it back to",

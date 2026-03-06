@@ -54,15 +54,22 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
     return () => clearInterval(timer);
   }, [race]);
 
-  const isLive = status === "live";
+  // Countdown is visible until qualifying starts (dateEnd), regardless of weekend status
+  const qualifyingStarted = new Date(race.dateEnd).getTime() <= Date.now();
+  const isWeekendLive = status === "live";
+  const isUrgent = !qualifyingStarted && timeLeft.days === 0;
 
   return (
-    <div className="flex h-full flex-col justify-between p-5 sm:p-6">
+    <div className={`flex h-full flex-col justify-between p-5 sm:p-6 transition-colors`}>
       <div className="flex items-start justify-between">
         <p className="text-xs font-medium uppercase tracking-wider text-muted">
-          {isLive ? t.nextRace.raceWeekend : t.nextRace.nextRace}
+          {qualifyingStarted
+            ? t.nextRace.raceWeekend
+            : isWeekendLive
+              ? t.nextRace.raceWeekend
+              : t.nextRace.nextRace}
         </p>
-        {isLive ? (
+        {qualifyingStarted || isWeekendLive ? (
           <span className="flex items-center gap-1.5 rounded-full bg-f1-red/15 px-2.5 py-1 text-[10px] font-semibold uppercase text-f1-red">
             <Radio size={10} className="animate-pulse" />
             {t.nextRace.live}
@@ -83,9 +90,9 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
         </div>
       </div>
 
-      {!isLive && (
+      {!qualifyingStarted && (
         <div className="mt-4">
-          <div className="flex justify-between gap-2 rounded-lg bg-background/50 px-3 py-2">
+          <div className="flex justify-between gap-2 px-3 py-2">
             <TimeUnit value={timeLeft.days} label={t.nextRace.days} />
             <span className="self-start pt-1 text-lg text-muted">:</span>
             <TimeUnit value={timeLeft.hours} label={t.nextRace.hrs} />
@@ -100,7 +107,7 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
         </div>
       )}
 
-      {isLive && (
+      {qualifyingStarted && (
         <div className="mt-4 rounded-lg bg-f1-red/5 px-3 py-3 text-center">
           <p className="text-sm font-medium text-f1-white">
             {t.nextRace.lightsOut}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef, useTransition } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
@@ -1065,29 +1065,75 @@ function RaceInfoBar({
   formatDate: (d: string) => string;
   pointsEarned: number | null;
 }) {
+  const qualifyingStarted = new Date(race.dateEnd).getTime() <= Date.now();
+  const showCountdown = raceStatus !== "completed" && !qualifyingStarted;
+
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const diff = new Date(race.dateEnd).getTime() - Date.now();
+    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    return {
+      days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((diff / (1000 * 60)) % 60),
+      seconds: Math.floor((diff / 1000) % 60),
+    };
+  });
+
+  useEffect(() => {
+    if (!showCountdown) return;
+    const timer = setInterval(() => {
+      const diff = new Date(race.dateEnd).getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+      setTimeLeft({
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((diff / (1000 * 60)) % 60),
+        seconds: Math.floor((diff / 1000) % 60),
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [race.dateEnd, showCountdown]);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+
   return (
-    <div className="flex flex-col gap-2 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-      <div className="flex items-center gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-f1-white">
-              {race.raceName}
-            </h2>
-            <RaceStatusBadge status={raceStatus} />
+    <div className="relative border-b border-border px-4 py-3 sm:px-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-f1-white">
+                {race.raceName}
+              </h2>
+              <RaceStatusBadge status={raceStatus} />
+            </div>
+            <p className="mt-0.5 text-[11px] text-muted">
+              {race.circuitShortName} — {race.location}, {race.countryName}
+            </p>
           </div>
-          <p className="mt-0.5 text-[11px] text-muted">
-            {race.circuitShortName} — {race.location}, {race.countryName}
-          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] tabular-nums text-muted">
+            {formatDate(race.dateStart)} – {formatDate(race.dateEnd)}
+          </span>
+          <span className="rounded-full bg-card px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted">
+            R{race.round}
+          </span>
         </div>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-[11px] tabular-nums text-muted">
-          {formatDate(race.dateStart)} – {formatDate(race.dateEnd)}
-        </span>
-        <span className="rounded-full bg-card px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted">
-          R{race.round}
-        </span>
-      </div>
+
+      {/* Prediction deadline countdown — bottom-right corner */}
+      {showCountdown && (
+        <div className="absolute bottom-2 right-4 flex items-center gap-1 sm:right-5">
+          <Clock size={11} className="text-muted" />
+          <span className="text-[11px] tabular-nums text-f1-white">
+            {timeLeft.days > 0 && `${timeLeft.days}d `}{pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

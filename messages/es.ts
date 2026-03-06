@@ -228,6 +228,8 @@ const es: Messages = {
     upcoming: "Próximamente",
     live: "EN VIVO",
     completed: "Finalizada",
+    deadlineCountdown: "Plazo de predicción",
+    deadlinePassed: "Predicciones cerradas",
     resetPrediction: "¿Reiniciar predicción?",
     resetBody: "Esto borrará todas tus selecciones y la dejará en estado",
     resetBodyPending: "pendiente",
