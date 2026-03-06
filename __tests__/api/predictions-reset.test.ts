@@ -33,6 +33,7 @@ function chain(data: unknown = null, error: unknown = null) {
     update: () => c,
     eq: () => c,
     in: () => c,
+    order: () => c,
     single: () => ({ data, error }),
     then: (res: ((v: unknown) => unknown) | null) =>
       Promise.resolve({ data, error }).then(res ?? undefined),
@@ -168,6 +169,12 @@ describe("POST /api/predictions/reset", () => {
       callIdx++;
       if (callIdx === 1) return chain({ id: 1 }); // season
       if (callIdx === 2) return chain({ id: 3, status: "submitted" }); // existing pred
+      if (callIdx === 3) return chain([{                             // races (non-closed phase)
+        meeting_key: 1, race_name: "R1", official_name: "R1",
+        circuit_short_name: "T", country_name: "C", country_code: "CC",
+        location: "L", date_start: "2099-01-01T00:00:00Z",
+        date_end: "2099-01-03T00:00:00Z", round: 1, has_sprint: false,
+      }]);
       return chain(null); // update success
     });
 
