@@ -1064,7 +1064,9 @@ function RaceInfoBar({
   formatDate: (d: string) => string;
   pointsEarned: number | null;
 }) {
-  const qualifyingStarted = new Date(race.dateEnd).getTime() <= Date.now();
+  const [qualifyingStarted, setQualifyingStarted] = useState(
+    () => new Date(race.dateEnd).getTime() <= Date.now()
+  );
   const showCountdown = raceStatus !== "completed" && !qualifyingStarted;
 
   const [timeLeft, setTimeLeft] = useState(() => {
@@ -1084,6 +1086,7 @@ function RaceInfoBar({
       const diff = new Date(race.dateEnd).getTime() - Date.now();
       if (diff <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        setQualifyingStarted(true);
         return;
       }
       setTimeLeft({
