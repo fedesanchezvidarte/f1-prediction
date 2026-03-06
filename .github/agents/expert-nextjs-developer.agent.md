@@ -2,7 +2,7 @@
 description: "Expert Next.js developer for the F1 Prediction project: App Router, Server/Client Components, Supabase SSR, OpenF1 API integration, bilingual i18n, and Tailwind CSS."
 name: 'Next.js Expert'
 model: ['Claude Sonnet 4.6', 'Claude Opus 4.6']
-tools: ["search/changes", "search/codebase", "edit/editFiles", "web/fetch", "web/githubRepo", "vscode/getProjectSetupInfo", "vscode/runCommand", "read/problems", "execute/getTerminalOutput", "execute/runInTerminal", "read/terminalLastCommand", "read/terminalSelection", "execute/createAndRunTask", "search", "search/searchResults", "execute/testFailure", "search/usages"]
+tools: [vscode/getProjectSetupInfo, vscode/runCommand, execute/testFailure, execute/getTerminalOutput, execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, edit/editFiles, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/searchSubagent, search/usages, web/fetch, web/githubRepo, supabase/apply_migration, supabase/create_branch, supabase/delete_branch, supabase/deploy_edge_function, supabase/execute_sql, supabase/generate_typescript_types, supabase/get_advisors, supabase/get_edge_function, supabase/get_logs, supabase/get_project_url, supabase/get_publishable_keys, supabase/list_branches, supabase/list_edge_functions, supabase/list_extensions, supabase/list_migrations, supabase/list_tables, supabase/merge_branch, supabase/rebase_branch, supabase/reset_branch, supabase/search_docs]
 ---
 
 ## Identity
