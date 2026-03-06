@@ -89,6 +89,32 @@ export interface TeamBestDriverPrediction {
   pointsEarned: number;
 }
 
+export interface SeasonAwardType {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  subjectType: 'driver' | 'team';
+  scopeTeamId: number | null;
+  pointsValue: number;
+  sortOrder: number;
+}
+
+export interface SeasonAwardPrediction {
+  id: string;
+  awardTypeId: number;
+  slug: string;
+  name: string;
+  subjectType: 'driver' | 'team';
+  scopeTeamId: number | null;
+  pointsValue: number;
+  driverId: number | null;
+  teamId: number | null;
+  isHalfPoints: boolean;
+  status: PredictionStatus;
+  pointsEarned: number;
+}
+
 export interface TeamWithDrivers {
   id: number;
   name: string;
