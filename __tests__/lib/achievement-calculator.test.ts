@@ -21,11 +21,10 @@ function setupBaseTablesForUser(
     achievements: unknown;
     racePredictions: unknown[];
     sprintPredictions: unknown[];
-    championPredictions: unknown;
+    seasonAwardPredictions: unknown;
     raceResults: unknown;
     sprintResults: unknown;
     seasons: unknown;
-    teamBestDriverPredictions: unknown;
     races: unknown;
     userAchievements: unknown[];
   }> = {}
@@ -40,11 +39,10 @@ function setupBaseTablesForUser(
       { data: [], error: null },
       { data: [], error: null },
     ],
-    championPredictions = { data: [], error: null },
+    seasonAwardPredictions = { data: [], error: null },
     raceResults = { data: [], error: null },
     sprintResults = { data: [], error: null },
     seasons = { data: { id: 1 }, error: null },
-    teamBestDriverPredictions = { data: [], error: null },
     races = { data: [], error: null },
     userAchievements = [{ data: [], error: null }],
   } = overrides;
@@ -52,11 +50,10 @@ function setupBaseTablesForUser(
   mockTable("achievements", achievements as never);
   mockTable("race_predictions", ...(racePredictions as [never, ...never[]]));
   mockTable("sprint_predictions", ...(sprintPredictions as [never, ...never[]]));
-  mockTable("champion_predictions", championPredictions as never);
+  mockTable("season_award_predictions", seasonAwardPredictions as never);
   mockTable("race_results", raceResults as never);
   mockTable("sprint_results", sprintResults as never);
   mockTable("seasons", seasons as never);
-  mockTable("team_best_driver_predictions", teamBestDriverPredictions as never);
   mockTable("races", races as never);
   mockTable("user_achievements", ...(userAchievements as [never, ...never[]]));
 }
@@ -464,14 +461,21 @@ describe("calculateAchievementsForUsers", () => {
         ],
         error: null,
       },
-      championPredictions: {
+      seasonAwardPredictions: {
         data: [
           {
-            user_id: "user-a",
+            id: 1,
             status: "scored",
-            points_earned: 40,
-            wdc_correct: true,
-            wcc_correct: true,
+            points_earned: 20,
+            award_type_id: 1,
+            season_award_types: { slug: "wdc", scope_team_id: null },
+          },
+          {
+            id: 2,
+            status: "scored",
+            points_earned: 20,
+            award_type_id: 2,
+            season_award_types: { slug: "wcc", scope_team_id: null },
           },
         ],
         error: null,
@@ -715,10 +719,22 @@ describe("calculateAchievementsForUsers", () => {
         ],
         error: null,
       },
-      teamBestDriverPredictions: {
+      seasonAwardPredictions: {
         data: [
-          { id: 1, status: "scored", points_earned: 5 },
-          { id: 2, status: "scored", points_earned: 0 },
+          {
+            id: 1,
+            status: "scored",
+            points_earned: 2,
+            award_type_id: 10,
+            season_award_types: { slug: "best_driver_10", scope_team_id: 10 },
+          },
+          {
+            id: 2,
+            status: "scored",
+            points_earned: 0,
+            award_type_id: 11,
+            season_award_types: { slug: "best_driver_11", scope_team_id: 11 },
+          },
         ],
         error: null,
       },
@@ -843,18 +859,13 @@ describe("calculateAchievementsForUsers", () => {
         { data: [], error: null },
         { data: sprintPreds, error: null },
       ],
-      championPredictions: {
+      seasonAwardPredictions: {
         data: [
-          { user_id: "user-a", status: "submitted", points_earned: null, wdc_correct: null, wcc_correct: null },
-          { user_id: "user-a", status: "submitted", points_earned: null, wdc_correct: null, wcc_correct: null },
-        ],
-        error: null,
-      },
-      teamBestDriverPredictions: {
-        data: [
-          { id: 1, status: "submitted", points_earned: null },
-          { id: 2, status: "submitted", points_earned: null },
-          { id: 3, status: "submitted", points_earned: null },
+          { id: 1, status: "submitted", points_earned: null, award_type_id: 1, season_award_types: { slug: "wdc", scope_team_id: null } },
+          { id: 2, status: "submitted", points_earned: null, award_type_id: 2, season_award_types: { slug: "wcc", scope_team_id: null } },
+          { id: 3, status: "submitted", points_earned: null, award_type_id: 10, season_award_types: { slug: "best_driver_10", scope_team_id: 10 } },
+          { id: 4, status: "submitted", points_earned: null, award_type_id: 11, season_award_types: { slug: "best_driver_11", scope_team_id: 11 } },
+          { id: 5, status: "submitted", points_earned: null, award_type_id: 12, season_award_types: { slug: "best_driver_12", scope_team_id: 12 } },
         ],
         error: null,
       },
@@ -1007,7 +1018,14 @@ describe("calculateAchievementsForUsers", () => {
         data: [{ id: 1, slug: "predict_10_team_best", threshold: 10 }],
         error: null,
       },
-      teamBestDriverPredictions: { data: tbdPreds, error: null },
+      seasonAwardPredictions: {
+        data: tbdPreds.map((p, i) => ({
+          ...p,
+          award_type_id: i + 10,
+          season_award_types: { slug: `best_driver_${i + 10}`, scope_team_id: i + 10 },
+        })),
+        error: null,
+      },
       userAchievements: [
         { data: [], error: null },
         { data: null, error: null },
@@ -1062,8 +1080,7 @@ describe("calculateAchievementsForAllUsers", () => {
 
     mockTable("race_predictions", { data: [], error: null });
     mockTable("sprint_predictions", { data: [], error: null });
-    mockTable("champion_predictions", { data: [], error: null });
-    mockTable("team_best_driver_predictions", { data: [], error: null });
+    mockTable("season_award_predictions", { data: [], error: null });
 
     const result = await calculateAchievementsForAllUsers(supabase);
     expect(result.usersProcessed).toBe(0);
@@ -1089,14 +1106,8 @@ describe("calculateAchievementsForAllUsers", () => {
       { data: [], error: null },
       { data: [], error: null },
     );
-    mockTable("champion_predictions",
+    mockTable("season_award_predictions",
       { data: [{ user_id: "user-b" }], error: null },
-      { data: [], error: null },
-      { data: [], error: null },
-    );
-    mockTable("team_best_driver_predictions",
-      { data: [], error: null },
-      { data: [], error: null },
       { data: [], error: null },
     );
 
@@ -1121,13 +1132,8 @@ describe("calculateAchievementsForAllUsers", () => {
       { data: [], error: null },
       { data: [], error: null },
     );
-    mockTable("champion_predictions",
-      { data: [], error: null },
-      { data: [], error: null },
-    );
-    mockTable("team_best_driver_predictions",
+    mockTable("season_award_predictions",
       { data: [{ user_id: "user-tbd" }], error: null },
-      { data: [], error: null },
     );
 
     mockTable("achievements", { data: [], error: null });

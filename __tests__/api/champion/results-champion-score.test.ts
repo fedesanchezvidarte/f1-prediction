@@ -20,12 +20,12 @@ jest.mock("@/lib/admin", () => ({
 }));
 
 jest.mock("@/lib/scoring-service", () => ({
-  scoreChampionForSeason: jest.fn(),
+  scoreSeasonAwardsForSeason: jest.fn(),
 }));
 
 import { POST } from "@/app/api/results/champion/score/route";
 import { isAdminUser } from "@/lib/admin";
-import { scoreChampionForSeason } from "@/lib/scoring-service";
+import { scoreSeasonAwardsForSeason } from "@/lib/scoring-service";
 import { parseResponse } from "../../helpers/mockApiRoute";
 
 function setUser(user: { id: string; app_metadata?: Record<string, unknown> } | null) {
@@ -72,26 +72,24 @@ describe("POST /api/results/champion/score", () => {
     expect(json.error).toMatch(/no active season/i);
   });
 
-  it("delegates to scoreChampionForSeason on success", async () => {
+  it("delegates to scoreSeasonAwardsForSeason on success", async () => {
     setAdmin();
     mockFrom.mockReturnValue(chain({ id: 5 }));
-    (scoreChampionForSeason as jest.Mock).mockResolvedValue({
-      championPredictionsScored: 4,
-      teamBestDriverPredictionsScored: 2,
+    (scoreSeasonAwardsForSeason as jest.Mock).mockResolvedValue({
+      seasonAwardPredictionsScored: 6,
     });
 
     const { status, json } = await parseResponse(await POST());
     expect(status).toBe(200);
     expect(json.success).toBe(true);
-    expect(json.championPredictionsScored).toBe(4);
-    expect(json.teamBestDriverPredictionsScored).toBe(2);
-    expect(scoreChampionForSeason).toHaveBeenCalledWith(expect.anything(), 5);
+    expect(json.seasonAwardPredictionsScored).toBe(6);
+    expect(scoreSeasonAwardsForSeason).toHaveBeenCalledWith(expect.anything(), 5);
   });
 
   it("returns 500 when service throws", async () => {
     setAdmin();
     mockFrom.mockReturnValue(chain({ id: 5 }));
-    (scoreChampionForSeason as jest.Mock).mockRejectedValue(
+    (scoreSeasonAwardsForSeason as jest.Mock).mockRejectedValue(
       new Error("Scoring broke")
     );
 
