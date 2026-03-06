@@ -115,6 +115,61 @@ describe("scoreRaceForId", () => {
     );
   });
 
+  it("scores sprint predictions and reports sprintPredictionsScored", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    // No race result → race scoring skipped
+    mockTable("race_results", { data: null, error: null });
+
+    // Sprint result exists
+    mockTable("sprint_results", {
+      data: {
+        sprint_pole_driver_id: 1,
+        top_8: [1, 2, 3, 4, 5, 6, 7, 8],
+        fastest_lap_driver_id: 2,
+      },
+      error: null,
+    });
+
+    // Sprint prediction queue:
+    //   1st call: select submitted → one prediction
+    //   2nd call: update scored → success
+    //   3rd call: updateLeaderboard sum (select scored) → points
+    mockTable("sprint_predictions",
+      {
+        data: [
+          {
+            id: 501,
+            user_id: "user-s",
+            sprint_pole_driver_id: 1,
+            top_8: [1, 2, 3, 4, 5, 6, 7, 8],
+            fastest_lap_driver_id: 2,
+          },
+        ],
+        error: null,
+      },
+      { data: null, error: null },
+      { data: [{ points_earned: 20 }], error: null },
+    );
+
+    // updateLeaderboard
+    mockTable("seasons", { data: { id: 1 }, error: null });
+    mockTable("race_predictions", { data: [], error: null });
+    mockTable("champion_predictions", { data: null, error: null });
+    mockTable("team_best_driver_predictions", { data: [], error: null });
+    mockTable("leaderboard",
+      { data: null, error: null }, // no existing entry
+      { data: null, error: null }, // insert
+      { data: [{ id: 1, total_points: 20 }], error: null }, // rank recalc
+      { data: null, error: null }, // rank update
+    );
+
+    const result = await scoreRaceForId(supabase, 1);
+    expect(result.racePredictionsScored).toBe(0);
+    expect(result.sprintPredictionsScored).toBe(1);
+    expect(calculateAchievementsForUsers).toHaveBeenCalledWith(supabase, ["user-s"]);
+  });
+
   it("does not crash if achievement calculation fails", async () => {
     const { supabase, mockTable } = createMockSupabase();
 
@@ -177,6 +232,70 @@ describe("scoreChampionForSeason", () => {
       achievementsAwarded: 0,
       achievementsRevoked: 0,
     });
+  });
+
+  it("scores team best driver predictions when no champion predictions exist", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    mockTable("champion_results", {
+      data: {
+        wdc_driver_id: 1,
+        wcc_team_id: 100,
+        most_dnfs_driver_id: 2,
+        most_podiums_driver_id: 3,
+        most_wins_driver_id: 4,
+      },
+      error: null,
+    });
+
+    // champion_predictions queue:
+    //   1st: revert update → null
+    //   2nd: select submitted → empty (triggers TBD-only path)
+    //   3rd: updateLeaderboard sum → null (no champion pred for user)
+    mockTable("champion_predictions",
+      { data: null, error: null },
+      { data: [], error: null },
+      { data: null, error: null },
+    );
+
+    // TBD results: team 10 → driver 5
+    mockTable("team_best_driver_results", {
+      data: [{ team_id: 10, driver_id: 5 }],
+      error: null,
+    });
+
+    // team_best_driver_predictions queue:
+    //   1st: revert update → null
+    //   2nd: select submitted → one matching prediction
+    //   3rd: update scored → null
+    //   4th: updateLeaderboard sum → earned points
+    mockTable("team_best_driver_predictions",
+      { data: null, error: null },
+      {
+        data: [
+          { id: 601, user_id: "user-t", team_id: 10, driver_id: 5, is_half_points: false },
+        ],
+        error: null,
+      },
+      { data: null, error: null },
+      { data: [{ points_earned: 2 }], error: null },
+    );
+
+    // updateLeaderboard
+    mockTable("seasons", { data: { id: 1 }, error: null });
+    mockTable("race_predictions", { data: [], error: null });
+    mockTable("sprint_predictions", { data: [], error: null });
+    mockTable("leaderboard",
+      { data: null, error: null }, // no existing entry
+      { data: null, error: null }, // insert
+      { data: [{ id: 1, total_points: 2 }], error: null }, // rank recalc
+      { data: null, error: null }, // rank update
+    );
+
+    const result = await scoreChampionForSeason(supabase, 1);
+    expect(result.championPredictionsScored).toBe(0);
+    expect(result.teamBestDriverPredictionsScored).toBe(1);
+    expect(calculateAchievementsForUsers).toHaveBeenCalledWith(supabase, ["user-t"]);
   });
 
   it("returns 0 when no champion result exists", async () => {
