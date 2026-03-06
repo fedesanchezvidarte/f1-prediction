@@ -41,23 +41,24 @@ function TimeUnit({ value, label }: { value: number; label: string }) {
 
 export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(
-    calculateTimeLeft(race.dateEnd)
+    () => calculateTimeLeft(race.dateEnd)
   );
   const [status, setStatus] = useState(getRaceStatus(race));
+  const [qualifyingStarted, setQualifyingStarted] = useState(
+    () => new Date(race.dateEnd).getTime() <= Date.now()
+  );
   const { t } = useLanguage();
 
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft(calculateTimeLeft(race.dateEnd));
       setStatus(getRaceStatus(race));
+      setQualifyingStarted(new Date(race.dateEnd).getTime() <= Date.now());
     }, 1000);
     return () => clearInterval(timer);
   }, [race]);
 
-  // Countdown is visible until qualifying starts (dateEnd), regardless of weekend status
-  const qualifyingStarted = new Date(race.dateEnd).getTime() <= Date.now();
   const isWeekendLive = status === "live";
-  const isUrgent = !qualifyingStarted && timeLeft.days === 0;
 
   return (
     <div className={`flex h-full flex-col justify-between p-5 sm:p-6 transition-colors`}>

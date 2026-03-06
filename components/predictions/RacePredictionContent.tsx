@@ -160,7 +160,7 @@ export function RacePredictionContent({
 
   const isEditable = isOwner && (
     isChampionTab
-      ? champPred.status !== "scored" && championPhase !== "closed"
+      ? champPred.status !== "scored" && isChampionOpen
       : tab === "sprint"
         ? currentSprintPred?.status !== "scored"
         : currentPrediction?.status !== "scored"
@@ -179,7 +179,7 @@ export function RacePredictionContent({
       return currentPrediction.polePosition !== null || currentPrediction.raceWinner !== null || currentPrediction.restOfTop10.some((d) => d !== null);
     }
     return false;
-  }, [isChampionTab, tab, champPred, currentSprintPred, currentPrediction]);
+  }, [isChampionTab, tab, champPred, currentSprintPred, currentPrediction, teamBestDriverPreds]);
 
   const { t, language } = useLanguage();
 
@@ -197,22 +197,6 @@ export function RacePredictionContent({
   }, [isChampionTab, tab, champPred, currentSprintPred, currentPrediction, hasEdits, t]);
 
   const submitConfig = getSubmitButtonConfig();
-
-  const usedDriversInRace = useMemo(() => {
-    if (!currentPrediction) return [];
-    const used: Driver[] = [];
-    if (currentPrediction.raceWinner) used.push(currentPrediction.raceWinner);
-    currentPrediction.restOfTop10.forEach((d) => { if (d) used.push(d); });
-    return used;
-  }, [currentPrediction]);
-
-  const usedDriversInSprint = useMemo(() => {
-    if (!currentSprintPred) return [];
-    const used: Driver[] = [];
-    if (currentSprintPred.sprintWinner) used.push(currentSprintPred.sprintWinner);
-    currentSprintPred.restOfTop8.forEach((d) => { if (d) used.push(d); });
-    return used;
-  }, [currentSprintPred]);
 
   const getDisabledForPosition = useCallback(
     (posIndex: number, mode: "race" | "sprint") => {
@@ -1057,7 +1041,7 @@ function RaceInfoBar({
   race,
   raceStatus,
   formatDate,
-  pointsEarned,
+  pointsEarned: _pointsEarned,
 }: {
   race: Race;
   raceStatus: RaceStatus;
