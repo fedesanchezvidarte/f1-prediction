@@ -19,8 +19,8 @@ BEGIN;
 -- ── 1a. Align point values & add missing award types ────────────────────────
 
 -- Correct the WDC/WCC point values to match current scoring logic
-UPDATE season_award_types SET points_value = 20 WHERE slug = 'wdc';
-UPDATE season_award_types SET points_value = 20 WHERE slug = 'wcc';
+UPDATE season_award_types SET points_value = 20 WHERE slug = 'wdc' AND season_id = 1;
+UPDATE season_award_types SET points_value = 20 WHERE slug = 'wcc' AND season_id = 1;
 
 -- Three missing champion categories
 INSERT INTO season_award_types
@@ -37,7 +37,8 @@ VALUES
   (1, 'most_dnfs',
    'Most DNFs',
    'Which driver will have the most DNFs this season?',
-   'driver', NULL, 10, 50);
+   'driver', NULL, 10, 50)
+ON CONFLICT (slug, season_id) DO NOTHING;
 
 -- One best-driver award per active team in season 1
 -- Teams in season 1 (IDs 1–11): McLaren, Mercedes, Red Bull, Ferrari,
@@ -54,7 +55,8 @@ SELECT
   2,
   100 + t.id
 FROM teams t
-WHERE t.season_id = 1;
+WHERE t.season_id = 1
+ON CONFLICT (slug, season_id) DO NOTHING;
 
 -- ── 1b. Migrate champion_predictions → season_award_predictions ─────────────
 -- One row per user per award slug (5 slugs × 20 users = 100 rows).
