@@ -233,7 +233,8 @@ export async function updateLeaderboard(
       .from("season_award_predictions")
       .select("points_earned")
       .eq("user_id", userId)
-      .eq("status", "scored");
+      .eq("status", "scored")
+      .eq("season_id", season.id);
 
     const racePoints = (racePreds ?? []).map((p) => p.points_earned ?? 0);
     const sprintPoints = (sprintPreds ?? []).map((p) => p.points_earned ?? 0);
@@ -350,6 +351,19 @@ export async function scoreSeasonAwardsForSeason(
 
   const resultMap = new Map(results.map((r) => [r.award_type_id, r]));
 
+  // Collect user IDs from currently-scored predictions before reverting,
+  // so we can always recalculate their leaderboard even if their award
+  // result was removed (e.g. driver disqualification).
+  const { data: previouslyScored } = await supabase
+    .from("season_award_predictions")
+    .select("user_id")
+    .eq("season_id", seasonId)
+    .eq("status", "scored");
+
+  const previouslyScoredUserIds = [
+    ...new Set((previouslyScored ?? []).map((p) => p.user_id)),
+  ];
+
   // Revert previously scored predictions so we can re-score them fresh
   const { error: revertError } = await supabase
     .from("season_award_predictions")
@@ -369,6 +383,16 @@ export async function scoreSeasonAwardsForSeason(
     .eq("status", "submitted");
 
   if (!predictions || predictions.length === 0) {
+    // Even with no predictions to score, previously-scored users need
+    // their leaderboard recalculated (their points were just zeroed out).
+    if (previouslyScoredUserIds.length > 0) {
+      await updateLeaderboard(supabase, previouslyScoredUserIds, []);
+      try {
+        await calculateAchievementsForUsers(supabase, previouslyScoredUserIds);
+      } catch (error) {
+        console.error("[scoring] Failed to calculate achievements after season award revert", { error });
+      }
+    }
     return { seasonAwardPredictionsScored: 0 };
   }
 
@@ -411,17 +435,29 @@ export async function scoreSeasonAwardsForSeason(
     userIds.push(pred.user_id);
   }
 
-  const uniqueUserIds = [...new Set(userIds)];
+  // Merge newly-scored user IDs with previously-scored ones to ensure
+  // users whose award result was removed also get their leaderboard updated.
+  const allAffectedUserIds = [
+    ...new Set([...userIds, ...previouslyScoredUserIds]),
+  ];
 
-  if (uniqueUserIds.length > 0) {
-    await updateLeaderboard(supabase, uniqueUserIds, []);
+  if (allAffectedUserIds.length > 0) {
+    await updateLeaderboard(supabase, allAffectedUserIds, []);
 
     try {
-      await calculateAchievementsForUsers(supabase, uniqueUserIds);
+      await calculateAchievementsForUsers(supabase, allAffectedUserIds);
     } catch (error) {
       console.error("[scoring] Failed to calculate achievements after season award scoring", { error });
     }
   }
 
-  return { seasonAwardPredictionsScored: predictions.length };
+  // Return the actual number of predictions that were scored,
+  // not the total submitted (some may lack results and were skipped).
+  const { count: scoredCount } = await supabase
+    .from("season_award_predictions")
+    .select("*", { count: "exact", head: true })
+    .eq("season_id", seasonId)
+    .eq("status", "scored");
+
+  return { seasonAwardPredictionsScored: scoredCount ?? 0 };
 }

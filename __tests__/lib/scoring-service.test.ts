@@ -266,11 +266,14 @@ describe("scoreSeasonAwardsForSeason", () => {
     });
 
     // season_award_predictions queue:
-    // 1. revert update → success
-    // 2. select submitted → one prediction
-    // 3. update scored → success
-    // 4. updateLeaderboard select scored → earned points
+    // 1. select previously scored users → empty (first run)
+    // 2. revert update → success
+    // 3. select submitted → one prediction
+    // 4. update scored → success
+    // 5. updateLeaderboard select scored → earned points
+    // 6. select count of scored → 1
     mockTable("season_award_predictions",
+      { data: [], error: null }, // previously scored users
       { data: null, error: null }, // revert
       {
         data: [
@@ -280,6 +283,7 @@ describe("scoreSeasonAwardsForSeason", () => {
       },
       { data: null, error: null }, // update scored
       { data: [{ points_earned: 20 }], error: null }, // leaderboard select
+      { data: null, error: null, count: 1 }, // scored count
     );
 
     // updateLeaderboard
@@ -312,6 +316,7 @@ describe("scoreSeasonAwardsForSeason", () => {
 
     // Prediction is correct but half-points → should earn 10
     mockTable("season_award_predictions",
+      { data: [], error: null }, // previously scored users
       { data: null, error: null }, // revert
       {
         data: [
@@ -320,7 +325,8 @@ describe("scoreSeasonAwardsForSeason", () => {
         error: null,
       },
       { data: null, error: null }, // update scored
-      { data: [{ points_earned: 10 }], error: null },
+      { data: [{ points_earned: 10 }], error: null }, // leaderboard select
+      { data: null, error: null, count: 1 }, // scored count
     );
 
     mockTable("seasons", { data: { id: 1 }, error: null });
@@ -351,6 +357,7 @@ describe("scoreSeasonAwardsForSeason", () => {
 
     // Prediction has different driver_id → no match
     mockTable("season_award_predictions",
+      { data: [], error: null }, // previously scored users
       { data: null, error: null }, // revert
       {
         data: [
@@ -359,7 +366,8 @@ describe("scoreSeasonAwardsForSeason", () => {
         error: null,
       },
       { data: null, error: null }, // update with 0 points
-      { data: [{ points_earned: 0 }], error: null },
+      { data: [{ points_earned: 0 }], error: null }, // leaderboard select
+      { data: null, error: null, count: 1 }, // scored count
     );
 
     mockTable("seasons", { data: { id: 1 }, error: null });

@@ -94,7 +94,7 @@ export interface SeasonAwardType {
   slug: string;
   name: string;
   description: string | null;
-  subjectType: 'driver' | 'team';
+  subjectType: "driver" | "team";
   scopeTeamId: number | null;
   pointsValue: number;
   sortOrder: number;
@@ -105,7 +105,7 @@ export interface SeasonAwardPrediction {
   awardTypeId: number;
   slug: string;
   name: string;
-  subjectType: 'driver' | 'team';
+  subjectType: "driver" | "team";
   scopeTeamId: number | null;
   pointsValue: number;
   driverId: number | null;
