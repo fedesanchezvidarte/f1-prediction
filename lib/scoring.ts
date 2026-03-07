@@ -183,3 +183,29 @@ export function scoreChampionPrediction(input: ChampionScoringInput): ChampionSc
 
   return { wdcMatch, wccMatch, mostDnfsMatch, mostPodiumsMatch, mostWinsMatch, isHalfPoints, total };
 }
+
+/* ── Season Award scoring (unified model) ──────────────────────────── */
+
+export interface SeasonAwardScoringInput {
+  predValue: number | null;   // driver_id or team_id
+  resultValue: number | null;
+  pointsValue: number;        // from season_award_types.points_value
+  isHalfPoints: boolean;      // from season_award_predictions.is_half_points
+}
+
+export interface SeasonAwardScoringBreakdown {
+  isMatch: boolean;
+  isHalfPoints: boolean;
+  points: number;
+}
+
+export function scoreSeasonAward(input: SeasonAwardScoringInput): SeasonAwardScoringBreakdown {
+  const isMatch =
+    input.predValue !== null &&
+    input.resultValue !== null &&
+    input.predValue === input.resultValue;
+  const points = isMatch
+    ? input.isHalfPoints ? Math.floor(input.pointsValue / 2) : input.pointsValue
+    : 0;
+  return { isMatch, isHalfPoints: input.isHalfPoints, points };
+}

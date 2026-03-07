@@ -3,7 +3,7 @@
  * Performs the DB queries and updates for scoring predictions.
  * Shared by /api/results/score and /api/results/manual routes.
  */
-import { scoreRacePrediction, scoreSprintPrediction, scoreChampionPrediction } from "@/lib/scoring";
+import { scoreRacePrediction, scoreSprintPrediction, scoreSeasonAward } from "@/lib/scoring";
 import {
   calculateAchievementsForUsers,
   type AchievementCalculationResult,
@@ -229,32 +229,24 @@ export async function updateLeaderboard(
       .eq("user_id", userId)
       .eq("status", "scored");
 
-    const { data: champPred } = await supabase
-      .from("champion_predictions")
+    const { data: seasonAwardPreds } = await supabase
+      .from("season_award_predictions")
       .select("points_earned")
       .eq("user_id", userId)
       .eq("status", "scored")
-      .single();
-
-    const { data: tbdPreds } = await supabase
-      .from("team_best_driver_predictions")
-      .select("points_earned")
-      .eq("user_id", userId)
-      .eq("status", "scored");
+      .eq("season_id", season.id);
 
     const racePoints = (racePreds ?? []).map((p) => p.points_earned ?? 0);
     const sprintPoints = (sprintPreds ?? []).map((p) => p.points_earned ?? 0);
-    const champPoints = champPred?.points_earned ?? 0;
-    const tbdPoints = (tbdPreds ?? []).reduce((s, p) => s + (p.points_earned ?? 0), 0);
+    const seasonAwardPoints = (seasonAwardPreds ?? []).reduce((s, p) => s + (p.points_earned ?? 0), 0);
 
     const totalPoints =
       racePoints.reduce((s, p) => s + p, 0) +
       sprintPoints.reduce((s, p) => s + p, 0) +
-      champPoints +
-      tbdPoints;
+      seasonAwardPoints;
 
     const predictionsCount =
-      racePoints.length + sprintPoints.length + (champPred ? 1 : 0);
+      racePoints.length + sprintPoints.length + (seasonAwardPreds?.length ?? 0);
     const bestRacePoints =
       racePoints.length > 0 ? Math.max(...racePoints) : 0;
 
@@ -331,159 +323,141 @@ export async function updateLeaderboard(
   }
 }
 
-export async function scoreChampionForSeason(
+export async function scoreSeasonAwardsForSeason(
   supabase: SupabaseClient,
   seasonId: number
-): Promise<{ championPredictionsScored: number; teamBestDriverPredictionsScored: number }> {
-  const { data: result } = await supabase
-    .from("champion_results")
-    .select("wdc_driver_id, wcc_team_id, most_dnfs_driver_id, most_podiums_driver_id, most_wins_driver_id")
+): Promise<{ seasonAwardPredictionsScored: number }> {
+  // Fetch all award types for the season
+  const { data: awardTypes } = await supabase
+    .from("season_award_types")
+    .select("id, slug, subject_type, points_value")
+    .eq("season_id", seasonId);
+
+  if (!awardTypes || awardTypes.length === 0) {
+    return { seasonAwardPredictionsScored: 0 };
+  }
+
+  const awardTypeMap = new Map(awardTypes.map((at) => [at.id, at]));
+
+  // Fetch all results for this season
+  const { data: results } = await supabase
+    .from("season_award_results")
+    .select("award_type_id, driver_id, team_id")
+    .eq("season_id", seasonId);
+
+  if (!results || results.length === 0) {
+    return { seasonAwardPredictionsScored: 0 };
+  }
+
+  const resultMap = new Map(results.map((r) => [r.award_type_id, r]));
+
+  // Collect user IDs from currently-scored predictions before reverting,
+  // so we can always recalculate their leaderboard even if their award
+  // result was removed (e.g. driver disqualification).
+  const { data: previouslyScored } = await supabase
+    .from("season_award_predictions")
+    .select("user_id")
     .eq("season_id", seasonId)
-    .single();
+    .eq("status", "scored");
 
-  if (!result) return { championPredictionsScored: 0, teamBestDriverPredictionsScored: 0 };
+  const previouslyScoredUserIds = [
+    ...new Set((previouslyScored ?? []).map((p) => p.user_id)),
+  ];
 
-  // Revert previously scored predictions so we can re-score them fresh.
+  // Revert previously scored predictions so we can re-score them fresh
   const { error: revertError } = await supabase
-    .from("champion_predictions")
-    .update({ status: "submitted", points_earned: 0, wdc_correct: false, wcc_correct: false })
+    .from("season_award_predictions")
+    .update({ status: "submitted", points_earned: 0 })
     .eq("season_id", seasonId)
     .eq("status", "scored");
 
   if (revertError) {
-    throw new Error(`Failed to revert champion predictions: ${revertError.message}`);
+    throw new Error(`Failed to revert season award predictions: ${revertError.message}`);
   }
 
+  // Fetch all submitted predictions
   const { data: predictions } = await supabase
-    .from("champion_predictions")
-    .select("id, user_id, wdc_driver_id, wcc_team_id, most_dnfs_driver_id, most_podiums_driver_id, most_wins_driver_id, is_half_points")
+    .from("season_award_predictions")
+    .select("id, user_id, award_type_id, driver_id, team_id, is_half_points")
     .eq("season_id", seasonId)
     .eq("status", "submitted");
 
   if (!predictions || predictions.length === 0) {
-    // Still score team best drivers and update leaderboard/achievements
-    const tbdResult = await scoreTeamBestDriverPredictions(supabase, seasonId);
-    if (tbdResult.userIds.length > 0) {
-      await updateLeaderboard(supabase, tbdResult.userIds, []);
+    // Even with no predictions to score, previously-scored users need
+    // their leaderboard recalculated (their points were just zeroed out).
+    if (previouslyScoredUserIds.length > 0) {
+      await updateLeaderboard(supabase, previouslyScoredUserIds, []);
       try {
-        await calculateAchievementsForUsers(supabase, tbdResult.userIds);
+        await calculateAchievementsForUsers(supabase, previouslyScoredUserIds);
       } catch (error) {
-        console.error("[scoring] Failed to calculate achievements after TBD-only scoring", { error });
+        console.error("[scoring] Failed to calculate achievements after season award revert", { error });
       }
     }
-    return { championPredictionsScored: 0, teamBestDriverPredictionsScored: tbdResult.count };
+    return { seasonAwardPredictionsScored: 0 };
   }
 
   const userIds: string[] = [];
 
   for (const pred of predictions) {
-    const breakdown = scoreChampionPrediction({
-      predWdc: pred.wdc_driver_id,
-      predWcc: pred.wcc_team_id,
-      predMostDnfs: pred.most_dnfs_driver_id,
-      predMostPodiums: pred.most_podiums_driver_id,
-      predMostWins: pred.most_wins_driver_id,
-      resultWdc: result.wdc_driver_id,
-      resultWcc: result.wcc_team_id,
-      resultMostDnfs: result.most_dnfs_driver_id,
-      resultMostPodiums: result.most_podiums_driver_id,
-      resultMostWins: result.most_wins_driver_id,
+    const awardType = awardTypeMap.get(pred.award_type_id);
+    const result = resultMap.get(pred.award_type_id);
+
+    if (!awardType || !result) {
+      // No result entered for this award type yet — skip
+      continue;
+    }
+
+    // Determine predicted value and result value based on subject_type
+    const predValue = awardType.subject_type === "team" ? pred.team_id : pred.driver_id;
+    const resultValue = awardType.subject_type === "team" ? result.team_id : result.driver_id;
+
+    const breakdown = scoreSeasonAward({
+      predValue,
+      resultValue,
+      pointsValue: awardType.points_value,
       isHalfPoints: pred.is_half_points ?? false,
     });
 
     const { error } = await supabase
-      .from("champion_predictions")
+      .from("season_award_predictions")
       .update({
-        points_earned: breakdown.total,
+        points_earned: breakdown.points,
         status: "scored",
-        wdc_correct: breakdown.wdcMatch,
-        wcc_correct: breakdown.wccMatch,
       })
       .eq("id", pred.id);
 
     if (error) {
       throw new Error(
-        `Failed to update champion prediction ${pred.id}: ${error.message}`
+        `Failed to update season award prediction ${pred.id}: ${error.message}`
       );
     }
 
     userIds.push(pred.user_id);
   }
 
-  // Score team best driver predictions
-  const tbdResult = await scoreTeamBestDriverPredictions(supabase, seasonId);
-  const tbdUserIds = tbdResult.userIds;
+  // Merge newly-scored user IDs with previously-scored ones to ensure
+  // users whose award result was removed also get their leaderboard updated.
+  const allAffectedUserIds = [
+    ...new Set([...userIds, ...previouslyScoredUserIds]),
+  ];
 
-  const allUserIds = [...new Set([...userIds, ...tbdUserIds])];
+  if (allAffectedUserIds.length > 0) {
+    await updateLeaderboard(supabase, allAffectedUserIds, []);
 
-  if (allUserIds.length > 0) {
-    await updateLeaderboard(supabase, allUserIds, []);
-
-    // Auto-calculate achievements after champion scoring
     try {
-      await calculateAchievementsForUsers(supabase, allUserIds);
+      await calculateAchievementsForUsers(supabase, allAffectedUserIds);
     } catch (error) {
-      console.error("[scoring] Failed to calculate achievements after champion scoring", { error });
+      console.error("[scoring] Failed to calculate achievements after season award scoring", { error });
     }
   }
 
-  return { championPredictionsScored: predictions.length, teamBestDriverPredictionsScored: tbdResult.count };
-}
-
-async function scoreTeamBestDriverPredictions(
-  supabase: SupabaseClient,
-  seasonId: number
-): Promise<{ count: number; userIds: string[] }> {
-  // Fetch team best driver results
-  const { data: results } = await supabase
-    .from("team_best_driver_results")
-    .select("team_id, driver_id")
-    .eq("season_id", seasonId);
-
-  if (!results || results.length === 0) return { count: 0, userIds: [] };
-
-  const resultMap = new Map<number, number>();
-  for (const r of results) {
-    resultMap.set(r.team_id, r.driver_id);
-  }
-
-  // Revert previously scored team best driver predictions
-  const { error: revertError } = await supabase
-    .from("team_best_driver_predictions")
-    .update({ status: "submitted", points_earned: 0 })
+  // Return the actual number of predictions that were scored,
+  // not the total submitted (some may lack results and were skipped).
+  const { count: scoredCount } = await supabase
+    .from("season_award_predictions")
+    .select("*", { count: "exact", head: true })
     .eq("season_id", seasonId)
     .eq("status", "scored");
 
-  if (revertError) {
-    throw new Error(`Failed to revert team best driver predictions: ${revertError.message}`);
-  }
-
-  const { data: predictions } = await supabase
-    .from("team_best_driver_predictions")
-    .select("id, user_id, team_id, driver_id, is_half_points")
-    .eq("season_id", seasonId)
-    .eq("status", "submitted");
-
-  if (!predictions || predictions.length === 0) return { count: 0, userIds: [] };
-
-  const userIds: string[] = [];
-
-  for (const pred of predictions) {
-    const correctDriverId = resultMap.get(pred.team_id);
-    const isMatch = correctDriverId !== undefined && pred.driver_id === correctDriverId;
-    const points = isMatch ? (pred.is_half_points ? 1 : 2) : 0;
-
-    const { error } = await supabase
-      .from("team_best_driver_predictions")
-      .update({ points_earned: points, status: "scored" })
-      .eq("id", pred.id);
-
-    if (error) {
-      throw new Error(`Failed to update team best driver prediction ${pred.id}: ${error.message}`);
-    }
-
-    userIds.push(pred.user_id);
-  }
-
-  return { count: predictions.length, userIds: [...new Set(userIds)] };
+  return { seasonAwardPredictionsScored: scoredCount ?? 0 };
 }

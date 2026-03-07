@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminUser } from "@/lib/admin";
-import { scoreChampionForSeason } from "@/lib/scoring-service";
+import { scoreSeasonAwardsForSeason } from "@/lib/scoring-service";
 
 /**
  * Allows an admin to manually enter or override champion (WDC/WCC) results
@@ -113,98 +113,99 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const resultData: Record<string, unknown> = {
-      season_id: season.id,
-      wdc_driver_id: wdcDriverId,
-      wcc_team_id: wccTeamId,
-      most_dnfs_driver_id: mostDnfsDriverId ?? null,
-      most_podiums_driver_id: mostPodiumsDriverId ?? null,
-      most_wins_driver_id: mostWinsDriverId ?? null,
-      source: "manual",
-    };
+    // Load all award types for this season (slug → row)
+    const { data: awardTypes } = await supabase
+      .from("season_award_types")
+      .select("id, slug, subject_type, scope_team_id")
+      .eq("season_id", season.id);
 
-    const { data: existing } = await supabase
-      .from("champion_results")
-      .select("id")
-      .eq("season_id", season.id)
-      .single();
-
-    if (existing) {
-      const { error } = await supabase
-        .from("champion_results")
-        .update(resultData)
-        .eq("id", existing.id);
-      if (error) throw new Error(error.message);
-    } else {
-      const { error } = await supabase
-        .from("champion_results")
-        .insert(resultData);
-      if (error) throw new Error(error.message);
+    if (!awardTypes || awardTypes.length === 0) {
+      return NextResponse.json({ error: "No season award types configured" }, { status: 500 });
     }
 
-    // Upsert / delete team best driver results
+    const slugToAwardType = new Map(awardTypes.map((at) => [at.slug, at]));
+
+    // Build results: slug → { driverId, teamId }
+    const resultEntries: Array<{ slug: string; driverId: number | null; teamId: number | null }> = [
+      { slug: "wdc", driverId: wdcDriverId!, teamId: null },
+      { slug: "wcc", driverId: null, teamId: wccTeamId! },
+      { slug: "most_dnfs", driverId: mostDnfsDriverId ?? null, teamId: null },
+      { slug: "most_podiums", driverId: mostPodiumsDriverId ?? null, teamId: null },
+      { slug: "most_wins", driverId: mostWinsDriverId ?? null, teamId: null },
+    ];
+
+    // Team best driver results
     if (teamBestDrivers && teamBestDrivers.length > 0) {
-      const receivedTeamIds = new Set<number>();
-
       for (const tbd of teamBestDrivers) {
-        receivedTeamIds.add(tbd.teamId);
+        resultEntries.push({
+          slug: `best_driver_${tbd.teamId}`,
+          driverId: tbd.driverId,
+          teamId: null,
+        });
+      }
+    }
 
-        if (tbd.driverId === null) {
-          // Admin explicitly cleared this team — delete existing result
+    // Upsert each result into season_award_results
+    for (const entry of resultEntries) {
+      const awardType = slugToAwardType.get(entry.slug);
+      if (!awardType) continue;
+
+      // Skip entries with no value (cleared team best drivers)
+      if (entry.driverId === null && entry.teamId === null) {
+        // Delete existing result if any
+        await supabase
+          .from("season_award_results")
+          .delete()
+          .eq("season_id", season.id)
+          .eq("award_type_id", awardType.id);
+        continue;
+      }
+
+      const { data: existing } = await supabase
+        .from("season_award_results")
+        .select("id")
+        .eq("season_id", season.id)
+        .eq("award_type_id", awardType.id)
+        .single();
+
+      const resultData = {
+        season_id: season.id,
+        award_type_id: awardType.id,
+        driver_id: entry.driverId,
+        team_id: entry.teamId,
+        source: "manual",
+      };
+
+      if (existing) {
+        const { error } = await supabase
+          .from("season_award_results")
+          .update(resultData)
+          .eq("id", existing.id);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await supabase
+          .from("season_award_results")
+          .insert(resultData);
+        if (error) throw new Error(error.message);
+      }
+    }
+
+    // Delete results for team best driver awards not included in payload
+    if (teamBestDrivers) {
+      const receivedTeamSlugs = new Set(teamBestDrivers.map((t) => `best_driver_${t.teamId}`));
+      for (const at of awardTypes) {
+        if (at.scope_team_id !== null && !receivedTeamSlugs.has(at.slug)) {
           await supabase
-            .from("team_best_driver_results")
+            .from("season_award_results")
             .delete()
             .eq("season_id", season.id)
-            .eq("team_id", tbd.teamId);
-          continue;
-        }
-
-        const { data: existingTbd } = await supabase
-          .from("team_best_driver_results")
-          .select("id")
-          .eq("season_id", season.id)
-          .eq("team_id", tbd.teamId)
-          .single();
-
-        if (existingTbd) {
-          const { error } = await supabase
-            .from("team_best_driver_results")
-            .update({ driver_id: tbd.driverId })
-            .eq("id", existingTbd.id);
-          if (error) throw new Error(error.message);
-        } else {
-          const { error } = await supabase
-            .from("team_best_driver_results")
-            .insert({
-              season_id: season.id,
-              team_id: tbd.teamId,
-              driver_id: tbd.driverId,
-            });
-          if (error) throw new Error(error.message);
-        }
-      }
-
-      // Delete results for teams not included in the payload at all
-      const { data: allExistingTbd } = await supabase
-        .from("team_best_driver_results")
-        .select("team_id")
-        .eq("season_id", season.id);
-
-      if (allExistingTbd) {
-        for (const row of allExistingTbd) {
-          if (!receivedTeamIds.has(row.team_id)) {
-            await supabase
-              .from("team_best_driver_results")
-              .delete()
-              .eq("season_id", season.id)
-              .eq("team_id", row.team_id);
-          }
+            .eq("award_type_id", at.id);
         }
       }
     }
 
-    // Score all champion predictions for this season
-    const scoring = await scoreChampionForSeason(supabase, season.id);
+    // Score all season award predictions for this season
+    const scoring = await scoreSeasonAwardsForSeason(supabase, season.id);
 
     return NextResponse.json({
       success: true,

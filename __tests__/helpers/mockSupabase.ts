@@ -20,6 +20,7 @@
 export interface MockResponse {
   data: unknown;
   error: { message: string } | null;
+  count?: number;
 }
 
 export interface CallRecord {

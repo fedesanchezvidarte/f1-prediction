@@ -1,7 +1,7 @@
 /**
  * Tests for lib/scoring-service.ts — service layer with mocked Supabase.
  *
- * Covers: scoreRaceForId, scoreChampionForSeason, updateLeaderboard
+ * Covers: scoreRaceForId, scoreSeasonAwardsForSeason, updateLeaderboard
  */
 import { createMockSupabase } from "../helpers/mockSupabase";
 
@@ -15,7 +15,7 @@ jest.mock("@/lib/achievement-calculator", () => ({
   }),
 }));
 
-import { scoreRaceForId, scoreChampionForSeason, updateLeaderboard } from "@/lib/scoring-service";
+import { scoreRaceForId, scoreSeasonAwardsForSeason, updateLeaderboard } from "@/lib/scoring-service";
 import { calculateAchievementsForUsers } from "@/lib/achievement-calculator";
 
 describe("scoreRaceForId", () => {
@@ -96,8 +96,7 @@ describe("scoreRaceForId", () => {
     // updateLeaderboard queries
     mockTable("seasons", { data: { id: 1 }, error: null });
     mockTable("sprint_predictions", { data: [], error: null });
-    mockTable("champion_predictions", { data: null, error: null });
-    mockTable("team_best_driver_predictions", { data: [], error: null });
+    mockTable("season_award_predictions", { data: [], error: null });
     mockTable("leaderboard",
       { data: null, error: null }, // no existing entry
       { data: null, error: null }, // insert success
@@ -155,8 +154,7 @@ describe("scoreRaceForId", () => {
     // updateLeaderboard
     mockTable("seasons", { data: { id: 1 }, error: null });
     mockTable("race_predictions", { data: [], error: null });
-    mockTable("champion_predictions", { data: null, error: null });
-    mockTable("team_best_driver_predictions", { data: [], error: null });
+    mockTable("season_award_predictions", { data: [], error: null });
     mockTable("leaderboard",
       { data: null, error: null }, // no existing entry
       { data: null, error: null }, // insert
@@ -172,6 +170,7 @@ describe("scoreRaceForId", () => {
 
   it("does not crash if achievement calculation fails", async () => {
     const { supabase, mockTable } = createMockSupabase();
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     (calculateAchievementsForUsers as jest.Mock).mockRejectedValueOnce(
       new Error("DB error")
@@ -210,8 +209,7 @@ describe("scoreRaceForId", () => {
     mockTable("sprint_results", { data: null, error: null });
     mockTable("seasons", { data: { id: 1 }, error: null });
     mockTable("sprint_predictions", { data: [], error: null });
-    mockTable("champion_predictions", { data: null, error: null });
-    mockTable("team_best_driver_predictions", { data: [], error: null });
+    mockTable("season_award_predictions", { data: [], error: null });
     mockTable("leaderboard",
       { data: null, error: null },
       { data: null, error: null },
@@ -222,10 +220,11 @@ describe("scoreRaceForId", () => {
     // Should NOT throw despite achievement calc failure
     const result = await scoreRaceForId(supabase, 1);
     expect(result.racePredictionsScored).toBe(1);
+    consoleSpy.mockRestore();
   });
 });
 
-describe("scoreChampionForSeason", () => {
+describe("scoreSeasonAwardsForSeason", () => {
   beforeEach(() => {
     (calculateAchievementsForUsers as jest.Mock).mockResolvedValue({
       usersProcessed: 0,
@@ -234,51 +233,57 @@ describe("scoreChampionForSeason", () => {
     });
   });
 
-  it("scores team best driver predictions when no champion predictions exist", async () => {
+  it("returns 0 when no award types exist", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("season_award_types", { data: [], error: null });
+
+    const result = await scoreSeasonAwardsForSeason(supabase, 1);
+    expect(result.seasonAwardPredictionsScored).toBe(0);
+  });
+
+  it("returns 0 when no results exist", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("season_award_types", {
+      data: [{ id: 1, slug: "wdc", subject_type: "driver", points_value: 20 }],
+      error: null,
+    });
+    mockTable("season_award_results", { data: [], error: null });
+
+    const result = await scoreSeasonAwardsForSeason(supabase, 1);
+    expect(result.seasonAwardPredictionsScored).toBe(0);
+  });
+
+  it("scores a correct driver award prediction with full points", async () => {
     const { supabase, mockTable } = createMockSupabase();
 
-    mockTable("champion_results", {
-      data: {
-        wdc_driver_id: 1,
-        wcc_team_id: 100,
-        most_dnfs_driver_id: 2,
-        most_podiums_driver_id: 3,
-        most_wins_driver_id: 4,
-      },
+    mockTable("season_award_types", {
+      data: [{ id: 1, slug: "wdc", subject_type: "driver", points_value: 20 }],
+      error: null,
+    });
+    mockTable("season_award_results", {
+      data: [{ award_type_id: 1, driver_id: 10, team_id: null }],
       error: null,
     });
 
-    // champion_predictions queue:
-    //   1st: revert update → null
-    //   2nd: select submitted → empty (triggers TBD-only path)
-    //   3rd: updateLeaderboard sum → null (no champion pred for user)
-    mockTable("champion_predictions",
-      { data: null, error: null },
-      { data: [], error: null },
-      { data: null, error: null },
-    );
-
-    // TBD results: team 10 → driver 5
-    mockTable("team_best_driver_results", {
-      data: [{ team_id: 10, driver_id: 5 }],
-      error: null,
-    });
-
-    // team_best_driver_predictions queue:
-    //   1st: revert update → null
-    //   2nd: select submitted → one matching prediction
-    //   3rd: update scored → null
-    //   4th: updateLeaderboard sum → earned points
-    mockTable("team_best_driver_predictions",
-      { data: null, error: null },
+    // season_award_predictions queue:
+    // 1. select previously scored users → empty (first run)
+    // 2. revert update → success
+    // 3. select submitted → one prediction
+    // 4. update scored → success
+    // 5. updateLeaderboard select scored → earned points
+    // 6. select count of scored → 1
+    mockTable("season_award_predictions",
+      { data: [], error: null }, // previously scored users
+      { data: null, error: null }, // revert
       {
         data: [
-          { id: 601, user_id: "user-t", team_id: 10, driver_id: 5, is_half_points: false },
+          { id: "pred-1", user_id: "user-a", award_type_id: 1, driver_id: 10, team_id: null, is_half_points: false },
         ],
         error: null,
       },
-      { data: null, error: null },
-      { data: [{ points_earned: 2 }], error: null },
+      { data: null, error: null }, // update scored
+      { data: [{ points_earned: 20 }], error: null }, // leaderboard select
+      { data: null, error: null, count: 1 }, // scored count
     );
 
     // updateLeaderboard
@@ -286,126 +291,83 @@ describe("scoreChampionForSeason", () => {
     mockTable("race_predictions", { data: [], error: null });
     mockTable("sprint_predictions", { data: [], error: null });
     mockTable("leaderboard",
-      { data: null, error: null }, // no existing entry
-      { data: null, error: null }, // insert
-      { data: [{ id: 1, total_points: 2 }], error: null }, // rank recalc
-      { data: null, error: null }, // rank update
+      { data: null, error: null },
+      { data: null, error: null },
+      { data: [{ id: 1, total_points: 20 }], error: null },
+      { data: null, error: null },
     );
 
-    const result = await scoreChampionForSeason(supabase, 1);
-    expect(result.championPredictionsScored).toBe(0);
-    expect(result.teamBestDriverPredictionsScored).toBe(1);
-    expect(calculateAchievementsForUsers).toHaveBeenCalledWith(supabase, ["user-t"]);
+    const result = await scoreSeasonAwardsForSeason(supabase, 1);
+    expect(result.seasonAwardPredictionsScored).toBe(1);
+    expect(calculateAchievementsForUsers).toHaveBeenCalledWith(supabase, ["user-a"]);
   });
 
-  it("returns 0 when no champion result exists", async () => {
-    const { supabase, mockTable } = createMockSupabase();
-    mockTable("champion_results", { data: null, error: null });
-
-    const result = await scoreChampionForSeason(supabase, 1);
-    expect(result.championPredictionsScored).toBe(0);
-    expect(result.teamBestDriverPredictionsScored).toBe(0);
-  });
-
-  it("scores champion predictions with correct points", async () => {
+  it("scores with half-points when is_half_points is true", async () => {
     const { supabase, mockTable } = createMockSupabase();
 
-    mockTable("champion_results", {
-      data: {
-        wdc_driver_id: 1,
-        wcc_team_id: 100,
-        most_dnfs_driver_id: 2,
-        most_podiums_driver_id: 3,
-        most_wins_driver_id: 4,
-      },
+    mockTable("season_award_types", {
+      data: [{ id: 2, slug: "wcc", subject_type: "team", points_value: 20 }],
+      error: null,
+    });
+    mockTable("season_award_results", {
+      data: [{ award_type_id: 2, driver_id: null, team_id: 100 }],
       error: null,
     });
 
-    // Revert query
-    mockTable("champion_predictions",
-      { data: null, error: null }, // revert update
+    // Prediction is correct but half-points → should earn 10
+    mockTable("season_award_predictions",
+      { data: [], error: null }, // previously scored users
+      { data: null, error: null }, // revert
       {
         data: [
-          {
-            id: 301,
-            user_id: "user-c",
-            wdc_driver_id: 1,
-            wcc_team_id: 100,
-            most_dnfs_driver_id: 2,
-            most_podiums_driver_id: 3,
-            most_wins_driver_id: 4,
-            is_half_points: false,
-          },
+          { id: "pred-2", user_id: "user-b", award_type_id: 2, driver_id: null, team_id: 100, is_half_points: true },
         ],
         error: null,
       },
       { data: null, error: null }, // update scored
-      { data: { points_earned: 70 }, error: null }, // leaderboard query
+      { data: [{ points_earned: 10 }], error: null }, // leaderboard select
+      { data: null, error: null, count: 1 }, // scored count
     );
 
-    // Team best driver results
-    mockTable("team_best_driver_results", { data: [], error: null });
-    mockTable("team_best_driver_predictions",
-      { data: null, error: null }, // revert
-      { data: [], error: null }, // no predictions
-      { data: [], error: null }, // leaderboard query
-    );
-
-    // Leaderboard
     mockTable("seasons", { data: { id: 1 }, error: null });
     mockTable("race_predictions", { data: [], error: null });
     mockTable("sprint_predictions", { data: [], error: null });
     mockTable("leaderboard",
       { data: null, error: null },
       { data: null, error: null },
-      { data: [{ id: 1, total_points: 70 }], error: null },
+      { data: [{ id: 2, total_points: 10 }], error: null },
       { data: null, error: null },
     );
 
-    const result = await scoreChampionForSeason(supabase, 1);
-    expect(result.championPredictionsScored).toBe(1);
+    const result = await scoreSeasonAwardsForSeason(supabase, 1);
+    expect(result.seasonAwardPredictionsScored).toBe(1);
   });
 
-  it("handles half-points for champion predictions", async () => {
+  it("awards 0 points for an incorrect prediction", async () => {
     const { supabase, mockTable } = createMockSupabase();
 
-    mockTable("champion_results", {
-      data: {
-        wdc_driver_id: 1,
-        wcc_team_id: 100,
-        most_dnfs_driver_id: 2,
-        most_podiums_driver_id: 3,
-        most_wins_driver_id: 4,
-      },
+    mockTable("season_award_types", {
+      data: [{ id: 3, slug: "most_wins", subject_type: "driver", points_value: 10 }],
+      error: null,
+    });
+    mockTable("season_award_results", {
+      data: [{ award_type_id: 3, driver_id: 5, team_id: null }],
       error: null,
     });
 
-    mockTable("champion_predictions",
+    // Prediction has different driver_id → no match
+    mockTable("season_award_predictions",
+      { data: [], error: null }, // previously scored users
       { data: null, error: null }, // revert
       {
         data: [
-          {
-            id: 302,
-            user_id: "user-d",
-            wdc_driver_id: 1,
-            wcc_team_id: 100,
-            most_dnfs_driver_id: 2,
-            most_podiums_driver_id: 3,
-            most_wins_driver_id: 4,
-            is_half_points: true,
-          },
+          { id: "pred-3", user_id: "user-c", award_type_id: 3, driver_id: 99, team_id: null, is_half_points: false },
         ],
         error: null,
       },
-      { data: null, error: null }, // update
-      { data: { points_earned: 35 }, error: null }, // leaderboard
-    );
-
-    mockTable("team_best_driver_results", { data: [], error: null });
-    mockTable("team_best_driver_predictions",
-      { data: null, error: null },
-      { data: [], error: null },
-      { data: [], error: null },
+      { data: null, error: null }, // update with 0 points
+      { data: [{ points_earned: 0 }], error: null }, // leaderboard select
+      { data: null, error: null, count: 1 }, // scored count
     );
 
     mockTable("seasons", { data: { id: 1 }, error: null });
@@ -414,12 +376,12 @@ describe("scoreChampionForSeason", () => {
     mockTable("leaderboard",
       { data: null, error: null },
       { data: null, error: null },
-      { data: [{ id: 1, total_points: 35 }], error: null },
+      { data: [{ id: 3, total_points: 0 }], error: null },
       { data: null, error: null },
     );
 
-    const result = await scoreChampionForSeason(supabase, 1);
-    expect(result.championPredictionsScored).toBe(1);
+    const result = await scoreSeasonAwardsForSeason(supabase, 1);
+    expect(result.seasonAwardPredictionsScored).toBe(1);
   });
 });
 
@@ -430,8 +392,7 @@ describe("updateLeaderboard", () => {
     mockTable("seasons", { data: { id: 1 }, error: null });
     mockTable("race_predictions", { data: [{ points_earned: 10 }], error: null });
     mockTable("sprint_predictions", { data: [], error: null });
-    mockTable("champion_predictions", { data: null, error: null });
-    mockTable("team_best_driver_predictions", { data: [], error: null });
+    mockTable("season_award_predictions", { data: [{ points_earned: 0 }], error: null });
     mockTable("leaderboard",
       { data: null, error: null }, // no existing entry  → single returns null
       { data: null, error: null }, // insert

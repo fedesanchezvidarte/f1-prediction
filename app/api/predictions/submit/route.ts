@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     return handleSprintPrediction(supabase, user.id, body as Parameters<typeof handleSprintPrediction>[2]);
   }
   if (type === "champion") {
-    return handleChampionPrediction(supabase, user.id, body as Parameters<typeof handleChampionPrediction>[2]);
+    return handleSeasonAwardPredictions(supabase, user.id, body as Parameters<typeof handleSeasonAwardPredictions>[2]);
   }
 
   return NextResponse.json({ error: "Invalid prediction type" }, { status: 400 });
@@ -217,7 +217,7 @@ async function handleSprintPrediction(
   return NextResponse.json({ success: true });
 }
 
-async function handleChampionPrediction(
+async function handleSeasonAwardPredictions(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   body: {
@@ -271,111 +271,113 @@ async function handleChampionPrediction(
     );
   }
 
-  const isHalfPoints = phase === "half";
+  const isHalfPhase = phase === "half";
+
+  // Load all award types for this season (slug → row)
+  const { data: awardTypes } = await supabase
+    .from("season_award_types")
+    .select("id, slug, subject_type, scope_team_id, points_value")
+    .eq("season_id", season.id);
+
+  if (!awardTypes || awardTypes.length === 0) {
+    return NextResponse.json({ error: "No season award types configured" }, { status: 500 });
+  }
+
+  const slugToAwardType = new Map(awardTypes.map((at) => [at.slug, at]));
 
   const driverMap = await getDriverNumberToIdMap(supabase);
-  const wdcDriverId = wdcDriverNumber !== null ? (driverMap.get(wdcDriverNumber) ?? null) : null;
-  const mostDnfsDriverId = mostDnfsDriverNumber !== null ? (driverMap.get(mostDnfsDriverNumber) ?? null) : null;
-  const mostPodiumsDriverId = mostPodiumsDriverNumber !== null ? (driverMap.get(mostPodiumsDriverNumber) ?? null) : null;
-  const mostWinsDriverId = mostWinsDriverNumber !== null ? (driverMap.get(mostWinsDriverNumber) ?? null) : null;
 
-  let wccTeamId: number | null = null;
-  if (wccTeamName) {
-    const { data: team } = await supabase
-      .from("teams")
-      .select("id")
-      .eq("name", wccTeamName)
-      .eq("season_id", season.id)
-      .single();
-    wccTeamId = team?.id ?? null;
+  // Build the payload: slug → { driverId, teamId }
+  const awards: Array<{ slug: string; driverId: number | null; teamId: number | null }> = [];
+
+  // Champion categories
+  if (wdcDriverNumber !== undefined) {
+    awards.push({ slug: "wdc", driverId: wdcDriverNumber !== null ? (driverMap.get(wdcDriverNumber) ?? null) : null, teamId: null });
+  }
+  if (wccTeamName !== undefined) {
+    let wccTeamId: number | null = null;
+    if (wccTeamName) {
+      const { data: team } = await supabase
+        .from("teams")
+        .select("id")
+        .eq("name", wccTeamName)
+        .eq("season_id", season.id)
+        .single();
+      wccTeamId = team?.id ?? null;
+    }
+    awards.push({ slug: "wcc", driverId: null, teamId: wccTeamId });
+  }
+  if (mostDnfsDriverNumber !== undefined) {
+    awards.push({ slug: "most_dnfs", driverId: mostDnfsDriverNumber !== null ? (driverMap.get(mostDnfsDriverNumber) ?? null) : null, teamId: null });
+  }
+  if (mostPodiumsDriverNumber !== undefined) {
+    awards.push({ slug: "most_podiums", driverId: mostPodiumsDriverNumber !== null ? (driverMap.get(mostPodiumsDriverNumber) ?? null) : null, teamId: null });
+  }
+  if (mostWinsDriverNumber !== undefined) {
+    awards.push({ slug: "most_wins", driverId: mostWinsDriverNumber !== null ? (driverMap.get(mostWinsDriverNumber) ?? null) : null, teamId: null });
   }
 
-  const { data: existing } = await supabase
-    .from("champion_predictions")
-    .select("id, status")
-    .eq("user_id", userId)
-    .eq("season_id", season.id)
-    .single();
-
-  if (existing?.status === "scored") {
-    return NextResponse.json({ error: "Cannot modify a scored prediction" }, { status: 400 });
-  }
-
-  const predictionData = {
-    user_id: userId,
-    season_id: season.id,
-    wdc_driver_id: wdcDriverId,
-    wcc_team_id: wccTeamId,
-    most_dnfs_driver_id: mostDnfsDriverId,
-    most_podiums_driver_id: mostPodiumsDriverId,
-    most_wins_driver_id: mostWinsDriverId,
-    status: "submitted",
-    is_half_points: isHalfPoints,
-    submitted_at: new Date().toISOString(),
-  };
-
-  if (existing) {
-    const { error } = await supabase
-      .from("champion_predictions")
-      .update(predictionData)
-      .eq("id", existing.id);
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  } else {
-    const { error } = await supabase
-      .from("champion_predictions")
-      .insert(predictionData);
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  // Handle team best driver predictions
+  // Team best driver awards
   if (teamBestDrivers && teamBestDrivers.length > 0) {
     for (const tbdPred of teamBestDrivers) {
       const driverId = driverMap.get(tbdPred.driverNumber) ?? null;
       if (!driverId) continue;
+      awards.push({ slug: `best_driver_${tbdPred.teamId}`, driverId, teamId: null });
+    }
+  }
 
-      const { data: existingTbd } = await supabase
-        .from("team_best_driver_predictions")
-        .select("id, driver_id, status, is_half_points")
-        .eq("user_id", userId)
-        .eq("season_id", season.id)
-        .eq("team_id", tbdPred.teamId)
-        .single();
+  // Process each award
+  for (const award of awards) {
+    const awardType = slugToAwardType.get(award.slug);
+    if (!awardType) continue; // Unknown slug — skip
 
-      if (existingTbd?.status === "scored") continue;
+    // Fetch existing prediction for this (user, season, award_type)
+    const { data: existing } = await supabase
+      .from("season_award_predictions")
+      .select("id, driver_id, team_id, status, is_half_points")
+      .eq("user_id", userId)
+      .eq("season_id", season.id)
+      .eq("award_type_id", awardType.id)
+      .single();
 
-      const isChanged = existingTbd && existingTbd.driver_id !== driverId;
+    if (existing?.status === "scored") continue; // Cannot modify scored prediction
 
-      const tbdData = {
-        user_id: userId,
-        season_id: season.id,
-        team_id: tbdPred.teamId,
-        driver_id: driverId,
-        is_half_points: isHalfPoints,
-        status: "submitted" as const,
-        submitted_at: new Date().toISOString(),
-      };
+    const predValue = awardType.subject_type === "team" ? award.teamId : award.driverId;
+    const existingValue = awardType.subject_type === "team" ? existing?.team_id : existing?.driver_id;
 
-      if (existingTbd) {
-        const { error } = await supabase
-          .from("team_best_driver_predictions")
-          .update({
-            driver_id: driverId,
-            is_half_points: isChanged ? true : existingTbd.is_half_points,
-            status: "submitted",
-            submitted_at: new Date().toISOString(),
-          })
-          .eq("id", existingTbd.id);
+    if (existing) {
+      // UPDATE — only mark half-points if value changed during half phase
+      const isChanged = existingValue !== predValue;
+      const newIsHalfPoints = isChanged && isHalfPhase ? true : existing.is_half_points;
 
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      } else {
-        const { error } = await supabase
-          .from("team_best_driver_predictions")
-          .insert(tbdData);
+      const { error } = await supabase
+        .from("season_award_predictions")
+        .update({
+          driver_id: award.driverId,
+          team_id: award.teamId,
+          is_half_points: newIsHalfPoints,
+          status: "submitted",
+          submitted_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
 
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      }
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    } else {
+      // INSERT — new prediction
+      const { error } = await supabase
+        .from("season_award_predictions")
+        .insert({
+          user_id: userId,
+          season_id: season.id,
+          award_type_id: awardType.id,
+          driver_id: award.driverId,
+          team_id: award.teamId,
+          is_half_points: isHalfPhase,
+          status: "submitted",
+          submitted_at: new Date().toISOString(),
+        });
+
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
 

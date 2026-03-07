@@ -20,12 +20,12 @@ jest.mock("@/lib/admin", () => ({
 }));
 
 jest.mock("@/lib/scoring-service", () => ({
-  scoreChampionForSeason: jest.fn(),
+  scoreSeasonAwardsForSeason: jest.fn(),
 }));
 
 import { POST } from "@/app/api/results/champion/manual/route";
 import { isAdminUser } from "@/lib/admin";
-import { scoreChampionForSeason } from "@/lib/scoring-service";
+import { scoreSeasonAwardsForSeason } from "@/lib/scoring-service";
 import {
   createMockRequest,
   createBadJsonRequest,
@@ -167,14 +167,21 @@ describe("POST /api/results/champion/manual", () => {
     let callIdx = 0;
     mockFrom.mockImplementation(() => {
       callIdx++;
-      if (callIdx === 1) return chain({ id: 1 }); // season
-      if (callIdx === 2) return chain({ id: 10 }); // driver
-      if (callIdx === 3) return chain({ id: 100 }); // team
-      return chain(null); // champion_results (no existing) + insert
+      if (callIdx === 1) return chain({ id: 1 }); // seasons
+      if (callIdx === 2) return chain({ id: 10 }); // drivers
+      if (callIdx === 3) return chain({ id: 100 }); // teams
+      if (callIdx === 4)
+        return chain([
+          { id: 1, slug: "wdc", subject_type: "driver", scope_team_id: null },
+          { id: 2, slug: "wcc", subject_type: "team", scope_team_id: null },
+          { id: 3, slug: "most_dnfs", subject_type: "driver", scope_team_id: null },
+          { id: 4, slug: "most_podiums", subject_type: "driver", scope_team_id: null },
+          { id: 5, slug: "most_wins", subject_type: "driver", scope_team_id: null },
+        ]); // season_award_types
+      return chain(null); // season_award_results existing-check + inserts
     });
-    (scoreChampionForSeason as jest.Mock).mockResolvedValue({
-      championPredictionsScored: 2,
-      teamBestDriverPredictionsScored: 0,
+    (scoreSeasonAwardsForSeason as jest.Mock).mockResolvedValue({
+      seasonAwardPredictionsScored: 2,
     });
 
     const { status, json } = await parseResponse(
@@ -183,6 +190,6 @@ describe("POST /api/results/champion/manual", () => {
     expect(status).toBe(200);
     expect(json.success).toBe(true);
     expect(json.source).toBe("manual");
-    expect(scoreChampionForSeason).toHaveBeenCalledWith(expect.anything(), 1);
+    expect(scoreSeasonAwardsForSeason).toHaveBeenCalledWith(expect.anything(), 1);
   });
 });

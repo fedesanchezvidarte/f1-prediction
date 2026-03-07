@@ -117,7 +117,7 @@ export async function calculateAchievementsForUsers(
 export async function calculateAchievementsForAllUsers(
   supabase: SupabaseClient
 ): Promise<AchievementCalculationResult> {
-  const [{ data: raceUsers }, { data: sprintUsers }, { data: champUsers }, { data: tbdUsers }] =
+  const [{ data: raceUsers }, { data: sprintUsers }, { data: seasonAwardUsers }] =
     await Promise.all([
       supabase
         .from("race_predictions")
@@ -128,11 +128,7 @@ export async function calculateAchievementsForAllUsers(
         .select("user_id")
         .in("status", ["submitted", "scored"]),
       supabase
-        .from("champion_predictions")
-        .select("user_id")
-        .in("status", ["submitted", "scored"]),
-      supabase
-        .from("team_best_driver_predictions")
+        .from("season_award_predictions")
         .select("user_id")
         .in("status", ["submitted", "scored"]),
     ]);
@@ -140,8 +136,7 @@ export async function calculateAchievementsForAllUsers(
   const allUserIds = new Set<string>();
   for (const p of raceUsers ?? []) allUserIds.add(p.user_id);
   for (const p of sprintUsers ?? []) allUserIds.add(p.user_id);
-  for (const p of champUsers ?? []) allUserIds.add(p.user_id);
-  for (const p of tbdUsers ?? []) allUserIds.add(p.user_id);
+  for (const p of seasonAwardUsers ?? []) allUserIds.add(p.user_id);
 
   if (allUserIds.size === 0) {
     return { usersProcessed: 0, achievementsAwarded: 0, achievementsRevoked: 0 };
@@ -170,11 +165,10 @@ async function evaluateAllAchievements(
   const [
     { data: racePreds },
     { data: sprintPreds },
-    { data: champPreds },
+    { data: seasonAwardPreds },
     { data: raceResults },
     { data: sprintResults },
     { data: season },
-    { data: tbdPreds },
   ] = await Promise.all([
     supabase
       .from("race_predictions")
@@ -187,24 +181,18 @@ async function evaluateAllAchievements(
       .eq("user_id", userId)
       .in("status", ["submitted", "scored"]),
     supabase
-      .from("champion_predictions")
-      .select("user_id, status, points_earned, wdc_correct, wcc_correct")
+      .from("season_award_predictions")
+      .select("id, status, points_earned, award_type_id, season_award_types(slug, scope_team_id)")
       .eq("user_id", userId)
       .in("status", ["submitted", "scored"]),
     supabase.from("race_results").select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id"),
     supabase.from("sprint_results").select("race_id, sprint_pole_driver_id, top_8, fastest_lap_driver_id"),
     supabase.from("seasons").select("id").eq("is_current", true).single(),
-    supabase
-      .from("team_best_driver_predictions")
-      .select("id, status, points_earned")
-      .eq("user_id", userId)
-      .in("status", ["submitted", "scored"]),
   ]);
 
   const racePredictions = racePreds ?? [];
   const sprintPredictions = sprintPreds ?? [];
-  const championPredictions = champPreds ?? [];
-  const teamBestDriverPredictions = tbdPreds ?? [];
+  const seasonAwardPredictions = seasonAwardPreds ?? [];
 
   // Build look-up maps for results
   const raceResultMap = new Map<number, (typeof raceResults extends Array<infer T> | null ? T : never)>();
@@ -215,20 +203,18 @@ async function evaluateAllAchievements(
 
   // ── Prediction-count achievements ─────────────────────────────────
   const totalPredictions =
-    racePredictions.length + sprintPredictions.length + championPredictions.length + teamBestDriverPredictions.length;
+    racePredictions.length + sprintPredictions.length + seasonAwardPredictions.length;
 
   // ── Scored data ───────────────────────────────────────────────────
   const scoredRace = racePredictions.filter((p) => p.status === "scored");
   const scoredSprint = sprintPredictions.filter((p) => p.status === "scored");
-  const scoredChamp = championPredictions.filter((p) => p.status === "scored");
-  const scoredTbd = teamBestDriverPredictions.filter((p) => p.status === "scored");
+  const scoredSeasonAwards = seasonAwardPredictions.filter((p) => p.status === "scored");
 
   // ── Total points ──────────────────────────────────────────────────
   const totalPoints =
     scoredRace.reduce((s, p) => s + (p.points_earned ?? 0), 0) +
     scoredSprint.reduce((s, p) => s + (p.points_earned ?? 0), 0) +
-    scoredChamp.reduce((s, p) => s + (p.points_earned ?? 0), 0) +
-    scoredTbd.reduce((s, p) => s + (p.points_earned ?? 0), 0);
+    scoredSeasonAwards.reduce((s, p) => s + (p.points_earned ?? 0), 0);
 
   // ── Per-race analysis ─────────────────────────────────────────────
   let totalCorrectPositions = 0;
@@ -317,14 +303,16 @@ async function evaluateAllAchievements(
   }
 
   // ── Championship achievements ─────────────────────────────────────
-  // Use the wdc_correct / wcc_correct boolean columns stored on each
-  // scored champion prediction for precise tracking.
+  // Check season_award_predictions by slug for WDC/WCC correctness
   let hasCorrectWdc = false;
   let hasCorrectWcc = false;
 
-  for (const pred of scoredChamp) {
-    if (pred.wdc_correct === true) hasCorrectWdc = true;
-    if (pred.wcc_correct === true) hasCorrectWcc = true;
+  for (const pred of scoredSeasonAwards) {
+    const rawAwardType = pred.season_award_types;
+    const awardType = (Array.isArray(rawAwardType) ? rawAwardType[0] : rawAwardType) as { slug: string; scope_team_id: number | null } | null;
+    if (!awardType) continue;
+    if (awardType.slug === "wdc" && (pred.points_earned ?? 0) > 0) hasCorrectWdc = true;
+    if (awardType.slug === "wcc" && (pred.points_earned ?? 0) > 0) hasCorrectWcc = true;
   }
 
   // ── Race / Sprint leaderboard placement achievements ──────────────
@@ -363,9 +351,11 @@ async function evaluateAllAchievements(
   }
 
   // ── Team best driver achievements ─────────────────────────────────
-  const tbdCorrectCount = scoredTbd.filter(
-    (p) => (p.points_earned ?? 0) > 0
-  ).length;
+  const tbdCorrectCount = scoredSeasonAwards.filter((p) => {
+    const rawAwardType = p.season_award_types;
+    const awardType = (Array.isArray(rawAwardType) ? rawAwardType[0] : rawAwardType) as { slug: string; scope_team_id: number | null } | null;
+    return awardType?.scope_team_id !== null && (p.points_earned ?? 0) > 0;
+  }).length;
 
   // ── Map slugs to earned status ────────────────────────────────────
   for (const ach of achievements) {

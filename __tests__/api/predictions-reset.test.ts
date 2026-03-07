@@ -135,53 +135,23 @@ describe("POST /api/predictions/reset", () => {
 
   // ── Champion reset ──────────────────────────────────────────────────
 
-  it("returns success when no active season for champion reset", async () => {
+  it("returns 403 for champion reset (season predictions cannot be reset)", async () => {
     setUser({ id: "u1" });
-    mockFrom.mockReturnValue(chain(null));
 
     const { status, json } = await parseResponse(
       await POST(createMockRequest({ type: "champion" }))
     );
-    expect(status).toBe(200);
-    expect(json.success).toBe(true);
+    expect(status).toBe(403);
+    expect(json.error).toMatch(/season predictions cannot be reset/i);
   });
 
-  it("returns 400 when trying to reset a scored champion prediction", async () => {
+  it("returns 403 for teamBestDriver reset (season predictions cannot be reset)", async () => {
     setUser({ id: "u1" });
-    let callIdx = 0;
-    mockFrom.mockImplementation(() => {
-      callIdx++;
-      if (callIdx === 1) return chain({ id: 1 }); // season
-      return chain({ id: 3, status: "scored" }); // scored champion pred
-    });
 
     const { status, json } = await parseResponse(
-      await POST(createMockRequest({ type: "champion" }))
+      await POST(createMockRequest({ type: "teamBestDriver" }))
     );
-    expect(status).toBe(400);
-    expect(json.error).toMatch(/scored/i);
-  });
-
-  it("successfully resets a submitted champion prediction", async () => {
-    setUser({ id: "u1" });
-    let callIdx = 0;
-    mockFrom.mockImplementation(() => {
-      callIdx++;
-      if (callIdx === 1) return chain({ id: 1 }); // season
-      if (callIdx === 2) return chain({ id: 3, status: "submitted" }); // existing pred
-      if (callIdx === 3) return chain([{                             // races (non-closed phase)
-        meeting_key: 1, race_name: "R1", official_name: "R1",
-        circuit_short_name: "T", country_name: "C", country_code: "CC",
-        location: "L", date_start: "2099-01-01T00:00:00Z",
-        date_end: "2099-01-03T00:00:00Z", round: 1, has_sprint: false,
-      }]);
-      return chain(null); // update success
-    });
-
-    const { status, json } = await parseResponse(
-      await POST(createMockRequest({ type: "champion" }))
-    );
-    expect(status).toBe(200);
-    expect(json.success).toBe(true);
+    expect(status).toBe(403);
+    expect(json.error).toMatch(/season predictions cannot be reset/i);
   });
 });

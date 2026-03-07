@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminUser } from "@/lib/admin";
-import { scoreChampionForSeason } from "@/lib/scoring-service";
+import { scoreSeasonAwardsForSeason } from "@/lib/scoring-service";
 
 /**
- * Re-scores all champion predictions for the current season
- * using the existing champion_results entry.
+ * Re-scores all season award predictions for the current season
+ * using the existing season_award_results entries.
  *
  * Body: (none required)
  */
@@ -37,17 +37,16 @@ export async function POST() {
   }
 
   try {
-    const result = await scoreChampionForSeason(supabase, season.id);
+    const result = await scoreSeasonAwardsForSeason(supabase, season.id);
 
     return NextResponse.json({
       success: true,
-      championPredictionsScored: result.championPredictionsScored,
-      teamBestDriverPredictionsScored: result.teamBestDriverPredictionsScored,
+      seasonAwardPredictionsScored: result.seasonAwardPredictionsScored,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: `Failed to re-score champion predictions: ${message}` },
+      { error: `Failed to re-score season award predictions: ${message}` },
       { status: 500 }
     );
   }
