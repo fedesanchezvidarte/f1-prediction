@@ -132,6 +132,25 @@ export function RacePredictionContent({
   const raceStatus = getRaceStatus(currentRace);
   const isChampionTab = tab === "champion";
 
+  const [qualifyingStarted, setQualifyingStarted] = useState(
+    () => new Date(currentRace.dateEnd).getTime() <= Date.now()
+  );
+
+  useEffect(() => {
+    setQualifyingStarted(new Date(currentRace.dateEnd).getTime() <= Date.now());
+  }, [currentRace.dateEnd]);
+
+  useEffect(() => {
+    if (qualifyingStarted) return;
+    const timer = setInterval(() => {
+      if (new Date(currentRace.dateEnd).getTime() <= Date.now()) {
+        setQualifyingStarted(true);
+        clearInterval(timer);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [currentRace.dateEnd, qualifyingStarted]);
+
   const nextRaceIndex = useMemo(() => {
     const now = new Date();
     for (let i = 0; i < races.length; i++) {
@@ -162,8 +181,8 @@ export function RacePredictionContent({
     isChampionTab
       ? champPred.status !== "scored" && isChampionOpen
       : tab === "sprint"
-        ? currentSprintPred?.status !== "scored"
-        : currentPrediction?.status !== "scored"
+        ? currentSprintPred?.status !== "scored" && !qualifyingStarted
+        : currentPrediction?.status !== "scored" && !qualifyingStarted
   );
 
   const hasEdits = useMemo(() => {
@@ -770,26 +789,33 @@ export function RacePredictionContent({
                 {t.predictionsPage.reset}
               </button>
             )}
-            <button
-              onClick={() => {
-                const needsModal =
-                  (isChampionTab && seasonStarted) ||
-                  (!isChampionTab &&
-                    (tab === "sprint"
-                      ? currentSprintPred?.status === "submitted"
-                      : currentPrediction?.status === "submitted"));
-                if (needsModal) {
-                  setShowSubmitModal(true);
-                } else {
-                  handleSubmit();
-                }
-              }}
-              disabled={!isEditable || isSaving}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[11px] font-semibold transition-colors ${submitConfig.color} ${isSaving ? "opacity-70" : ""}`}
-            >
-              {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-              {isSaving ? t.predictionsPage.saving : submitConfig.label}
-            </button>
+            {!isChampionTab && qualifyingStarted ? (
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-f1-red/15 px-4 py-1.5 text-[11px] font-semibold text-f1-red">
+                <Clock size={12} />
+                {t.predictionsPage.deadlinePassed}
+              </span>
+            ) : (
+              <button
+                onClick={() => {
+                  const needsModal =
+                    (isChampionTab && seasonStarted) ||
+                    (!isChampionTab &&
+                      (tab === "sprint"
+                        ? currentSprintPred?.status === "submitted"
+                        : currentPrediction?.status === "submitted"));
+                  if (needsModal) {
+                    setShowSubmitModal(true);
+                  } else {
+                    handleSubmit();
+                  }
+                }}
+                disabled={!isEditable || isSaving}
+                className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[11px] font-semibold transition-colors ${submitConfig.color} ${isSaving ? "opacity-70" : ""}`}
+              >
+                {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                {isSaving ? t.predictionsPage.saving : submitConfig.label}
+              </button>
+            )}
           </div>
         )}
       </div>
