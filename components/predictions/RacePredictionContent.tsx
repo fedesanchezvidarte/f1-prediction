@@ -779,7 +779,7 @@ export function RacePredictionContent({
 
         {isOwner && (
           <div className="flex items-center gap-2">
-            {isEditable && (
+            {isEditable && !isChampionTab && (
               <button
                 onClick={() => setShowResetModal(true)}
                 disabled={isSaving}
