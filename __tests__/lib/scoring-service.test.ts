@@ -170,6 +170,7 @@ describe("scoreRaceForId", () => {
 
   it("does not crash if achievement calculation fails", async () => {
     const { supabase, mockTable } = createMockSupabase();
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     (calculateAchievementsForUsers as jest.Mock).mockRejectedValueOnce(
       new Error("DB error")
@@ -219,6 +220,7 @@ describe("scoreRaceForId", () => {
     // Should NOT throw despite achievement calc failure
     const result = await scoreRaceForId(supabase, 1);
     expect(result.racePredictionsScored).toBe(1);
+    consoleSpy.mockRestore();
   });
 });
 
