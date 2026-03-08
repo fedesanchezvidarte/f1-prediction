@@ -7,6 +7,7 @@ import { createMockSupabase } from "../helpers/mockSupabase";
 import {
   calculateAchievementsForUsers,
   calculateAchievementsForAllUsers,
+  fetchUserProgressData,
 } from "@/lib/achievement-calculator";
 
 /* ── Helpers ─────────────────────────────────────────────────────────── */
@@ -580,7 +581,7 @@ describe("calculateAchievementsForUsers", () => {
     });
 
     const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
-    // 3 correct positions: earns 1_correct but not 10_correct
+    // 3 correct positions (position matches only in this test): earns 1_correct but not 10_correct
     expect(result.achievementsAwarded).toBe(1);
   });
 
@@ -771,7 +772,7 @@ describe("calculateAchievementsForUsers", () => {
       ],
       seasons: { data: { id: 1 }, error: null },
       races: {
-        data: [{ id: 10 }, { id: 11 }],
+        data: [{ id: 10, has_sprint: false }, { id: 11, has_sprint: false }],
         error: null,
       },
       userAchievements: [
@@ -803,7 +804,7 @@ describe("calculateAchievementsForUsers", () => {
       ],
       seasons: { data: { id: 1 }, error: null },
       races: {
-        data: [{ id: 10 }, { id: 11 }, { id: 12 }], // 3 races, user only predicted 1
+        data: [{ id: 10, has_sprint: false }, { id: 11, has_sprint: false }, { id: 12, has_sprint: false }], // 3 races, user only predicted 1
         error: null,
       },
       userAchievements: [
@@ -815,12 +816,90 @@ describe("calculateAchievementsForUsers", () => {
     expect(result.achievementsAwarded).toBe(0);
   });
 
-  /* ── Prediction count milestones ─────────────────────────────────── */
-
-  it("awards 10_predictions and 20_predictions based on total count", async () => {
+  it("does not award all_2026_predictions when sprint prediction is missing on sprint weekend", async () => {
     const { supabase, mockTable } = createMockSupabase();
 
-    // 12 race predictions + 5 sprint predictions + 2 champion + 3 TBD = 22
+    setupBaseTablesForUser(mockTable, {
+      achievements: {
+        data: [{ id: 1, slug: "all_2026_predictions", threshold: null }],
+        error: null,
+      },
+      racePredictions: [
+        { data: [], error: null },
+        {
+          data: [
+            // race prediction submitted for the sprint weekend — but no sprint pred
+            { race_id: 10, user_id: "user-a", status: "submitted", points_earned: null, pole_position_driver_id: 1, top_10: [], fastest_lap_driver_id: 1, fastest_pit_stop_driver_id: 1, driver_of_the_day_driver_id: 1 },
+          ],
+          error: null,
+        },
+      ],
+      sprintPredictions: [
+        { data: [], error: null }, // ranking
+        { data: [], error: null }, // user has NO sprint predictions
+      ],
+      seasons: { data: { id: 1 }, error: null },
+      races: {
+        data: [{ id: 10, has_sprint: true }], // sprint weekend requires both preds
+        error: null,
+      },
+      userAchievements: [
+        { data: [], error: null },
+      ],
+    });
+
+    const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
+    expect(result.achievementsAwarded).toBe(0);
+  });
+
+  it("awards all_2026_predictions when race AND sprint predictions submitted for sprint weekend", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    setupBaseTablesForUser(mockTable, {
+      achievements: {
+        data: [{ id: 1, slug: "all_2026_predictions", threshold: null }],
+        error: null,
+      },
+      racePredictions: [
+        { data: [], error: null },
+        {
+          data: [
+            { race_id: 10, user_id: "user-a", status: "submitted", points_earned: null, pole_position_driver_id: 1, top_10: [], fastest_lap_driver_id: 1, fastest_pit_stop_driver_id: 1, driver_of_the_day_driver_id: 1 },
+          ],
+          error: null,
+        },
+      ],
+      sprintPredictions: [
+        { data: [], error: null },
+        {
+          data: [
+            { race_id: 10, user_id: "user-a", status: "submitted", points_earned: null, sprint_pole_driver_id: 1, top_8: [], fastest_lap_driver_id: 1 },
+          ],
+          error: null,
+        },
+      ],
+      seasons: { data: { id: 1 }, error: null },
+      races: {
+        data: [{ id: 10, has_sprint: true }],
+        error: null,
+      },
+      userAchievements: [
+        { data: [], error: null },
+        { data: null, error: null },
+      ],
+    });
+
+    const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
+    expect(result.achievementsAwarded).toBe(1);
+  });
+
+  /* ── Prediction count milestones ─────────────────────────────────── */
+
+  it("awards 10_predictions based on race + sprint rounds (season awards excluded)", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    // 12 unique race rounds + 5 unique sprint rounds = 17 total
+    // Season award rows (5) are excluded from the count
     const racePreds = Array.from({ length: 12 }, (_, i) => ({
       race_id: i + 1,
       user_id: "user-a",
@@ -876,7 +955,60 @@ describe("calculateAchievementsForUsers", () => {
     });
 
     const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
-    // 22 total predictions: earns both 10_predictions and 20_predictions
+    // 12 + 5 = 17 rounds: earns 10_predictions (≥10) but NOT 20_predictions (<20)
+    // Season award rows (5) must NOT be added to the count
+    expect(result.achievementsAwarded).toBe(1);
+  });
+
+  it("awards 20_predictions when user has 20+ race/sprint rounds", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    // 15 race rounds + 6 sprint rounds = 21 total → earns both 10 and 20
+    const racePreds = Array.from({ length: 15 }, (_, i) => ({
+      race_id: i + 1,
+      user_id: "user-a",
+      status: "submitted",
+      points_earned: null,
+      pole_position_driver_id: 1,
+      top_10: [],
+      fastest_lap_driver_id: 1,
+      fastest_pit_stop_driver_id: 1,
+      driver_of_the_day_driver_id: 1,
+    }));
+
+    const sprintPreds = Array.from({ length: 6 }, (_, i) => ({
+      race_id: i + 100,
+      user_id: "user-a",
+      status: "submitted",
+      points_earned: null,
+      sprint_pole_driver_id: 1,
+      top_8: [],
+      fastest_lap_driver_id: 1,
+    }));
+
+    setupBaseTablesForUser(mockTable, {
+      achievements: {
+        data: [
+          { id: 1, slug: "10_predictions", threshold: 10 },
+          { id: 2, slug: "20_predictions", threshold: 20 },
+        ],
+        error: null,
+      },
+      racePredictions: [
+        { data: [], error: null },
+        { data: racePreds, error: null },
+      ],
+      sprintPredictions: [
+        { data: [], error: null },
+        { data: sprintPreds, error: null },
+      ],
+      userAchievements: [
+        { data: [], error: null },
+        { data: null, error: null },
+      ],
+    });
+
+    const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
     expect(result.achievementsAwarded).toBe(2);
   });
 
@@ -1072,6 +1204,88 @@ describe("calculateAchievementsForUsers", () => {
     const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
     expect(result.achievementsAwarded).toBe(0);
   });
+
+  /* ── Accuracy: boolean matches count toward totalCorrectPredictions ─── */
+
+  it("awards 1_correct when only a correct pole is predicted (no position matches)", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    setupBaseTablesForUser(mockTable, {
+      achievements: {
+        data: [{ id: 1, slug: "1_correct", threshold: 1 }],
+        error: null,
+      },
+      racePredictions: [
+        { data: [{ race_id: 1, user_id: "user-a", points_earned: 3 }], error: null },
+        {
+          data: [
+            {
+              race_id: 1,
+              user_id: "user-a",
+              status: "scored",
+              points_earned: 3,
+              pole_position_driver_id: 44, // correct pole
+              top_10: [99, 99, 99, 99, 99, 99, 99, 99, 99, 99], // no position matches
+              fastest_lap_driver_id: 99,
+              fastest_pit_stop_driver_id: 99,
+              driver_of_the_day_driver_id: null,
+            },
+          ],
+          error: null,
+        },
+      ],
+      raceResults: {
+        data: [
+          {
+            race_id: 1,
+            pole_position_driver_id: 44, // pole matches!
+            top_10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            fastest_lap_driver_id: 1,
+            fastest_pit_stop_driver_id: 1,
+            driver_of_the_day_driver_id: null,
+          },
+        ],
+        error: null,
+      },
+      userAchievements: [
+        { data: [], error: null },
+        { data: null, error: null },
+      ],
+    });
+
+    const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
+    expect(result.achievementsAwarded).toBe(1);
+  });
+
+  it("awards 1_correct when a season award prediction has points_earned > 0", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    setupBaseTablesForUser(mockTable, {
+      achievements: {
+        data: [{ id: 1, slug: "1_correct", threshold: 1 }],
+        error: null,
+      },
+      seasonAwardPredictions: {
+        data: [
+          {
+            id: 1,
+            status: "scored",
+            points_earned: 20, // correct WDC prediction
+            award_type_id: 1,
+            season_award_types: { slug: "wdc", scope_team_id: null },
+          },
+        ],
+        error: null,
+      },
+      userAchievements: [
+        { data: [], error: null },
+        { data: null, error: null },
+      ],
+    });
+
+    const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
+    expect(result.achievementsAwarded).toBe(1);
+  });
 });
 
 describe("calculateAchievementsForAllUsers", () => {
@@ -1141,5 +1355,186 @@ describe("calculateAchievementsForAllUsers", () => {
     const result = await calculateAchievementsForAllUsers(supabase);
     // User found but no achievements → early return
     expect(result.usersProcessed).toBe(0);
+  });
+});
+
+describe("fetchUserProgressData", () => {
+  it("returns zero counts when user has no predictions", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    // 8 calls in parallel: racePreds, sprintPreds, seasonAwardPreds,
+    // raceResults, sprintResults, season, allScoredRacePreds, allScoredSprintPreds
+    // races query is skipped because season is null
+    mockTable("race_predictions", { data: [], error: null }, { data: [], error: null });
+    mockTable("sprint_predictions", { data: [], error: null }, { data: [], error: null });
+    mockTable("season_award_predictions", { data: [], error: null });
+    mockTable("race_results", { data: [], error: null });
+    mockTable("sprint_results", { data: [], error: null });
+    mockTable("seasons", { data: null, error: null });
+
+    const counts = await fetchUserProgressData(supabase, "user-a");
+
+    expect(counts.totalPredictions).toBe(0);
+    expect(counts.totalCorrectPredictions).toBe(0);
+    expect(counts.totalPoints).toBe(0);
+    expect(counts.raceFirstCount).toBe(0);
+    expect(counts.completedSeasonRounds).toBe(0);
+    expect(counts.totalSeasonRounds).toBe(0);
+  });
+
+  it("counts unique race rounds and sprint rounds (excludes duplicate race_ids)", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    // 3 unique race_ids from race_predictions (race_id 2 appears twice — de-duplication verified)
+    // 2 unique race_ids from sprint_predictions → total = 5
+    mockTable(
+      "race_predictions",
+      // user's predictions — race_id 2 is intentionally duplicated
+      {
+        data: [
+          { race_id: 1, user_id: "user-a", status: "submitted", points_earned: null, pole_position_driver_id: 1, top_10: [], fastest_lap_driver_id: 1, fastest_pit_stop_driver_id: 1, driver_of_the_day_driver_id: 1 },
+          { race_id: 2, user_id: "user-a", status: "submitted", points_earned: null, pole_position_driver_id: 1, top_10: [], fastest_lap_driver_id: 1, fastest_pit_stop_driver_id: 1, driver_of_the_day_driver_id: 1 },
+          // duplicate prediction for race_id 2 to verify de-duplication by race_id
+          { race_id: 2, user_id: "user-a", status: "submitted", points_earned: null, pole_position_driver_id: 1, top_10: [], fastest_lap_driver_id: 1, fastest_pit_stop_driver_id: 1, driver_of_the_day_driver_id: 1 },
+          { race_id: 3, user_id: "user-a", status: "submitted", points_earned: null, pole_position_driver_id: 1, top_10: [], fastest_lap_driver_id: 1, fastest_pit_stop_driver_id: 1, driver_of_the_day_driver_id: 1 },
+        ],
+        error: null,
+      },
+      // allScoredRacePreds
+      { data: [], error: null },
+    );
+    mockTable(
+      "sprint_predictions",
+      // user's sprint predictions
+      {
+        data: [
+          { race_id: 10, user_id: "user-a", status: "submitted", points_earned: null, sprint_pole_driver_id: 1, top_8: [], fastest_lap_driver_id: 1 },
+          { race_id: 11, user_id: "user-a", status: "submitted", points_earned: null, sprint_pole_driver_id: 1, top_8: [], fastest_lap_driver_id: 1 },
+        ],
+        error: null,
+      },
+      // allScoredSprintPreds
+      { data: [], error: null },
+    );
+    mockTable("season_award_predictions", { data: [], error: null });
+    mockTable("race_results", { data: [], error: null });
+    mockTable("sprint_results", { data: [], error: null });
+    mockTable("seasons", { data: null, error: null });
+
+    const counts = await fetchUserProgressData(supabase, "user-a");
+
+    // 3 race rounds + 2 sprint rounds = 5
+    expect(counts.totalPredictions).toBe(5);
+  });
+
+  it("counts correct positions including pole, fastest lap, and season awards", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    mockTable(
+      "race_predictions",
+      {
+        data: [
+          {
+            race_id: 1,
+            user_id: "user-a",
+            status: "scored",
+            points_earned: 10,
+            pole_position_driver_id: 44, // correct pole
+            top_10: [1, 99, 99, 99, 99, 99, 99, 99, 99, 99], // 1 position match
+            fastest_lap_driver_id: 99,
+            fastest_pit_stop_driver_id: 99,
+            driver_of_the_day_driver_id: null,
+          },
+        ],
+        error: null,
+      },
+      { data: [], error: null }, // allScoredRacePreds
+    );
+    mockTable("sprint_predictions", { data: [], error: null }, { data: [], error: null });
+    mockTable(
+      "season_award_predictions",
+      {
+        data: [
+          {
+            id: 1,
+            status: "scored",
+            points_earned: 20, // correct season award
+            award_type_id: 1,
+            season_award_types: { slug: "wdc", scope_team_id: null },
+          },
+        ],
+        error: null,
+      },
+    );
+    mockTable(
+      "race_results",
+      {
+        data: [
+          {
+            race_id: 1,
+            pole_position_driver_id: 44, // pole matches
+            top_10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // position 1 matches
+            fastest_lap_driver_id: 1,
+            fastest_pit_stop_driver_id: 1,
+            driver_of_the_day_driver_id: null,
+          },
+        ],
+        error: null,
+      },
+    );
+    mockTable("sprint_results", { data: [], error: null });
+    mockTable("seasons", { data: null, error: null });
+
+    const counts = await fetchUserProgressData(supabase, "user-a");
+
+    // 1 position match + 1 correct pole + 1 correct season award = 3
+    expect(counts.totalCorrectPredictions).toBe(3);
+  });
+
+  it("computes completedSeasonRounds and totalSeasonRounds correctly for sprint weekends", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    mockTable(
+      "race_predictions",
+      {
+        data: [
+          // race prediction submitted for sprint weekend (race_id 5)
+          { race_id: 5, user_id: "user-a", status: "submitted", points_earned: null, pole_position_driver_id: 1, top_10: [], fastest_lap_driver_id: 1, fastest_pit_stop_driver_id: 1, driver_of_the_day_driver_id: 1 },
+          // no prediction for race_id 6
+        ],
+        error: null,
+      },
+      { data: [], error: null }, // allScoredRacePreds
+    );
+    mockTable(
+      "sprint_predictions",
+      {
+        data: [
+          // sprint prediction submitted for race_id 5
+          { race_id: 5, user_id: "user-a", status: "submitted", points_earned: null, sprint_pole_driver_id: 1, top_8: [], fastest_lap_driver_id: 1 },
+        ],
+        error: null,
+      },
+      { data: [], error: null }, // allScoredSprintPreds
+    );
+    mockTable("season_award_predictions", { data: [], error: null });
+    mockTable("race_results", { data: [], error: null });
+    mockTable("sprint_results", { data: [], error: null });
+    mockTable("seasons", { data: { id: 1 }, error: null });
+    // races: race 5 has sprint, race 6 is regular (no sprint)
+    mockTable("races", {
+      data: [
+        { id: 5, has_sprint: true },
+        { id: 6, has_sprint: false },
+      ],
+      error: null,
+    });
+
+    const counts = await fetchUserProgressData(supabase, "user-a");
+
+    // totalSeasonRounds: race5 (1 race + 1 sprint = 2) + race6 (1 race = 1) = 3
+    expect(counts.totalSeasonRounds).toBe(3);
+    // completedSeasonRounds: race5 race pred ✓ + race5 sprint pred ✓ = 2; race6 = 0
+    expect(counts.completedSeasonRounds).toBe(2);
   });
 });
