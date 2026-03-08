@@ -219,7 +219,7 @@ async function evaluateAllAchievements(
     scoredSeasonAwards.reduce((s, p) => s + (p.points_earned ?? 0), 0);
 
   // ── Per-race analysis ─────────────────────────────────────────────
-  let totalCorrectPositions = 0;
+  let totalCorrectPredictions = 0;
   let hasCorrectRaceWinner = false;
   let hasCorrectPole = false;
   let hasCorrectFastestLap = false;
@@ -249,11 +249,11 @@ async function evaluateAllAchievements(
       resultDriverOfTheDay: result.driver_of_the_day_driver_id ?? null,
     });
 
-    totalCorrectPositions += breakdown.positionMatches;
-    if (breakdown.poleMatch)           totalCorrectPositions++;
-    if (breakdown.fastestLapMatch)     totalCorrectPositions++;
-    if (breakdown.fastestPitStopMatch) totalCorrectPositions++;
-    if (breakdown.driverOfTheDayMatch) totalCorrectPositions++;
+    totalCorrectPredictions += breakdown.positionMatches;
+    if (breakdown.poleMatch)           totalCorrectPredictions++;
+    if (breakdown.fastestLapMatch)     totalCorrectPredictions++;
+    if (breakdown.fastestPitStopMatch) totalCorrectPredictions++;
+    if (breakdown.driverOfTheDayMatch) totalCorrectPredictions++;
 
     if (predTop10[0] != null && predTop10[0] === resultTop10[0])
       hasCorrectRaceWinner = true;
@@ -298,9 +298,9 @@ async function evaluateAllAchievements(
       resultFastestLap: result.fastest_lap_driver_id ?? 0,
     });
 
-    totalCorrectPositions += breakdown.positionMatches;
-    if (breakdown.poleMatch)       totalCorrectPositions++;
-    if (breakdown.fastestLapMatch) totalCorrectPositions++;
+    totalCorrectPredictions += breakdown.positionMatches;
+    if (breakdown.poleMatch)       totalCorrectPredictions++;
+    if (breakdown.fastestLapMatch) totalCorrectPredictions++;
 
     if (predTop8[0] != null && predTop8[0] === resultTop8[0])
       hasCorrectSprintWinner = true;
@@ -311,7 +311,7 @@ async function evaluateAllAchievements(
   }
 
   // Season award correct predictions also count toward accuracy milestones
-  totalCorrectPositions += scoredSeasonAwards.filter((p) => (p.points_earned ?? 0) > 0).length;
+  totalCorrectPredictions += scoredSeasonAwards.filter((p) => (p.points_earned ?? 0) > 0).length;
 
   // ── Championship achievements ─────────────────────────────────────
   // Check season_award_predictions by slug for WDC/WCC correctness
@@ -404,16 +404,16 @@ async function evaluateAllAchievements(
 
       /* ── Accuracy category ───────────────────────────────────── */
       case "1_correct":
-        earned = totalCorrectPositions >= (threshold || 1);
+        earned = totalCorrectPredictions >= (threshold || 1);
         break;
       case "10_correct":
-        earned = totalCorrectPositions >= (threshold || 10);
+        earned = totalCorrectPredictions >= (threshold || 10);
         break;
       case "50_correct":
-        earned = totalCorrectPositions >= (threshold || 50);
+        earned = totalCorrectPredictions >= (threshold || 50);
         break;
       case "100_correct":
-        earned = totalCorrectPositions >= (threshold || 100);
+        earned = totalCorrectPredictions >= (threshold || 100);
         break;
 
       /* ── Milestones category ─────────────────────────────────── */
@@ -590,7 +590,7 @@ export interface UserProgressCounts {
   /** Unique race rounds + unique sprint rounds (season awards excluded) */
   totalPredictions: number;
   /** All correct predictions: positions + booleans + correct season awards */
-  totalCorrectPositions: number;
+  totalCorrectPredictions: number;
   totalPoints: number;
   raceFirstCount: number;
   raceTop3Count: number;
@@ -680,7 +680,7 @@ export async function fetchUserProgressData(
   for (const r of sprintResults ?? []) sprintResultMap.set(r.race_id, r);
 
   // Correct predictions count (positions + booleans)
-  let totalCorrectPositions = 0;
+  let totalCorrectPredictions = 0;
 
   for (const pred of scoredRace) {
     const result = raceResultMap.get(pred.race_id);
@@ -699,11 +699,11 @@ export async function fetchUserProgressData(
       resultFastestPitStop: result.fastest_pit_stop_driver_id ?? 0,
       resultDriverOfTheDay: result.driver_of_the_day_driver_id ?? null,
     });
-    totalCorrectPositions += breakdown.positionMatches;
-    if (breakdown.poleMatch)           totalCorrectPositions++;
-    if (breakdown.fastestLapMatch)     totalCorrectPositions++;
-    if (breakdown.fastestPitStopMatch) totalCorrectPositions++;
-    if (breakdown.driverOfTheDayMatch) totalCorrectPositions++;
+    totalCorrectPredictions += breakdown.positionMatches;
+    if (breakdown.poleMatch)           totalCorrectPredictions++;
+    if (breakdown.fastestLapMatch)     totalCorrectPredictions++;
+    if (breakdown.fastestPitStopMatch) totalCorrectPredictions++;
+    if (breakdown.driverOfTheDayMatch) totalCorrectPredictions++;
   }
 
   for (const pred of scoredSprint) {
@@ -719,13 +719,13 @@ export async function fetchUserProgressData(
       resultSprintPole: result.sprint_pole_driver_id ?? 0,
       resultFastestLap: result.fastest_lap_driver_id ?? 0,
     });
-    totalCorrectPositions += breakdown.positionMatches;
-    if (breakdown.poleMatch)       totalCorrectPositions++;
-    if (breakdown.fastestLapMatch) totalCorrectPositions++;
+    totalCorrectPredictions += breakdown.positionMatches;
+    if (breakdown.poleMatch)       totalCorrectPredictions++;
+    if (breakdown.fastestLapMatch) totalCorrectPredictions++;
   }
 
   // Correct season award predictions also count toward accuracy milestones
-  totalCorrectPositions += scoredSeasonAwards.filter((p) => (p.points_earned ?? 0) > 0).length;
+  totalCorrectPredictions += scoredSeasonAwards.filter((p) => (p.points_earned ?? 0) > 0).length;
 
   // Leaderboard ranking counts
   const raceByRaceId = new Map<number, { user_id: string; pts: number }[]>();
@@ -797,7 +797,7 @@ export async function fetchUserProgressData(
 
   return {
     totalPredictions,
-    totalCorrectPositions,
+    totalCorrectPredictions,
     totalPoints,
     raceFirstCount,
     raceTop3Count,

@@ -581,7 +581,7 @@ describe("calculateAchievementsForUsers", () => {
     });
 
     const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
-    // 3 correct positions: earns 1_correct but not 10_correct
+    // 3 correct positions (position matches only in this test): earns 1_correct but not 10_correct
     expect(result.achievementsAwarded).toBe(1);
   });
 
@@ -1205,7 +1205,7 @@ describe("calculateAchievementsForUsers", () => {
     expect(result.achievementsAwarded).toBe(0);
   });
 
-  /* ── Accuracy: boolean matches count toward totalCorrectPositions ─── */
+  /* ── Accuracy: boolean matches count toward totalCorrectPredictions ─── */
 
   it("awards 1_correct when only a correct pole is predicted (no position matches)", async () => {
     const { supabase, mockTable } = createMockSupabase();
@@ -1364,7 +1364,7 @@ describe("fetchUserProgressData", () => {
 
     // 8 calls in parallel: racePreds, sprintPreds, seasonAwardPreds,
     // raceResults, sprintResults, season, allScoredRacePreds, allScoredSprintPreds
-    // then 1 more for races (season is null so skipped)
+    // races query is skipped because season is null
     mockTable("race_predictions", { data: [], error: null }, { data: [], error: null });
     mockTable("sprint_predictions", { data: [], error: null }, { data: [], error: null });
     mockTable("season_award_predictions", { data: [], error: null });
@@ -1375,7 +1375,7 @@ describe("fetchUserProgressData", () => {
     const counts = await fetchUserProgressData(supabase, "user-a");
 
     expect(counts.totalPredictions).toBe(0);
-    expect(counts.totalCorrectPositions).toBe(0);
+    expect(counts.totalCorrectPredictions).toBe(0);
     expect(counts.totalPoints).toBe(0);
     expect(counts.raceFirstCount).toBe(0);
     expect(counts.completedSeasonRounds).toBe(0);
@@ -1385,14 +1385,16 @@ describe("fetchUserProgressData", () => {
   it("counts unique race rounds and sprint rounds (excludes duplicate race_ids)", async () => {
     const { supabase, mockTable } = createMockSupabase();
 
-    // 3 unique race_ids from race_predictions (one duplicate with same race_id)
-    // 2 unique race_ids from sprint_predictions
+    // 3 unique race_ids from race_predictions (race_id 2 appears twice — de-duplication verified)
+    // 2 unique race_ids from sprint_predictions → total = 5
     mockTable(
       "race_predictions",
-      // user's predictions
+      // user's predictions — race_id 2 is intentionally duplicated
       {
         data: [
           { race_id: 1, user_id: "user-a", status: "submitted", points_earned: null, pole_position_driver_id: 1, top_10: [], fastest_lap_driver_id: 1, fastest_pit_stop_driver_id: 1, driver_of_the_day_driver_id: 1 },
+          { race_id: 2, user_id: "user-a", status: "submitted", points_earned: null, pole_position_driver_id: 1, top_10: [], fastest_lap_driver_id: 1, fastest_pit_stop_driver_id: 1, driver_of_the_day_driver_id: 1 },
+          // duplicate prediction for race_id 2 to verify de-duplication by race_id
           { race_id: 2, user_id: "user-a", status: "submitted", points_earned: null, pole_position_driver_id: 1, top_10: [], fastest_lap_driver_id: 1, fastest_pit_stop_driver_id: 1, driver_of_the_day_driver_id: 1 },
           { race_id: 3, user_id: "user-a", status: "submitted", points_earned: null, pole_position_driver_id: 1, top_10: [], fastest_lap_driver_id: 1, fastest_pit_stop_driver_id: 1, driver_of_the_day_driver_id: 1 },
         ],
@@ -1486,7 +1488,7 @@ describe("fetchUserProgressData", () => {
     const counts = await fetchUserProgressData(supabase, "user-a");
 
     // 1 position match + 1 correct pole + 1 correct season award = 3
-    expect(counts.totalCorrectPositions).toBe(3);
+    expect(counts.totalCorrectPredictions).toBe(3);
   });
 
   it("computes completedSeasonRounds and totalSeasonRounds correctly for sprint weekends", async () => {

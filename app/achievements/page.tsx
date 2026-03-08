@@ -35,7 +35,7 @@ function buildProgressMap(
       case "10_correct":
       case "50_correct":
       case "100_correct":
-        current = progress.totalCorrectPositions;
+        current = progress.totalCorrectPredictions;
         max = threshold ?? undefined;
         break;
       case "100_points":
@@ -71,7 +71,7 @@ function buildProgressMap(
 
     if (current !== undefined && max !== undefined && max > 0) {
       map[ach.id] = { current, max };
-    } else if (current === undefined) {
+    } else if (current === undefined && ach.threshold == null) {
       // Binary achievement (no threshold, boolean condition) — show 0 / 1 when locked
       map[ach.id] = { current: 0, max: 1 };
     }
