@@ -13,6 +13,7 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 interface AchievementsContentProps {
   achievements: Achievement[];
   earnedIds: number[];
+  progressMap?: Record<number, { current: number; max: number }>;
 }
 
 const CATEGORIES: AchievementCategory[] = [
@@ -25,6 +26,7 @@ const CATEGORIES: AchievementCategory[] = [
 export function AchievementsContent({
   achievements,
   earnedIds,
+  progressMap = {},
 }: AchievementsContentProps) {
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
   const { t } = useLanguage();
@@ -142,6 +144,24 @@ export function AchievementsContent({
                   >
                     {CATEGORY_LABELS[achievement.category]}
                   </span>
+                  {/* Progress bar - only on locked cards */}
+                  {!isEarned && progressMap[achievement.id] && (() => {
+                    const { current, max } = progressMap[achievement.id];
+                    const fill = Math.min(current / max, 1) * 100;
+                    return (
+                      <div className="mt-2 space-y-0.5">
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-card">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${colors.bg}`}
+                            style={{ width: `${fill}%` }}
+                          />
+                        </div>
+                        <p className={`text-right text-[9px] tabular-nums ${colors.text}`}>
+                          {current} / {max}
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
