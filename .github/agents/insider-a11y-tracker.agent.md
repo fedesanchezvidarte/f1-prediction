@@ -1,7 +1,7 @@
 ---
 name: 'VS Code Insiders Accessibility Tracker'
 description: 'Accessibility improvements and tracking for the F1 Prediction app: WCAG audits, ARIA patterns, keyboard navigation, screen reader support, and bilingual a11y across all routes.'
-model: ['Claude Sonnet 4.6', 'Claude Opus 4.6']
+model: ['Claude Sonnet 4.6']
 tools: ['search/codebase', 'search/changes', 'edit/editFiles', 'read/problems', 'execute/runInTerminal', 'execute/getTerminalOutput', 'search', 'search/searchResults']
 ---
 
