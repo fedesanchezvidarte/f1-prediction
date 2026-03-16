@@ -1,0 +1,121 @@
+specification {
+  element person {
+    style {
+      shape person
+      color amber
+    }
+  }
+  element system {
+    style {
+      shape rectangle
+      color red
+    }
+  }
+  element container {
+    style {
+      shape rectangle
+      color blue
+    }
+  }
+  element component {
+    style {
+      shape rectangle
+      color slate
+    }
+  }
+  element external {
+    style {
+      shape rectangle
+      color gray
+    }
+  }
+  element storage {
+    style {
+      shape cylinder
+      color green
+    }
+  }
+
+  relationship sync {
+    line solid
+  }
+  relationship async {
+    line dashed
+  }
+}
+
+model {
+  user = person 'Player' {
+    description 'A friend who makes F1 predictions'
+  }
+
+  f1prediction = system 'F1 Prediction' {
+    description 'Formula 1 prediction game for friends (non-gambling)'
+
+    webapp = container 'Web Application' {
+      description 'Next.js App Router with SSR and CSR'
+      technology 'Next.js, TypeScript, Tailwind CSS'
+
+      // TODO: Add feature-specific components here
+      // Example:
+      // featureLogic = component 'Feature Logic' {
+      //   description 'Pure business logic for [feature]'
+      //   technology 'TypeScript'
+      // }
+      // featureService = component 'Feature Service' {
+      //   description 'DB-integrated service for [feature]'
+      //   technology 'TypeScript, Supabase'
+      // }
+      // featureApi = component 'Feature API' {
+      //   description 'Route handler for [feature]'
+      //   technology 'Next.js App Router'
+      // }
+      // featureUi = component 'Feature UI' {
+      //   description 'UI components for [feature]'
+      //   technology 'React, Tailwind CSS'
+      // }
+    }
+
+    supabase = storage 'Supabase' {
+      description 'PostgreSQL database with auth and RLS'
+      technology 'Supabase'
+    }
+  }
+
+  openf1 = external 'OpenF1 API' {
+    description 'External API providing live F1 race data'
+    technology 'REST API'
+  }
+
+  // System Context relationships
+  user -[sync]-> f1prediction.webapp 'makes predictions, views leaderboard'
+  f1prediction.webapp -[sync]-> f1prediction.supabase 'reads/writes data, authenticates'
+  f1prediction.webapp -[sync]-> openf1 'fetches race results and schedules'
+
+  // TODO: Add feature-specific relationships here
+  // Example:
+  // f1prediction.webapp.featureApi -> f1prediction.webapp.featureLogic 'scores predictions'
+  // f1prediction.webapp.featureService -> f1prediction.supabase 'persists results'
+}
+
+views {
+  view systemContext of f1prediction {
+    title 'F1 Prediction - System Context'
+    include *
+    include user
+    include openf1
+  }
+
+  view containers of f1prediction {
+    title 'F1 Prediction - Containers'
+    include f1prediction.*
+    include user
+    include openf1
+  }
+
+  // TODO: Add feature-specific component view
+  // view featureComponents of f1prediction.webapp {
+  //   title '[Feature] - Components'
+  //   include f1prediction.webapp.*
+  // }
+}
