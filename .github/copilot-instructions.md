@@ -7,16 +7,17 @@ This file provides specific instructions and context for GitHub Copilot to ensur
 - **Purpose:** A fun, friendly Formula 1 prediction game for friends. Strictly non-gambling.
 - **Key Stack:** Next.js (App Router), TypeScript, Tailwind CSS, Supabase, OpenF1 API.
 
-## UI/UX Design Guidelines (ui-ux-pro-max)
-Whenever you are asked to design, build, or improve UI/UX features, you should reference the specialized skill set located in .cursor/skills/ui-ux-pro-max.
+## Skills
 
-### How to use the UI/UX Skill Set:
-1.  **Consult the Skill Definition:** Read .cursor/skills/ui-ux-pro-max/SKILL.md to understand the available design patterns, color palettes, and UX guidelines.
-2.  **Run Design Searches:** If you need to generate a design system or find specific styles/colors, use the provided Python scripts if available in your environment, or manually inspect the data files in .cursor/skills/ui-ux-pro-max/data/.
-    -   **Product Patterns:** Refer to .cursor/skills/ui-ux-pro-max/data/products.csv for dashboard or landing page structures.
-    -   **Color Palettes:** Refer to .cursor/skills/ui-ux-pro-max/data/colors.csv for F1-appropriate themes (reds, darks, high-contrast).
-    -   **UX Principles:** Refer to .cursor/skills/ui-ux-pro-max/data/ux-guidelines.csv for best practices on forms, feedback, and navigation.
-3.  **Framework Specifcs:** For Next.js/React implementation details, check .cursor/skills/ui-ux-pro-max/data/stacks/nextjs.csv or .cursor/skills/ui-ux-pro-max/data/stacks/react.csv.
+Domain-specific knowledge is organized as skills in `.github/skills/`. Each skill has a `SKILL.md` core file and optional `references/` for progressive disclosure.
+
+| Skill | Path | Trigger |
+|---|---|---|
+| **architecture** | `.github/skills/architecture/SKILL.md` | Planning new features, creating LikeC4 diagrams, designing database migrations |
+| **lib-patterns** | `.github/skills/lib-patterns/SKILL.md` | Implementing or modifying files in `lib/` |
+| **api-patterns** | `.github/skills/api-patterns/SKILL.md` | Implementing or modifying files in `app/api/` |
+| **ui-ux-patterns** | `.github/skills/ui-ux-patterns/SKILL.md` | Implementing or modifying components, pages, or translations |
+| **testing-patterns** | `.github/skills/testing-patterns/SKILL.md` | Writing or modifying test files under `__tests__/` |
 
 ## Coding Standards
 -   **Strict TypeScript:** Ensure all components and functions are properly typed.
@@ -26,21 +27,27 @@ Whenever you are asked to design, build, or improve UI/UX features, you should r
 
 ## Specialized Agents
 
-Three custom agents live in `.github/agents/` and should be invoked for the tasks below:
+Seven custom agents live in `.github/agents/` and are organized by application layer. For end-to-end feature development, use the **Feature Orchestrator** which coordinates all phases.
 
-| Agent | File | When to use |
-|---|---|---|
-| **Next.js Expert** | [`expert-nextjs-developer.agent.md`](agents/expert-nextjs-developer.agent.md) | App Router architecture, Server/Client Components, caching, Turbopack |
-| **QA** | [`qa-subagent.agent.md`](agents/qa-subagent.agent.md) | Unit tests (Jest/ts-jest), service-layer mocking, API route verification, Playwright E2E — **primary agent for all testing work** |
-| **VS Code Insiders A11y Tracker** | [`insider-a11y-tracker.agent.md`](agents/insider-a11y-tracker.agent.md) | Accessibility improvements and tracking |
+| Agent | File | Paired Skill | When to use |
+|---|---|---|---|
+| **Feature Orchestrator** | [`feature-orchestrator.agent.md`](agents/feature-orchestrator.agent.md) | *(coordinates all)* | End-to-end feature development across all layers |
+| **Architect** | [`architect.agent.md`](agents/architect.agent.md) | `architecture` | System design, C4 diagrams, DB schemas, feature decomposition |
+| **Libs Expert** | [`libs-expert.agent.md`](agents/libs-expert.agent.md) | `lib-patterns` | Pure functions and service-layer code in `lib/` |
+| **API Expert** | [`api-expert.agent.md`](agents/api-expert.agent.md) | `api-patterns` | Route handlers in `app/api/` |
+| **UI/UX Expert** | [`ui-ux-expert.agent.md`](agents/ui-ux-expert.agent.md) | `ui-ux-patterns` | Components, pages, translations, styling |
+| **QA** | [`qa.agent.md`](agents/qa.agent.md) | `testing-patterns` | Unit tests, API tests, E2E tests — **primary agent for all testing work** |
+| **A11y** | [`a11y.agent.md`](agents/a11y.agent.md) | *(inline)* | Accessibility audits, WCAG compliance, keyboard/SR support |
 
-> **Testing workflow:** When executing tasks from `.github/prompts/plan-unitTestingFoundation.prompt.md`, delegate all test planning, writing, and verification to the **QA** agent. Use the **Next.js Expert** agent for App Router or service-layer implementation questions that arise during testing.
+> **Feature workflow:** For new features, invoke the **Feature Orchestrator** which manages 10 development phases and delegates to the appropriate layer agents.
+
+> **Testing workflow:** When executing tasks for creating, updating, or maintaining tests, delegate all test planning, writing, and verification to the **QA** agent.
 
 ---
 
 ## Testing Standards
 
-The project uses **Jest + ts-jest** for unit and service-layer tests. All tests live under `__tests__/`, mirroring the `lib/` folder structure. Refer to [`.github/prompts/plan-unitTestingFoundation.prompt.md`](prompts/plan-unitTestingFoundation.prompt.md) for the full testing strategy.
+The project uses **Jest + ts-jest** for unit and service-layer tests. All tests live under `__tests__/`, mirroring the `lib/` folder structure.
 
 ### Rules — apply to every code change or new feature:
 
