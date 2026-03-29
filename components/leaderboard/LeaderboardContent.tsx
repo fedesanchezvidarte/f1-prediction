@@ -61,16 +61,6 @@ export function LeaderboardContent({
   const [filterOpen, setFilterOpen] = useState(false);
   const { t } = useLanguage();
 
-  const totalScoredRaces = useMemo(() => {
-    const scored = new Set<number>();
-    for (const entry of entries) {
-      for (const [key, pts] of Object.entries(entry.racePoints)) {
-        if (pts !== null) scored.add(Number(key));
-      }
-    }
-    return scored.size;
-  }, [entries]);
-
   const sorted = useMemo(() => {
     if (selectedRace === "all") {
       return [...entries].sort((a, b) =>
@@ -205,7 +195,6 @@ export function LeaderboardContent({
           entries={pageEntries}
           currentUserId={currentUserId}
           selectedRace={selectedRace}
-          totalScoredRaces={totalScoredRaces}
         />
       ) : (
         <DetailedTable
@@ -261,22 +250,19 @@ function SimpleTable({
   entries,
   currentUserId,
   selectedRace,
-  totalScoredRaces,
 }: {
   entries: DetailedLeaderboardEntry[];
   currentUserId?: string;
   selectedRace: number | "all";
-  totalScoredRaces: number;
 }) {
   const { t } = useLanguage();
 
   return (
     <div>
       {/* Header */}
-      <div className="grid grid-cols-[2.5rem_1fr_5rem_4.5rem] items-center gap-2 border-b border-border bg-card/50 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted sm:grid-cols-[3rem_1fr_6rem_5rem] sm:px-5">
+      <div className="grid grid-cols-[2.5rem_1fr_4.5rem] items-center gap-2 border-b border-border bg-card/50 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted sm:grid-cols-[3rem_1fr_5rem] sm:px-5">
         <span>#</span>
         <span>{t.leaderboardPage.player}</span>
-        <span className="text-right">{t.leaderboardPage.predictionsCol}</span>
         <span className="text-right">{t.leaderboardPage.points}</span>
       </div>
       {/* Rows */}
@@ -289,7 +275,7 @@ function SimpleTable({
         return (
           <div
             key={entry.userId}
-            className={`grid grid-cols-[2.5rem_1fr_5rem_4.5rem] items-center gap-2 border-b border-border px-4 py-2.5 text-xs transition-colors last:border-b-0 sm:grid-cols-[3rem_1fr_6rem_5rem] sm:px-5 ${
+            className={`grid grid-cols-[2.5rem_1fr_4.5rem] items-center gap-2 border-b border-border px-4 py-2.5 text-xs transition-colors last:border-b-0 sm:grid-cols-[3rem_1fr_5rem] sm:px-5 ${
               isMe ? "bg-f1-red/5" : "hover:bg-card-hover"
             }`}
           >
@@ -303,9 +289,6 @@ function SimpleTable({
                 <span className="ml-1.5 text-[10px] text-f1-red">({t.leaderboardPage.you})</span>
               )}
             </Link>
-            <span className="text-right tabular-nums text-muted">
-              {entry.predictionsCount}/{totalScoredRaces}
-            </span>
             <span className="text-right text-sm font-semibold tabular-nums text-f1-white">
               {displayPoints}
             </span>
@@ -364,10 +347,10 @@ function DetailedTable({
                   isMe ? "bg-f1-red/5" : "hover:bg-card-hover"
                 }`}
               >
-                <td className="sticky left-0 z-10 w-10 bg-inherit px-4 py-2.5 sm:px-5">
+                <td className={`sticky left-0 z-10 w-10 px-4 py-2.5 sm:px-5 ${isMe ? 'bg-[color-mix(in_srgb,var(--color-f1-red)_5%,var(--background))]' : 'bg-background'}`}>
                   <RankBadge rank={entry.rank} />
                 </td>
-                <td className="sticky left-13 z-10 min-w-32 bg-inherit px-2 py-2.5 pr-4">
+                <td className={`sticky left-13 z-10 min-w-32 px-2 py-2.5 pr-4 ${isMe ? 'bg-[color-mix(in_srgb,var(--color-f1-red)_5%,var(--background))]' : 'bg-background'}`}>
                   <Link
                     href={`/race-prediction?user=${entry.userId}`}
                     className={`font-medium whitespace-nowrap transition-colors hover:text-f1-red ${
