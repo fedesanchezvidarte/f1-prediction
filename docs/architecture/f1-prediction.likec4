@@ -1,0 +1,420 @@
+/**
+ * F1 Prediction — Full System Architecture
+ *
+ * This file EXTENDS the skeleton defined in feature-template.likec4.
+ * It adds component-level detail, a new admin actor, and six focused views.
+ *
+ * Views defined here (non-overlapping with the template):
+ *   webappOverview    — all components in the webapp at once
+ *   businessLogicView — lib/ layer: pure functions + service layer
+ *   apiLayerView      — app/api/ route handlers and their dependencies
+ *   uiLayerView       — app/ pages and their data sources
+ *   predictionFlow    — how a player submits a prediction
+ *   scoringFlow       — how an admin scores a race and awards achievements
+ *   championFlow      — how champion / season-award predictions work end-to-end
+ */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SPECIFICATION  — only new element kinds; person/system/etc. are in the template
+// ─────────────────────────────────────────────────────────────────────────────
+
+specification {
+
+  element libComponent {
+    style {
+      color slate
+    }
+  }
+
+  element apiRoute {
+    style {
+      color indigo
+    }
+  }
+
+  element uiPage {
+    style {
+      shape browser
+      color sky
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODEL  — extends the base model from feature-template.likec4
+// ─────────────────────────────────────────────────────────────────────────────
+
+model {
+
+  // New actor: admin (not in the template)
+  admin = person 'Admin' {
+    description 'Manages race results, triggers scoring, and oversees the prediction game'
+  }
+
+  // Extend webapp with all components
+  extend f1prediction.webapp {
+
+    // ── Business Logic Layer (lib/) ─────────────────────────────
+
+    scoringEngine = libComponent 'Scoring Engine' {
+      description 'Pure functions for scoring race, sprint, and season award predictions against actual results. No I/O — safe to call from anywhere.'
+      technology 'TypeScript · lib/scoring.ts'
+    }
+
+    scoringService = libComponent 'Scoring Service' {
+      description 'Orchestrates the full scoring pipeline: reads results, scores all submitted predictions, updates the leaderboard, and auto-triggers achievement calculation.'
+      technology 'TypeScript · lib/scoring-service.ts'
+    }
+
+    achievementCalculator = libComponent 'Achievement Calculator' {
+      description 'Evaluates all achievement conditions for given users. Reconciles earned vs. revoked achievements — inserts newly earned rows and deletes no-longer-valid ones.'
+      technology 'TypeScript · lib/achievement-calculator.ts'
+    }
+
+    achievementDefs = libComponent 'Achievement Definitions' {
+      description 'Static metadata for every achievement type: Lucide icon mapping, category colour tokens, and display strings used by the UI.'
+      technology 'TypeScript · lib/achievements.ts'
+    }
+
+    raceUtils = libComponent 'Race Utilities' {
+      description 'Pure helpers: getRaceStatus(), getNextRace(), getPredictionCardRaces(), getChampionPredictionPhase(). Safe for both client and server components.'
+      technology 'TypeScript · lib/race-utils.ts'
+    }
+
+    raceService = libComponent 'Race Service' {
+      description 'Fetches the full race calendar for the active season from Supabase. Re-exports the pure race utilities for server-side consumers.'
+      technology 'TypeScript · lib/races.ts'
+    }
+
+    adminUtils = libComponent 'Admin Utilities' {
+      description 'isAdminUser() checks Supabase app_metadata.role or the ADMIN_USER_IDS environment variable.'
+      technology 'TypeScript · lib/admin.ts'
+    }
+
+    pointSystem = libComponent 'Point System' {
+      description 'Static POINT_SYSTEM constant documenting all scoring rules and max points for race, sprint, and championship predictions.'
+      technology 'TypeScript · lib/point-system.ts'
+    }
+
+    driverData = libComponent 'Driver & Team Data' {
+      description 'Static driver roster and team metadata used for display and validation throughout the app.'
+      technology 'TypeScript · lib/drivers.ts · lib/teams.ts'
+    }
+
+    supabaseClient = libComponent 'Supabase Client' {
+      description 'Factory for server-side and browser Supabase clients using @supabase/ssr with cookie-based session management.'
+      technology 'Supabase SSR · lib/supabase/'
+    }
+
+    // ── API Routes Layer (app/api/) ─────────────────────────────
+
+    predictionsApi = apiRoute 'Predictions API' {
+      description 'POST /api/predictions/submit — save race, sprint, or season award prediction (driver number to DB ID mapping applied internally)\nPOST /api/predictions/reset — clear a prediction for a given race'
+      technology 'Next.js Route Handler · app/api/predictions/'
+    }
+
+    resultsApi = apiRoute 'Race Results API' {
+      description 'POST /api/results/fetch-openf1 — import race/sprint results from OpenF1 and trigger scoring\nPOST /api/results/manual — enter results manually and trigger scoring\nPOST /api/results/score — score submitted predictions for a race\nPOST /api/results/score-all — score all unscored races in the season\nPOST /api/results/reset — clear results for a race'
+      technology 'Next.js Route Handler · app/api/results/'
+    }
+
+    championApi = apiRoute 'Champion Results API' {
+      description 'POST /api/results/champion/manual — enter season award results (WDC, WCC, most wins, etc.)\nPOST /api/results/champion/score — re-score all season award predictions\nPOST /api/results/champion/reset — clear season award results'
+      technology 'Next.js Route Handler · app/api/results/champion/'
+    }
+
+    racesApi = apiRoute 'Races API' {
+      description 'POST /api/races/fetch-openf1-datetime — sync Practice 1 start and Qualifying datetimes from OpenF1\nPOST /api/races/update-datetime — manually update race datetimes'
+      technology 'Next.js Route Handler · app/api/races/'
+    }
+
+    achievementsApi = apiRoute 'Achievements API' {
+      description 'POST /api/achievements/calculate — trigger achievement recalculation for specific users, all predictors of a race, or every user in the system'
+      technology 'Next.js Route Handler · app/api/achievements/'
+    }
+
+    // ── UI Pages Layer (app/) ───────────────────────────────────
+
+    dashboardPage = uiPage 'Dashboard' {
+      description 'Home page: user points and rank, next race countdown, prediction slot overview, leaderboard preview, and achievements summary widget'
+      technology 'React Server Component · app/page.tsx'
+    }
+
+    racePredictionPage = uiPage 'Race Prediction' {
+      description 'Multi-step form covering race top-10, sprint top-8, fastest lap, pole position, pit stop, driver of the day, and all season award predictions'
+      technology 'React Client Component · app/race-prediction/'
+    }
+
+    leaderboardPage = uiPage 'Leaderboard' {
+      description 'Full-season leaderboard with per-race point breakdown, detailed view toggle, and rank comparison'
+      technology 'React Server Component · app/leaderboard/'
+    }
+
+    achievementsPage = uiPage 'Achievements' {
+      description 'Grid of all achievement cards showing earned/locked status, category badges, and earn dates for the current user'
+      technology 'React Server Component · app/achievements/'
+    }
+
+    adminPage = uiPage 'Admin Panel' {
+      description 'Admin-only page: enter/sync race results, update race datetimes, trigger scoring for a single race or full season, recalculate achievements'
+      technology 'React Server Component · app/admin/'
+    }
+
+    profilePage = uiPage 'Profile' {
+      description 'User profile page: edit display name and avatar URL, view total points, rank, and key stats'
+      technology 'React Client Component · app/profile/'
+    }
+
+    authPage = uiPage 'Auth Pages' {
+      description 'Login (email + Google OAuth), registration, forgot-password, and OAuth callback pages. Handles Supabase auth code exchange.'
+      technology 'React Server/Client Components · app/login/ · app/register/ · app/auth/'
+    }
+
+    // ── Relationships within webapp ─────────────────────────────
+
+    // Every API handler creates a server Supabase client
+    predictionsApi -> supabaseClient 'createClient()'
+    resultsApi -> supabaseClient 'createClient()'
+    championApi -> supabaseClient 'createClient()'
+    racesApi -> supabaseClient 'createClient()'
+    achievementsApi -> supabaseClient 'createClient()'
+
+    // Admin guard on protected routes
+    resultsApi -> adminUtils 'isAdminUser()'
+    championApi -> adminUtils 'isAdminUser()'
+    racesApi -> adminUtils 'isAdminUser()'
+    achievementsApi -> adminUtils 'isAdminUser()'
+
+    // API routes delegate to business logic
+    predictionsApi -> raceUtils 'getChampionPredictionPhase()'
+    resultsApi -> scoringService 'scoreRaceForId()'
+    championApi -> scoringService 'scoreSeasonAwardsForSeason()'
+    achievementsApi -> achievementCalculator 'calculateAchievementsForUsers()'
+
+    // Scoring Service orchestration
+    scoringService -> scoringEngine 'scoreRacePrediction() · scoreSprintPrediction() · scoreSeasonAward()'
+    scoringService -[async]-> achievementCalculator 'auto-triggers after scoring'
+    scoringService -> supabaseClient 'reads race_results, race_predictions; writes points_earned, leaderboard'
+
+    // Achievement Calculator
+    achievementCalculator -> scoringEngine 'scoreRacePrediction() · scoreSprintPrediction() for ranking'
+    achievementCalculator -> supabaseClient 'reads predictions; writes user_achievements'
+
+    // Race Service
+    raceService -> raceUtils 're-exports getRaceStatus() · getNextRace()'
+    raceService -> supabaseClient 'fetchRacesFromDb() from seasons + races tables'
+
+    // Dashboard
+    dashboardPage -> raceService 'fetchRacesFromDb() · getNextRace() · getPredictionCardRaces()'
+    dashboardPage -> supabaseClient 'queries profiles, leaderboard, race_predictions, user_achievements'
+    dashboardPage -> achievementDefs 'ACHIEVEMENT_ICONS for preview widget'
+    dashboardPage -> pointSystem 'POINT_SYSTEM for rules card'
+
+    // Race Prediction
+    racePredictionPage -> supabaseClient 'browser client: reads drivers, teams, existing predictions'
+    racePredictionPage -> raceUtils 'getChampionPredictionPhase()'
+    racePredictionPage -> predictionsApi 'POST prediction on submit'
+
+    // Leaderboard
+    leaderboardPage -> supabaseClient 'queries leaderboard with per-race breakdown'
+    leaderboardPage -> raceService 'fetchRacesFromDb() for column headers'
+
+    // Achievements
+    achievementsPage -> supabaseClient 'queries achievements + user_achievements'
+    achievementsPage -> achievementDefs 'ACHIEVEMENT_ICONS · CATEGORY_COLORS'
+
+    // Admin Panel
+    adminPage -> supabaseClient 'admin queries: races, drivers, teams, results'
+    adminPage -> resultsApi 'POST to fetch / enter / score results'
+    adminPage -> championApi 'POST to manage champion results'
+    adminPage -> racesApi 'POST to sync / update datetimes'
+    adminPage -> achievementsApi 'POST to recalculate achievements'
+
+    // Profile
+    profilePage -> supabaseClient 'reads + updates profiles; reads leaderboard stats'
+
+    // Auth
+    authPage -> supabaseClient 'signIn · signUp · signOut · exchangeCode (OAuth callback)'
+  }
+
+  // Admin actor relationship (defined outside extend since admin is top-level)
+  admin -> f1prediction.webapp 'manages results, triggers scoring and recalculations'
+
+  // Component-level access to external systems (outside extend to use FQN)
+  f1prediction.webapp.supabaseClient -> f1prediction.supabase 'authenticated queries enforced by Row Level Security'
+  f1prediction.webapp.resultsApi -> openf1 'GET /v1/session_result · /v1/starting_grid · /v1/laps · /v1/pit'
+  f1prediction.webapp.racesApi -> openf1 'GET /v1/sessions (circuit + year filter for datetime sync)'
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VIEWS
+// ─────────────────────────────────────────────────────────────────────────────
+
+views {
+
+  // ── View: All Webapp Components ────────────────────────────────
+  // Complete snapshot of everything inside the web application container.
+
+  view webappOverview of f1prediction.webapp {
+    title 'Web Application — Full Component Overview'
+    include *
+    include f1prediction.supabase
+    include openf1
+
+    style f1prediction.supabase {
+      color muted
+    }
+    style openf1 {
+      color muted
+    }
+  }
+
+  // ── View: Business Logic Layer ─────────────────────────────────
+  // Focused on lib/ — pure functions, services, and Supabase client.
+
+  view businessLogicView of f1prediction.webapp {
+    title 'Web Application — Business Logic Layer (lib/)'
+
+    include f1prediction.webapp.scoringEngine
+    include f1prediction.webapp.scoringService
+    include f1prediction.webapp.achievementCalculator
+    include f1prediction.webapp.achievementDefs
+    include f1prediction.webapp.raceUtils
+    include f1prediction.webapp.raceService
+    include f1prediction.webapp.adminUtils
+    include f1prediction.webapp.pointSystem
+    include f1prediction.webapp.driverData
+    include f1prediction.webapp.supabaseClient
+    include f1prediction.supabase
+
+    style f1prediction.supabase {
+      color muted
+    }
+  }
+
+  // ── View: API Routes Layer ──────────────────────────────────────
+  // Route handlers, their admin guards, business-logic calls, and external access.
+
+  view apiLayerView of f1prediction.webapp {
+    title 'Web Application — API Routes Layer (app/api/)'
+
+    include f1prediction.webapp.predictionsApi
+    include f1prediction.webapp.resultsApi
+    include f1prediction.webapp.championApi
+    include f1prediction.webapp.racesApi
+    include f1prediction.webapp.achievementsApi
+    include f1prediction.webapp.scoringService
+    include f1prediction.webapp.achievementCalculator
+    include f1prediction.webapp.raceUtils
+    include f1prediction.webapp.adminUtils
+    include f1prediction.webapp.supabaseClient
+    include openf1
+    include f1prediction.supabase
+
+    style openf1 {
+      color muted
+    }
+    style f1prediction.supabase {
+      color muted
+    }
+  }
+
+  // ── View: UI Pages Layer ────────────────────────────────────────
+  // All application pages, their actors, and data sources.
+
+  view uiLayerView of f1prediction.webapp {
+    title 'Web Application — Pages & UI Layer (app/)'
+
+    include user
+    include admin
+    include f1prediction.webapp.dashboardPage
+    include f1prediction.webapp.racePredictionPage
+    include f1prediction.webapp.leaderboardPage
+    include f1prediction.webapp.achievementsPage
+    include f1prediction.webapp.adminPage
+    include f1prediction.webapp.profilePage
+    include f1prediction.webapp.authPage
+    include f1prediction.webapp.predictionsApi
+    include f1prediction.webapp.resultsApi
+    include f1prediction.webapp.championApi
+    include f1prediction.webapp.racesApi
+    include f1prediction.webapp.achievementsApi
+    include f1prediction.webapp.raceService
+    include f1prediction.webapp.achievementDefs
+    include f1prediction.webapp.pointSystem
+    include f1prediction.webapp.supabaseClient
+    include f1prediction.supabase
+
+    style f1prediction.supabase {
+      color muted
+    }
+  }
+
+  // ── View: Prediction Submission Flow ───────────────────────────
+  // How a player picks a race, fills in their predictions, and submits them.
+
+  view predictionFlow of f1prediction.webapp {
+    title 'Prediction Submission — Component Flow'
+
+    include user
+    include f1prediction.webapp.racePredictionPage
+    include f1prediction.webapp.predictionsApi
+    include f1prediction.webapp.raceUtils
+    include f1prediction.webapp.supabaseClient
+    include f1prediction.supabase
+
+    style f1prediction.supabase {
+      color muted
+    }
+  }
+
+  // ── View: Race Scoring & Achievements Flow ─────────────────────
+  // How an admin triggers scoring after a race and how achievements are awarded.
+
+  view scoringFlow of f1prediction.webapp {
+    title 'Race Scoring & Achievement Calculation — Flow'
+
+    include admin
+    include f1prediction.webapp.adminPage
+    include f1prediction.webapp.resultsApi
+    include f1prediction.webapp.scoringService
+    include f1prediction.webapp.scoringEngine
+    include f1prediction.webapp.achievementCalculator
+    include f1prediction.webapp.adminUtils
+    include f1prediction.webapp.supabaseClient
+    include openf1
+    include f1prediction.supabase
+
+    style openf1 {
+      color muted
+    }
+    style f1prediction.supabase {
+      color muted
+    }
+  }
+
+  // ── View: Champion / Season Awards Flow ────────────────────────
+  // End-to-end flow: player submits season award predictions,
+  // admin enters results and triggers scoring.
+
+  view championFlow of f1prediction.webapp {
+    title 'Season Awards (Champion Predictions) — Flow'
+
+    include user
+    include admin
+    include f1prediction.webapp.racePredictionPage
+    include f1prediction.webapp.adminPage
+    include f1prediction.webapp.predictionsApi
+    include f1prediction.webapp.championApi
+    include f1prediction.webapp.scoringService
+    include f1prediction.webapp.scoringEngine
+    include f1prediction.webapp.raceUtils
+    include f1prediction.webapp.supabaseClient
+    include f1prediction.supabase
+
+    style f1prediction.supabase {
+      color muted
+    }
+  }
+}
+
