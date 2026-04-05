@@ -39,21 +39,30 @@ function TimeUnit({ value, label }: { value: number; label: string }) {
   );
 }
 
+function getActiveDeadline(race: Race): string {
+  const now = Date.now();
+  const sprintDeadline = race.sprintDateEnd ? new Date(race.sprintDateEnd).getTime() : null;
+  return sprintDeadline && sprintDeadline > now
+    ? race.sprintDateEnd!
+    : race.dateEnd;
+}
+
 export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(
-    () => calculateTimeLeft(race.dateEnd)
+    () => calculateTimeLeft(getActiveDeadline(race))
   );
-  const [status, setStatus] = useState(getRaceStatus(race));
-  const [qualifyingStarted, setQualifyingStarted] = useState(
-    () => new Date(race.dateEnd).getTime() <= Date.now()
+  const [status, setStatus] = useState(() => getRaceStatus(race));
+  const [deadlinePassed, setDeadlinePassed] = useState(
+    () => new Date(getActiveDeadline(race)).getTime() <= Date.now()
   );
   const { t } = useLanguage();
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft(race.dateEnd));
+      const dl = getActiveDeadline(race);
+      setTimeLeft(calculateTimeLeft(dl));
       setStatus(getRaceStatus(race));
-      setQualifyingStarted(new Date(race.dateEnd).getTime() <= Date.now());
+      setDeadlinePassed(new Date(dl).getTime() <= Date.now());
     }, 1000);
     return () => clearInterval(timer);
   }, [race]);
@@ -64,13 +73,13 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
     <div className={`flex h-full flex-col justify-between p-5 sm:p-6 transition-colors`}>
       <div className="flex items-start justify-between">
         <p className="text-xs font-medium uppercase tracking-wider text-muted">
-          {qualifyingStarted
+          {deadlinePassed
             ? t.nextRace.raceWeekend
             : isWeekendLive
               ? t.nextRace.raceWeekend
               : t.nextRace.nextRace}
         </p>
-        {qualifyingStarted || isWeekendLive ? (
+        {deadlinePassed || isWeekendLive ? (
           <span className="flex items-center gap-1.5 rounded-full bg-f1-red/15 px-2.5 py-1 text-[10px] font-semibold uppercase text-f1-red">
             <Radio size={10} className="animate-pulse" />
             {t.nextRace.live}
@@ -91,7 +100,7 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
         </div>
       </div>
 
-      {!qualifyingStarted && (
+      {!deadlinePassed && (
         <div className="mt-4">
           <div className="flex justify-between gap-2 px-3 py-2">
             <TimeUnit value={timeLeft.days} label={t.nextRace.days} />
@@ -108,7 +117,7 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
         </div>
       )}
 
-      {qualifyingStarted && (
+      {deadlinePassed && (
         <div className="mt-4 rounded-lg bg-f1-red/5 px-3 py-3 text-center">
           <p className="text-sm font-medium text-f1-white">
             {t.nextRace.lightsOut}

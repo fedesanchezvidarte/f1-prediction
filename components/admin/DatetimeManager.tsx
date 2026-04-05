@@ -16,8 +16,10 @@ interface DatetimeManagerProps {
   raceId: number;
   dateStart: string;
   dateEnd: string;
+  sprintDateEnd?: string | null;
+  hasSprint?: boolean;
   /** Called with the updated datetimes after a successful save or restore */
-  onUpdate?: (dateStart: string, dateEnd: string) => void;
+  onUpdate?: (dateStart: string, dateEnd: string, sprintDateEnd?: string | null) => void;
 }
 
 interface TimeLeft {
@@ -73,6 +75,8 @@ export function DatetimeManager({
   raceId,
   dateStart: initialDateStart,
   dateEnd: initialDateEnd,
+  sprintDateEnd: initialSprintDateEnd,
+  hasSprint = false,
   onUpdate,
 }: DatetimeManagerProps) {
   const { t } = useLanguage();
@@ -81,27 +85,43 @@ export function DatetimeManager({
   // "Saved" datetimes — updated after a successful save or restore
   const [savedStart, setSavedStart] = useState(initialDateStart);
   const [savedEnd, setSavedEnd] = useState(initialDateEnd);
+  const [savedSprintEnd, setSavedSprintEnd] = useState(initialSprintDateEnd ?? "");
 
   // Controlled input values in datetime-local format (what the admin types)
   const [inputStart, setInputStart] = useState(toDatetimeLocalValue(initialDateStart));
   const [inputEnd, setInputEnd] = useState(toDatetimeLocalValue(initialDateEnd));
+  const [inputSprintEnd, setInputSprintEnd] = useState(
+    initialSprintDateEnd ? toDatetimeLocalValue(initialSprintDateEnd) : ""
+  );
 
   const [saveState, setSaveState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [saveMsg, setSaveMsg] = useState("");
   const [restoreState, setRestoreState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [restoreMsg, setRestoreMsg] = useState("");
 
-  // Countdown — based on savedEnd (qualifying/prediction deadline) so it updates after a save/restore
+  // Countdown — race qualifying deadline
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft(savedEnd));
   const [eventStatus, setEventStatus] = useState(getEventStatus(savedStart, savedEnd));
+
+  // Countdown — sprint qualifying deadline (only for sprint weekends)
+  const [sprintTimeLeft, setSprintTimeLeft] = useState<TimeLeft>(
+    savedSprintEnd ? calculateTimeLeft(savedSprintEnd) : { days: 0, hours: 0, minutes: 0, seconds: 0 }
+  );
+  const [sprintEventStatus, setSprintEventStatus] = useState(
+    savedSprintEnd ? getEventStatus(savedStart, savedSprintEnd) : ("completed" as const)
+  );
 
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft(calculateTimeLeft(savedEnd));
       setEventStatus(getEventStatus(savedStart, savedEnd));
+      if (savedSprintEnd) {
+        setSprintTimeLeft(calculateTimeLeft(savedSprintEnd));
+        setSprintEventStatus(getEventStatus(savedStart, savedSprintEnd));
+      }
     }, 1000);
     return () => clearInterval(timer);
-  }, [savedStart, savedEnd]);
+  }, [savedStart, savedEnd, savedSprintEnd]);
 
   async function handleSave() {
     setSaveState("loading");
@@ -126,12 +146,20 @@ export function DatetimeManager({
     // Convert validated local datetime-local values back to ISO strings
     const newStart = startDate.toISOString();
     const newEnd = endDate.toISOString();
+    const newSprintEnd = hasSprint && inputSprintEnd
+      ? new Date(inputSprintEnd).toISOString()
+      : null;
 
     try {
       const res = await fetch("/api/races/update-datetime", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raceId, dateStart: newStart, dateEnd: newEnd }),
+        body: JSON.stringify({
+          raceId,
+          dateStart: newStart,
+          dateEnd: newEnd,
+          ...(hasSprint ? { sprintDateEnd: newSprintEnd } : {}),
+        }),
       });
 
       const data = await res.json();
@@ -141,7 +169,8 @@ export function DatetimeManager({
         setSaveMsg(dt.saveSuccess);
         setSavedStart(newStart);
         setSavedEnd(newEnd);
-        onUpdate?.(newStart, newEnd);
+        if (hasSprint) setSavedSprintEnd(newSprintEnd ?? "");
+        onUpdate?.(newStart, newEnd, newSprintEnd);
       } else {
         setSaveState("error");
         setSaveMsg(data.error || dt.saveError);
@@ -172,7 +201,11 @@ export function DatetimeManager({
         setSavedEnd(data.dateEnd);
         setInputStart(toDatetimeLocalValue(data.dateStart));
         setInputEnd(toDatetimeLocalValue(data.dateEnd));
-        onUpdate?.(data.dateStart, data.dateEnd);
+        if (hasSprint && data.sprintDateEnd) {
+          setSavedSprintEnd(data.sprintDateEnd);
+          setInputSprintEnd(toDatetimeLocalValue(data.sprintDateEnd));
+        }
+        onUpdate?.(data.dateStart, data.dateEnd, data.sprintDateEnd ?? null);
       } else {
         setRestoreState("error");
         setRestoreMsg(data.error || dt.restoreError);
@@ -185,7 +218,8 @@ export function DatetimeManager({
 
   const isDirty =
     toDatetimeLocalValue(savedStart) !== inputStart ||
-    toDatetimeLocalValue(savedEnd) !== inputEnd;
+    toDatetimeLocalValue(savedEnd) !== inputEnd ||
+    (hasSprint && (savedSprintEnd ? toDatetimeLocalValue(savedSprintEnd) : "") !== inputSprintEnd);
 
   return (
     <div className="rounded-lg border border-border bg-background/40 p-3 space-y-3">
@@ -196,29 +230,66 @@ export function DatetimeManager({
         <span className="ml-auto text-[10px] text-muted">{dt.yourTimezone}</span>
       </div>
 
-      {/* Countdown / status badge */}
-      {eventStatus === "upcoming" && (
-        <div className="flex items-center gap-2 rounded-lg bg-f1-blue/5 px-3 py-2">
-          <Clock size={12} className="text-f1-blue shrink-0" />
-          <span className="text-[10px] text-muted">{dt.countdownTitle}:</span>
-          <span className="text-xs font-bold tabular-nums text-f1-white">
-            {String(timeLeft.days).padStart(2, "0")}d{" "}
-            {String(timeLeft.hours).padStart(2, "0")}h{" "}
-            {String(timeLeft.minutes).padStart(2, "0")}m{" "}
-            {String(timeLeft.seconds).padStart(2, "0")}s
-          </span>
+      {/* Countdown / status badges */}
+      <div className={`grid gap-2 ${hasSprint && savedSprintEnd ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+        {/* Race qualifying countdown */}
+        <div>
+          {hasSprint && savedSprintEnd && (
+            <p className="text-[10px] uppercase tracking-wider text-f1-blue mb-1">{dt.raceCountdownLabel}</p>
+          )}
+          {eventStatus === "upcoming" && (
+            <div className="flex items-center gap-2 rounded-lg bg-f1-blue/5 px-3 py-2">
+              <Clock size={12} className="text-f1-blue shrink-0" />
+              <span className="text-[10px] text-muted">{dt.countdownTitle}:</span>
+              <span className="text-xs font-bold tabular-nums text-f1-white">
+                {String(timeLeft.days).padStart(2, "0")}d{" "}
+                {String(timeLeft.hours).padStart(2, "0")}h{" "}
+                {String(timeLeft.minutes).padStart(2, "0")}m{" "}
+                {String(timeLeft.seconds).padStart(2, "0")}s
+              </span>
+            </div>
+          )}
+          {eventStatus === "live" && (
+            <div className="rounded-lg bg-f1-green/10 px-3 py-2 text-[10px] font-semibold text-f1-green animate-pulse">
+              {dt.liveNow}
+            </div>
+          )}
+          {eventStatus === "completed" && (
+            <div className="rounded-lg bg-muted/10 px-3 py-2 text-[10px] text-muted">
+              {dt.completed}
+            </div>
+          )}
         </div>
-      )}
-      {eventStatus === "live" && (
-        <div className="rounded-lg bg-f1-green/10 px-3 py-2 text-[10px] font-semibold text-f1-green animate-pulse">
-          {dt.liveNow}
-        </div>
-      )}
-      {eventStatus === "completed" && (
-        <div className="rounded-lg bg-muted/10 px-3 py-2 text-[10px] text-muted">
-          {dt.completed}
-        </div>
-      )}
+
+        {/* Sprint qualifying countdown (only for sprint weekends with sprint deadline set) */}
+        {hasSprint && savedSprintEnd && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-f1-purple mb-1">{dt.sprintCountdownLabel}</p>
+            {sprintEventStatus === "upcoming" && (
+              <div className="flex items-center gap-2 rounded-lg bg-f1-purple/5 px-3 py-2">
+                <Clock size={12} className="text-f1-purple shrink-0" />
+                <span className="text-[10px] text-muted">{dt.sprintCountdownTitle}:</span>
+                <span className="text-xs font-bold tabular-nums text-f1-white">
+                  {String(sprintTimeLeft.days).padStart(2, "0")}d{" "}
+                  {String(sprintTimeLeft.hours).padStart(2, "0")}h{" "}
+                  {String(sprintTimeLeft.minutes).padStart(2, "0")}m{" "}
+                  {String(sprintTimeLeft.seconds).padStart(2, "0")}s
+                </span>
+              </div>
+            )}
+            {sprintEventStatus === "live" && (
+              <div className="rounded-lg bg-f1-green/10 px-3 py-2 text-[10px] font-semibold text-f1-green animate-pulse">
+                {dt.liveNow}
+              </div>
+            )}
+            {sprintEventStatus === "completed" && (
+              <div className="rounded-lg bg-muted/10 px-3 py-2 text-[10px] text-muted">
+                {dt.completed}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Datetime inputs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -257,6 +328,28 @@ export function DatetimeManager({
           />
           <p className="text-[10px] text-muted/70">{toReadableLocal(savedEnd)}</p>
         </div>
+
+        {/* Sprint End (only for sprint weekends) */}
+        {hasSprint && (
+          <div className="space-y-1 sm:col-span-2">
+            <label className="block text-[10px] uppercase tracking-wider text-f1-purple">
+              {dt.sprintEndLabel}
+            </label>
+            <input
+              type="datetime-local"
+              value={inputSprintEnd}
+              onChange={(e) => {
+                setInputSprintEnd(e.target.value);
+                setSaveState("idle");
+                setSaveMsg("");
+              }}
+              className="w-full rounded-lg border border-f1-purple/30 bg-background px-2.5 py-1.5 text-xs text-f1-white accent-f1-purple focus:outline-none focus:ring-1 focus:ring-f1-purple/50"
+            />
+            {savedSprintEnd && (
+              <p className="text-[10px] text-muted/70">{toReadableLocal(savedSprintEnd)}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Action buttons */}

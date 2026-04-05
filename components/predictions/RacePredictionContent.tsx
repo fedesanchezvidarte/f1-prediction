@@ -132,24 +132,40 @@ export function RacePredictionContent({
   const raceStatus = getRaceStatus(currentRace);
   const isChampionTab = tab === "champion";
 
-  const [qualifyingStarted, setQualifyingStarted] = useState(
-    () => new Date(currentRace.dateEnd).getTime() <= Date.now()
+  // Separate deadlines: sprint uses sprintDateEnd, race uses dateEnd
+  const raceDeadline = currentRace.dateEnd;
+  const sprintDeadline = currentRace.sprintDateEnd ?? currentRace.dateEnd;
+
+  // The active deadline depends on the current tab
+  const activeDeadline = tab === "sprint" ? sprintDeadline : raceDeadline;
+
+  const [sprintDeadlinePassed, setSprintDeadlinePassed] = useState(
+    () => new Date(sprintDeadline).getTime() <= Date.now()
+  );
+  const [raceDeadlinePassed, setRaceDeadlinePassed] = useState(
+    () => new Date(raceDeadline).getTime() <= Date.now()
   );
 
-  useEffect(() => {
-    setQualifyingStarted(new Date(currentRace.dateEnd).getTime() <= Date.now());
-  }, [currentRace.dateEnd]);
+  // For backward compat: qualifyingStarted = the active tab's deadline has passed
+  const qualifyingStarted = tab === "sprint" ? sprintDeadlinePassed : raceDeadlinePassed;
 
   useEffect(() => {
-    if (qualifyingStarted) return;
+    setSprintDeadlinePassed(new Date(sprintDeadline).getTime() <= Date.now());
+    setRaceDeadlinePassed(new Date(raceDeadline).getTime() <= Date.now());
+  }, [sprintDeadline, raceDeadline]);
+
+  useEffect(() => {
+    if (sprintDeadlinePassed && raceDeadlinePassed) return;
     const timer = setInterval(() => {
-      if (new Date(currentRace.dateEnd).getTime() <= Date.now()) {
-        setQualifyingStarted(true);
-        clearInterval(timer);
+      if (!sprintDeadlinePassed && new Date(sprintDeadline).getTime() <= Date.now()) {
+        setSprintDeadlinePassed(true);
+      }
+      if (!raceDeadlinePassed && new Date(raceDeadline).getTime() <= Date.now()) {
+        setRaceDeadlinePassed(true);
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [currentRace.dateEnd, qualifyingStarted]);
+  }, [sprintDeadline, raceDeadline, sprintDeadlinePassed, raceDeadlinePassed]);
 
   const nextRaceIndex = useMemo(() => {
     const now = new Date();
@@ -634,6 +650,7 @@ export function RacePredictionContent({
           raceStatus={raceStatus}
           formatDate={formatDate}
           pointsEarned={pointsEarned}
+          deadline={activeDeadline}
         />
       )}
 
@@ -654,16 +671,27 @@ export function RacePredictionContent({
           <button
             onClick={() => currentRace.hasSprint && setTab("sprint")}
             disabled={!currentRace.hasSprint}
-            className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium transition-colors ${
+            className={`relative flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium transition-colors ${
               tab === "sprint"
                 ? "border-b-2 border-f1-red text-f1-white"
                 : !currentRace.hasSprint
                   ? "cursor-not-allowed text-muted/30"
                   : "text-muted hover:text-f1-white"
+            } ${
+              currentRace.hasSprint && tab !== "sprint" && !sprintDeadlinePassed && currentSprintPred?.status !== "scored"
+                ? "animate-pulse bg-f1-purple/10"
+                : ""
             }`}
           >
-            <Zap size={12} />
+            <Zap size={12} className={
+              currentRace.hasSprint && tab !== "sprint" && !sprintDeadlinePassed && currentSprintPred?.status !== "scored"
+                ? "text-f1-purple"
+                : ""
+            } />
             {t.predictionsPage.sprint}
+            {currentRace.hasSprint && tab !== "sprint" && !sprintDeadlinePassed && currentSprintPred?.status !== "scored" && (
+              <span className="absolute -top-0.5 -right-2 h-1.5 w-1.5 rounded-full bg-f1-purple animate-pulse" />
+            )}
             {!currentRace.hasSprint && (
               <span className="text-[9px] text-muted/30">{t.predictionsPage.na}</span>
             )}
@@ -1068,19 +1096,21 @@ function RaceInfoBar({
   raceStatus,
   formatDate,
   pointsEarned: _pointsEarned,
+  deadline,
 }: {
   race: Race;
   raceStatus: RaceStatus;
   formatDate: (d: string) => string;
   pointsEarned: number | null;
+  deadline: string;
 }) {
-  const [qualifyingStarted, setQualifyingStarted] = useState(
-    () => new Date(race.dateEnd).getTime() <= Date.now()
+  const [deadlinePassed, setDeadlinePassed] = useState(
+    () => new Date(deadline).getTime() <= Date.now()
   );
-  const showCountdown = raceStatus !== "completed" && !qualifyingStarted;
+  const showCountdown = raceStatus !== "completed" && !deadlinePassed;
 
   const [timeLeft, setTimeLeft] = useState(() => {
-    const diff = new Date(race.dateEnd).getTime() - Date.now();
+    const diff = new Date(deadline).getTime() - Date.now();
     if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
     return {
       days: Math.floor(diff / (1000 * 60 * 60 * 24)),
@@ -1090,13 +1120,34 @@ function RaceInfoBar({
     };
   });
 
+  // Re-initialise derived state when the deadline prop changes (e.g. tab switch)
+  const prevDeadlineRef = useRef(deadline);
+  if (prevDeadlineRef.current !== deadline) {
+    prevDeadlineRef.current = deadline;
+    // eslint-disable-next-line react-hooks/purity
+    const passed = new Date(deadline).getTime() <= Date.now();
+    setDeadlinePassed(passed);
+    // eslint-disable-next-line react-hooks/purity
+    const diff = new Date(deadline).getTime() - Date.now();
+    if (diff > 0) {
+      setTimeLeft({
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((diff / (1000 * 60)) % 60),
+        seconds: Math.floor((diff / 1000) % 60),
+      });
+    } else {
+      setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+    }
+  }
+
   useEffect(() => {
     if (!showCountdown) return;
     const timer = setInterval(() => {
-      const diff = new Date(race.dateEnd).getTime() - Date.now();
+      const diff = new Date(deadline).getTime() - Date.now();
       if (diff <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        setQualifyingStarted(true);
+        setDeadlinePassed(true);
         return;
       }
       setTimeLeft({
@@ -1107,7 +1158,7 @@ function RaceInfoBar({
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [race.dateEnd, showCountdown]);
+  }, [deadline, showCountdown]);
 
   const pad = (n: number) => String(n).padStart(2, "0");
 

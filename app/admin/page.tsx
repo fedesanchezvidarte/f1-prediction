@@ -47,7 +47,7 @@ export default async function AdminPage() {
   // Get all races for the current season
   const { data: races } = await supabase
     .from("races")
-    .select("id, meeting_key, race_name, circuit_short_name, round, has_sprint, date_start, date_end")
+    .select("id, meeting_key, race_name, circuit_short_name, round, has_sprint, date_start, date_end, sprint_date_end")
     .eq("season_id", season.id)
     .order("round", { ascending: true });
 
@@ -160,6 +160,7 @@ export default async function AdminPage() {
             hasSprint: r.has_sprint,
             dateStart: r.date_start,
             dateEnd: r.date_end,
+            sprintDateEnd: r.sprint_date_end ?? null,
             hasRaceResult: !!raceResultMap[r.id],
             hasSprintResult: r.has_sprint ? !!sprintResultMap[r.id] : false,
             raceResult: raceResultMap[r.id] ?? null,
