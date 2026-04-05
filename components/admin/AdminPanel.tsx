@@ -79,6 +79,7 @@ interface AdminRace {
   hasSprint: boolean;
   dateStart: string;
   dateEnd: string;
+  sprintDateEnd: string | null;
   hasRaceResult: boolean;
   hasSprintResult: boolean;
   raceResult: RaceResult | null;
@@ -760,6 +761,8 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
                     raceId={race.id}
                     dateStart={race.dateStart}
                     dateEnd={race.dateEnd}
+                    sprintDateEnd={race.sprintDateEnd}
+                    hasSprint={race.hasSprint}
                     onUpdate={() => router.refresh()}
                   />
 

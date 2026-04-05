@@ -22,7 +22,7 @@ export async function fetchRacesFromDb(): Promise<Race[]> {
   const { data: dbRaces } = await supabase
     .from("races")
     .select(
-      "meeting_key, race_name, official_name, circuit_short_name, country_name, country_code, location, date_start, date_end, round, has_sprint"
+      "meeting_key, race_name, official_name, circuit_short_name, country_name, country_code, location, date_start, date_end, sprint_date_end, round, has_sprint"
     )
     .eq("season_id", season.id)
     .order("round", { ascending: true });
@@ -39,6 +39,7 @@ export async function fetchRacesFromDb(): Promise<Race[]> {
     location: r.location,
     dateStart: r.date_start,
     dateEnd: r.date_end,
+    sprintDateEnd: r.sprint_date_end ?? null,
     round: r.round,
     hasSprint: r.has_sprint,
   }));

@@ -75,27 +75,40 @@ export async function POST(request: NextRequest) {
   }
 
   const circuit = encodeURIComponent(raceRecord.circuit_short_name);
-  // Prediction deadline = start of the session that locks the grid:
-  //   sprint weekends → Sprint Qualifying; regular weekends → Qualifying
-  const deadlineSession = raceRecord.has_sprint ? "Sprint Qualifying" : "Qualifying";
 
-  // Fetch Practice 1 (weekend start) and the deadline session in parallel.
-  const [fp1Res, deadlineRes] = await Promise.all([
+  // Fetch Practice 1 (weekend start) and Qualifying (race prediction deadline) in parallel.
+  // For sprint weekends, also fetch Sprint Qualifying (sprint prediction deadline).
+  const fetches: Promise<Response>[] = [
     fetch(`https://api.openf1.org/v1/sessions?circuit_short_name=${circuit}&session_name=Practice+1&year=${year}`),
-    fetch(`https://api.openf1.org/v1/sessions?circuit_short_name=${circuit}&session_name=${encodeURIComponent(deadlineSession)}&year=${year}`),
-  ]);
+    fetch(`https://api.openf1.org/v1/sessions?circuit_short_name=${circuit}&session_name=Qualifying&year=${year}`),
+  ];
 
-  if (!fp1Res.ok || !deadlineRes.ok) {
+  if (raceRecord.has_sprint) {
+    fetches.push(
+      fetch(`https://api.openf1.org/v1/sessions?circuit_short_name=${circuit}&session_name=Sprint+Qualifying&year=${year}`)
+    );
+  }
+
+  const responses = await Promise.all(fetches);
+  const [fp1Res, qualiRes] = responses;
+  const sprintQualiRes = raceRecord.has_sprint ? responses[2] : null;
+
+  if (!fp1Res.ok || !qualiRes.ok || (sprintQualiRes && !sprintQualiRes.ok)) {
     return NextResponse.json(
-      { error: `OpenF1 sessions API error: FP1=${fp1Res.status} ${deadlineSession}=${deadlineRes.status}` },
+      { error: `OpenF1 sessions API error: FP1=${fp1Res.status} Qualifying=${qualiRes.status}${sprintQualiRes ? ` SprintQualifying=${sprintQualiRes.status}` : ""}` },
       { status: 502 }
     );
   }
 
-  const [fp1Sessions, deadlineSessions]: [OpenF1Session[], OpenF1Session[]] = await Promise.all([
+  const [fp1Sessions, qualiSessions]: [OpenF1Session[], OpenF1Session[]] = await Promise.all([
     fp1Res.json(),
-    deadlineRes.json(),
+    qualiRes.json(),
   ]);
+
+  let sprintQualiSessions: OpenF1Session[] = [];
+  if (sprintQualiRes) {
+    sprintQualiSessions = await sprintQualiRes.json();
+  }
 
   if (!fp1Sessions || fp1Sessions.length === 0) {
     return NextResponse.json(
@@ -104,16 +117,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!deadlineSessions || deadlineSessions.length === 0) {
+  if (!qualiSessions || qualiSessions.length === 0) {
     return NextResponse.json(
-      { error: `No ${deadlineSession} session found on OpenF1 for ${raceRecord.circuit_short_name} ${year}` },
+      { error: `No Qualifying session found on OpenF1 for ${raceRecord.circuit_short_name} ${year}` },
       { status: 404 }
     );
   }
 
-  const dateStart = fp1Sessions[0].date_start;           // weekend opens
-  const dateEnd = deadlineSessions[0].date_start;         // prediction deadline
-  const gmtOffset = deadlineSessions[0].gmt_offset;
+  if (raceRecord.has_sprint && (!sprintQualiSessions || sprintQualiSessions.length === 0)) {
+    return NextResponse.json(
+      { error: `No Sprint Qualifying session found on OpenF1 for ${raceRecord.circuit_short_name} ${year}` },
+      { status: 404 }
+    );
+  }
+
+  const dateStart = fp1Sessions[0].date_start;            // weekend opens
+  const dateEnd = qualiSessions[0].date_start;            // race prediction deadline (Qualifying start)
+  const sprintDateEnd = raceRecord.has_sprint
+    ? sprintQualiSessions[0].date_start                   // sprint prediction deadline (Sprint Qualifying start)
+    : null;
+  const gmtOffset = qualiSessions[0].gmt_offset;
 
   if (!dateStart || !dateEnd) {
     return NextResponse.json(
@@ -123,9 +146,17 @@ export async function POST(request: NextRequest) {
   }
 
   // Persist to database
+  const updateData: Record<string, string | null> = {
+    date_start: dateStart,
+    date_end: dateEnd,
+  };
+  if (raceRecord.has_sprint) {
+    updateData.sprint_date_end = sprintDateEnd;
+  }
+
   const { data, error } = await supabase
     .from("races")
-    .update({ date_start: dateStart, date_end: dateEnd })
+    .update(updateData)
     .eq("id", raceId)
     .select("id");
 
@@ -144,6 +175,7 @@ export async function POST(request: NextRequest) {
     success: true,
     dateStart,
     dateEnd,
+    sprintDateEnd,
     gmtOffset,
   });
 }

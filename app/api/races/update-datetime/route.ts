@@ -28,11 +28,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { raceId, dateStart, dateEnd } = body as {
+  const { raceId, dateStart, dateEnd, sprintDateEnd: rawSprintDateEnd } = body as {
     raceId: number;
     dateStart: string;
     dateEnd: string;
+    sprintDateEnd?: string | null;
   };
+
+  // Normalize empty string to null
+  const sprintDateEnd =
+    typeof rawSprintDateEnd === "string" && rawSprintDateEnd.trim() === ""
+      ? null
+      : rawSprintDateEnd;
 
   if (!raceId || !dateStart || !dateEnd) {
     return NextResponse.json(
@@ -58,9 +65,39 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (sprintDateEnd) {
+    const parsedSprintEnd = new Date(sprintDateEnd);
+    if (Number.isNaN(parsedSprintEnd.getTime())) {
+      return NextResponse.json(
+        { error: "sprintDateEnd must be a valid date-time string" },
+        { status: 400 }
+      );
+    }
+    if (parsedSprintEnd <= parsedStart) {
+      return NextResponse.json(
+        { error: "sprintDateEnd must be after dateStart" },
+        { status: 400 }
+      );
+    }
+    if (parsedSprintEnd >= parsedEnd) {
+      return NextResponse.json(
+        { error: "sprintDateEnd must be before dateEnd" },
+        { status: 400 }
+      );
+    }
+  }
+
+  const updateData: Record<string, string | null> = {
+    date_start: dateStart,
+    date_end: dateEnd,
+  };
+  if (sprintDateEnd !== undefined) {
+    updateData.sprint_date_end = sprintDateEnd ?? null;
+  }
+
   const { data, error } = await supabase
     .from("races")
-    .update({ date_start: dateStart, date_end: dateEnd })
+    .update(updateData)
     .eq("id", raceId)
     .select("id");
 

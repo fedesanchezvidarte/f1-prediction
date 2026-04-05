@@ -19,6 +19,7 @@ function makeRace(overrides: Partial<Race> & Pick<Race, "dateStart" | "dateEnd">
     location: "Testville",
     round: 1,
     hasSprint: false,
+    sprintDateEnd: null,
     ...overrides,
   };
 }

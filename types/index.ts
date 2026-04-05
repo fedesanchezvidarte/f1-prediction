@@ -19,6 +19,7 @@ export interface Race {
   location: string;
   dateStart: string;
   dateEnd: string;
+  sprintDateEnd: string | null;
   round: number;
   hasSprint: boolean;
 }
