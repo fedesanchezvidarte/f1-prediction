@@ -244,7 +244,7 @@ async function handleSeasonAwardPredictions(
   // Fetch race calendar to enforce champion prediction deadlines
   const { data: racesRaw } = await supabase
     .from("races")
-    .select("meeting_key, race_name, official_name, circuit_short_name, country_name, country_code, location, date_start, date_end, round, has_sprint")
+    .select("meeting_key, race_name, official_name, circuit_short_name, country_name, country_code, location, date_start, date_end, sprint_date_end, round, has_sprint")
     .eq("season_id", season.id)
     .order("round", { ascending: true });
 
@@ -258,6 +258,7 @@ async function handleSeasonAwardPredictions(
     location: r.location as string,
     dateStart: r.date_start as string,
     dateEnd: r.date_end as string,
+    sprintDateEnd: (r.sprint_date_end as string) ?? null,
     round: r.round as number,
     hasSprint: r.has_sprint as boolean,
   }));
