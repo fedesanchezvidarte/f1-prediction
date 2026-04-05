@@ -6,7 +6,7 @@
 -- (sprint prediction deadline), while date_end stores the Qualifying
 -- start time (race prediction deadline).
 
-ALTER TABLE races ADD COLUMN sprint_date_end timestamptz;
+ALTER TABLE races ADD COLUMN IF NOT EXISTS sprint_date_end timestamptz;
 
 COMMENT ON COLUMN races.sprint_date_end IS
   'Sprint prediction deadline (Sprint Qualifying start). Only set for sprint weekends. Race predictions use date_end (Qualifying start).';
