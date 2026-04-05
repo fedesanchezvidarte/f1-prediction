@@ -151,4 +151,62 @@ describe("POST /api/races/update-datetime", () => {
     expect(status).toBe(500);
     expect(json.error).toMatch(/rls violation/i);
   });
+
+  it("returns 400 when sprintDateEnd is not a valid date", async () => {
+    setAdmin();
+    const { status, json } = await parseResponse(
+      await POST(
+        createMockRequest({
+          ...validBody,
+          sprintDateEnd: "not-a-date",
+        })
+      )
+    );
+    expect(status).toBe(400);
+    expect(json.error).toMatch(/sprintDateEnd.*valid date/i);
+  });
+
+  it("returns 400 when sprintDateEnd is before dateStart", async () => {
+    setAdmin();
+    const { status, json } = await parseResponse(
+      await POST(
+        createMockRequest({
+          ...validBody,
+          sprintDateEnd: "2026-03-15T09:00:00Z",
+        })
+      )
+    );
+    expect(status).toBe(400);
+    expect(json.error).toMatch(/sprintDateEnd.*after.*dateStart/i);
+  });
+
+  it("returns 400 when sprintDateEnd is after dateEnd", async () => {
+    setAdmin();
+    const { status, json } = await parseResponse(
+      await POST(
+        createMockRequest({
+          ...validBody,
+          sprintDateEnd: "2026-03-15T15:00:00Z",
+        })
+      )
+    );
+    expect(status).toBe(400);
+    expect(json.error).toMatch(/sprintDateEnd.*before.*dateEnd/i);
+  });
+
+  it("returns 200 with valid sprintDateEnd", async () => {
+    setAdmin();
+    mockFrom.mockReturnValue(chain([{ id: 1 }]));
+
+    const { status, json } = await parseResponse(
+      await POST(
+        createMockRequest({
+          ...validBody,
+          sprintDateEnd: "2026-03-15T12:00:00Z",
+        })
+      )
+    );
+    expect(status).toBe(200);
+    expect(json.success).toBe(true);
+  });
 });
