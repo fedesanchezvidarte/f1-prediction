@@ -209,4 +209,20 @@ describe("POST /api/races/update-datetime", () => {
     expect(status).toBe(200);
     expect(json.success).toBe(true);
   });
+
+  it("normalizes empty string sprintDateEnd to null without error", async () => {
+    setAdmin();
+    mockFrom.mockReturnValue(chain([{ id: 1 }]));
+
+    const { status, json } = await parseResponse(
+      await POST(
+        createMockRequest({
+          ...validBody,
+          sprintDateEnd: "",
+        })
+      )
+    );
+    expect(status).toBe(200);
+    expect(json.success).toBe(true);
+  });
 });

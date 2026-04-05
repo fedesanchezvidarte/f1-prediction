@@ -408,6 +408,7 @@ const es: Messages = {
       saving: "Guardando...",
       saveSuccess: "Fechas actualizadas correctamente",
       saveError: "Error al actualizar las fechas",
+      sprintDateRangeError: "El plazo sprint debe ser después del inicio y antes del plazo de carrera",
       restoreOpenF1: "Restaurar desde OpenF1",
       restoring: "Restaurando...",
       restoreSuccess: "Fechas restauradas desde OpenF1",

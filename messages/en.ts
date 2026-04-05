@@ -418,6 +418,7 @@ const en = {
       saving: "Saving...",
       saveSuccess: "Datetimes updated successfully",
       saveError: "Failed to update datetimes",
+      sprintDateRangeError: "Sprint deadline must be after start and before race deadline",
       restoreOpenF1: "Restore from OpenF1",
       restoring: "Restoring...",
       restoreSuccess: "Datetimes restored from OpenF1",

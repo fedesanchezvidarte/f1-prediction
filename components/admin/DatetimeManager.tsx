@@ -143,12 +143,25 @@ export function DatetimeManager({
       return;
     }
 
+    // Validate sprint end if applicable
+    let sprintEndDate: Date | null = null;
+    if (hasSprint && inputSprintEnd) {
+      sprintEndDate = new Date(inputSprintEnd);
+      if (
+        isNaN(sprintEndDate.getTime()) ||
+        sprintEndDate <= startDate ||
+        sprintEndDate >= endDate
+      ) {
+        setSaveState("error");
+        setSaveMsg(dt.sprintDateRangeError);
+        return;
+      }
+    }
+
     // Convert validated local datetime-local values back to ISO strings
     const newStart = startDate.toISOString();
     const newEnd = endDate.toISOString();
-    const newSprintEnd = hasSprint && inputSprintEnd
-      ? new Date(inputSprintEnd).toISOString()
-      : null;
+    const newSprintEnd = sprintEndDate ? sprintEndDate.toISOString() : null;
 
     try {
       const res = await fetch("/api/races/update-datetime", {
@@ -201,9 +214,11 @@ export function DatetimeManager({
         setSavedEnd(data.dateEnd);
         setInputStart(toDatetimeLocalValue(data.dateStart));
         setInputEnd(toDatetimeLocalValue(data.dateEnd));
-        if (hasSprint && data.sprintDateEnd) {
-          setSavedSprintEnd(data.sprintDateEnd);
-          setInputSprintEnd(toDatetimeLocalValue(data.sprintDateEnd));
+        if (hasSprint) {
+          setSavedSprintEnd(data.sprintDateEnd ?? "");
+          setInputSprintEnd(
+            data.sprintDateEnd ? toDatetimeLocalValue(data.sprintDateEnd) : ""
+          );
         }
         onUpdate?.(data.dateStart, data.dateEnd, data.sprintDateEnd ?? null);
       } else {

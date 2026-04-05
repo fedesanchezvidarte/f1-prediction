@@ -28,12 +28,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { raceId, dateStart, dateEnd, sprintDateEnd } = body as {
+  const { raceId, dateStart, dateEnd, sprintDateEnd: rawSprintDateEnd } = body as {
     raceId: number;
     dateStart: string;
     dateEnd: string;
     sprintDateEnd?: string | null;
   };
+
+  // Normalize empty string to null
+  const sprintDateEnd =
+    typeof rawSprintDateEnd === "string" && rawSprintDateEnd.trim() === ""
+      ? null
+      : rawSprintDateEnd;
 
   if (!raceId || !dateStart || !dateEnd) {
     return NextResponse.json(
