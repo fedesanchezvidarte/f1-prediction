@@ -18,11 +18,13 @@ import {
   Award,
   Trash2,
   Crown,
+  BarChart3,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { ManualResultForm } from "@/components/admin/ManualResultForm";
 import { DatetimeManager } from "@/components/admin/DatetimeManager";
 import { ChampionResultForm } from "@/components/admin/ChampionResultForm";
+import type { DriverStatsMap, DriverStatsLeaders } from "@/lib/driver-stats";
 
 interface AdminDriver {
   id: number;
@@ -42,6 +44,7 @@ interface RaceResult {
   fastest_lap_driver_id: number;
   fastest_pit_stop_driver_id: number;
   driver_of_the_day_driver_id?: number | null;
+  dnf_driver_ids?: number[] | null;
 }
 
 interface SprintResult {
@@ -95,11 +98,13 @@ interface AdminPanelProps {
   championResult: AdminChampionResult | null;
   teamBestDriverResults: AdminTeamBestDriverResult[];
   championPredictions: { submitted: number; scored: number };
+  driverStats: DriverStatsMap;
+  driverStatsLeaders: DriverStatsLeaders;
 }
 
 type SessionType = "race" | "sprint";
 
-export function AdminPanel({ races, drivers, teams, championResult, teamBestDriverResults, championPredictions }: AdminPanelProps) {
+export function AdminPanel({ races, drivers, teams, championResult, teamBestDriverResults, championPredictions, driverStats, driverStatsLeaders }: AdminPanelProps) {
   const { t } = useLanguage();
   const router = useRouter();
   const admin = t.admin;
@@ -554,6 +559,46 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
             </div>
           )}
 
+          {/* Driver Stats Summary */}
+          {Object.keys(driverStats).length > 0 && (
+            <div className="rounded-lg border border-border bg-card-hover p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 size={14} className="text-f1-blue" />
+                <span className="text-xs font-semibold text-f1-white">{admin.driverStatsTitle ?? "Driver Stats"}</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="text-muted text-left">
+                      <th className="pb-1 pr-3 font-medium">{admin.selectDriver?.replace("...", "") ?? "Driver"}</th>
+                      <th className="pb-1 px-3 font-medium text-center">{admin.driverStatsWins ?? "Wins"}</th>
+                      <th className="pb-1 px-3 font-medium text-center">{admin.driverStatsPodiums ?? "Podiums"}</th>
+                      <th className="pb-1 pl-3 font-medium text-center">{admin.driverStatsDnfs ?? "DNFs"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.values(driverStats)
+                      .sort((a, b) => b.wins - a.wins || b.podiums - a.podiums || a.driverId - b.driverId)
+                      .map((stat) => (
+                        <tr key={stat.driverId} className="border-t border-border/50">
+                          <td className="py-1 pr-3 text-f1-white">{getDriverName(stat.driverId)}</td>
+                          <td className={`py-1 px-3 text-center ${driverStatsLeaders.mostWins?.driverId === stat.driverId ? "text-f1-amber font-bold" : "text-f1-white"}`}>
+                            {stat.wins}
+                          </td>
+                          <td className={`py-1 px-3 text-center ${driverStatsLeaders.mostPodiums?.driverId === stat.driverId ? "text-f1-amber font-bold" : "text-f1-white"}`}>
+                            {stat.podiums}
+                          </td>
+                          <td className={`py-1 pl-3 text-center ${driverStatsLeaders.mostDnfs?.driverId === stat.driverId ? "bg-f1-red/20 text-f1-white font-bold" : "text-f1-white"}`}>
+                            {stat.dnfs}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2">
             {/* Manual entry / override */}
@@ -645,6 +690,7 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
               teams={teams}
               existingResult={championResult}
               existingTeamBestDriverResults={teamBestDriverResults}
+              driverStatsLeaders={driverStatsLeaders}
               onSuccess={() => {
                 setShowChampionForm(false);
                 setChampionSaveMessage(admin.championSaveSuccess);
@@ -818,6 +864,14 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
                             <div>
                               <span className="text-muted">{admin.driverOfTheDay}: </span>
                               <span className="text-f1-white">{getDriverName(race.raceResult.driver_of_the_day_driver_id)}</span>
+                            </div>
+                          )}
+                          {race.raceResult.dnf_driver_ids && race.raceResult.dnf_driver_ids.length > 0 && (
+                            <div className="col-span-2">
+                              <span className="text-muted">{admin.driverStatsDnfs}: </span>
+                              <span className="text-f1-white">
+                                {(race.raceResult.dnf_driver_ids as number[]).map((id) => getDriverName(id)).join(", ")}
+                              </span>
                             </div>
                           )}
                           <div className="col-span-2">

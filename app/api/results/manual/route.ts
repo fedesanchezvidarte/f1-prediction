@@ -35,6 +35,7 @@ interface RaceResultBody {
   fastestLapDriverId: number;
   fastestPitStopDriverId: number;
   driverOfTheDayDriverId?: number | null;
+  dnfDriverIds?: number[] | null;
 }
 
 interface SprintResultBody {
@@ -106,6 +107,7 @@ export async function POST(request: NextRequest) {
         fastestLapDriverId,
         fastestPitStopDriverId,
         driverOfTheDayDriverId,
+        dnfDriverIds,
       } = body as RaceResultBody;
 
       if (!polePositionDriverId || !top10 || top10.length !== 10 || !fastestLapDriverId || !fastestPitStopDriverId) {
@@ -126,6 +128,16 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Validate dnfDriverIds if provided
+      if (dnfDriverIds != null) {
+        if (!Array.isArray(dnfDriverIds) || dnfDriverIds.some((id) => typeof id !== "number" || !Number.isInteger(id) || id <= 0)) {
+          return NextResponse.json(
+            { error: "dnfDriverIds must be an array of valid positive integer driver IDs" },
+            { status: 400 }
+          );
+        }
+      }
+
       const resultData = {
         race_id: raceId,
         pole_position_driver_id: polePositionDriverId,
@@ -133,6 +145,7 @@ export async function POST(request: NextRequest) {
         fastest_lap_driver_id: fastestLapDriverId,
         fastest_pit_stop_driver_id: fastestPitStopDriverId,
         driver_of_the_day_driver_id: driverOfTheDayDriverId ?? null,
+        ...(dnfDriverIds !== undefined && { dnf_driver_ids: dnfDriverIds ? [...new Set(dnfDriverIds)] : null }),
         source: "manual" as const,
       };
 

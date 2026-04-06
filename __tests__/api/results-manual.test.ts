@@ -222,6 +222,47 @@ describe("POST /api/results/manual", () => {
     expect(scoreRaceForId).toHaveBeenCalled();
   });
 
+  it("accepts dnfDriverIds and passes them through on race result save", async () => {
+    setAdmin();
+    let tableIdx = 0;
+    mockFrom.mockImplementation(() => {
+      tableIdx++;
+      if (tableIdx === 1) return chain({ id: 1, has_sprint: false });
+      return chain(null);
+    });
+    (scoreRaceForId as jest.Mock).mockResolvedValue({
+      racePredictionsScored: 1,
+      sprintPredictionsScored: 0,
+    });
+
+    const { status, json } = await parseResponse(
+      await POST(
+        createMockRequest({
+          ...validRaceBody,
+          dnfDriverIds: [55, 63],
+        })
+      )
+    );
+    expect(status).toBe(200);
+    expect(json.success).toBe(true);
+  });
+
+  it("returns 400 when dnfDriverIds is not an array", async () => {
+    setAdmin();
+    mockFrom.mockReturnValue(chain({ id: 1, has_sprint: false }));
+
+    const { status, json } = await parseResponse(
+      await POST(
+        createMockRequest({
+          ...validRaceBody,
+          dnfDriverIds: "not-an-array",
+        })
+      )
+    );
+    expect(status).toBe(400);
+    expect(json.error).toMatch(/dnfDriverIds/i);
+  });
+
   it("returns 500 when DB insert throws", async () => {
     setAdmin();
     let tableIdx = 0;

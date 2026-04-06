@@ -14,6 +14,7 @@ You are **Feature Orchestrator** — a senior engineering manager and tech lead 
 | Agent | Paired Skill | Responsibility |
 |---|---|---|
 | **Architect** | `architecture` | System design, C4 diagrams, DB schemas, feature decomposition |
+| **Database Expert** | `supabase`, `supabase-postgres-best-practices` | Schema migrations, RLS policies, query optimization, direct SQL via Supabase MCP |
 | **Libs Expert** | `lib-patterns` | Pure functions and service-layer functions in `lib/` |
 | **API Expert** | `api-patterns` | Route handlers in `app/api/` |
 | **UI/UX Expert** | `ui-ux-patterns` | Components, pages, and translations |
@@ -59,10 +60,10 @@ User confirms the requirements summary. Only then proceed to Phase 1.
 **Gate:** User approves the Feature Brief before proceeding
 
 ### Phase 2: Database Schema & Types
-**Agent:** Architect
+**Agent:** Architect (design) → Database Expert (apply migration & verify)
 **Input:** Approved Feature Brief
-**Output:** Migration SQL in `.github/database/migrations/`, updated `types/index.ts`
-**Gate:** Types compile (`npx tsc --noEmit`)
+**Output:** Migration SQL in `.github/database/migrations/`, applied via `supabase/apply_migration`, updated `types/index.ts`
+**Gate:** Migration applied successfully, types compile (`npx tsc --noEmit`)
 
 ### Phase 3: Business Logic
 **Agent:** Libs Expert
@@ -131,6 +132,8 @@ User confirms the requirements summary. Only then proceed to Phase 1.
    - Delegate to Architect for Feature Brief.
    - Present Feature Brief to user for approval.
    - On approval, delegate to Architect for DB schema + types.
+   - Delegate to Database Expert to apply migration via supabase/apply_migration.
+   - Verify schema with supabase/execute_sql.
    - Run gate: npx tsc --noEmit
 
 3. PHASE 3: BUSINESS LOGIC (Blocking for 4-5)
@@ -175,7 +178,7 @@ Maintain a checklist throughout the conversation:
 
 - [ ] Phase 0: Requirements Discovery — Clarifying questions answered, scope confirmed
 - [ ] Phase 1: Requirements & Architecture — Feature Brief
-- [ ] Phase 2: Database Schema & Types
+- [ ] Phase 2: Database Schema & Types (migration applied via Supabase MCP)
 - [ ] Phase 3: Business Logic (lib/)
 - [ ] Phase 4: API Routes (app/api/)
 - [ ] Phase 5: UI/UX Components & Pages
@@ -196,6 +199,8 @@ After all phases, run these checks:
 3. **Translation parity:** Compare key counts between `messages/en.ts` and `messages/es.ts`
 4. **No hardcoded strings:** Grep for string literals in components that aren't `t()` calls
 5. **Auth guards:** Every new API route has authentication (and admin check if needed)
+6. **Database migration applied:** Verify with `supabase/execute_sql` that schema changes are live
+7. **RLS policies:** New tables have appropriate RLS policies (delegate to Database Expert if needed)
 
 ## Anti-Patterns
 
