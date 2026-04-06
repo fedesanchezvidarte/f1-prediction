@@ -40,7 +40,8 @@ export function computeDriverStats(
     for (let i = 0; i < Math.min(3, top10.length); i++) {
       entry(top10[i]).podiums += 1;
     }
-    for (const driverId of result.dnf_driver_ids ?? []) {
+    const uniqueDnfs = new Set(result.dnf_driver_ids ?? []);
+    for (const driverId of uniqueDnfs) {
       entry(driverId).dnfs += 1;
     }
   }

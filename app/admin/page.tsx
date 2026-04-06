@@ -53,15 +53,23 @@ export default async function AdminPage() {
     .eq("season_id", season.id)
     .order("round", { ascending: true });
 
-  // Get all race results
-  const { data: raceResults } = await supabase
-    .from("race_results")
-    .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id, dnf_driver_ids");
+  const raceIds = (races ?? []).map((r) => r.id);
 
-  // Get all sprint results
-  const { data: sprintResults } = await supabase
-    .from("sprint_results")
-    .select("race_id, sprint_pole_driver_id, top_8, fastest_lap_driver_id");
+  // Get race results scoped to the current season
+  const { data: raceResults } = raceIds.length > 0
+    ? await supabase
+        .from("race_results")
+        .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id, dnf_driver_ids")
+        .in("race_id", raceIds)
+    : { data: [] as never[] };
+
+  // Get sprint results scoped to the current season
+  const { data: sprintResults } = raceIds.length > 0
+    ? await supabase
+        .from("sprint_results")
+        .select("race_id, sprint_pole_driver_id, top_8, fastest_lap_driver_id")
+        .in("race_id", raceIds)
+    : { data: [] as never[] };
 
   // Get all drivers for this season
   const { data: drivers } = await supabase

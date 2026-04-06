@@ -130,9 +130,9 @@ export async function POST(request: NextRequest) {
 
       // Validate dnfDriverIds if provided
       if (dnfDriverIds != null) {
-        if (!Array.isArray(dnfDriverIds) || dnfDriverIds.some((id) => typeof id !== "number" || id <= 0 || !Number.isFinite(id))) {
+        if (!Array.isArray(dnfDriverIds) || dnfDriverIds.some((id) => typeof id !== "number" || !Number.isInteger(id) || id <= 0)) {
           return NextResponse.json(
-            { error: "dnfDriverIds must be an array of valid positive driver IDs" },
+            { error: "dnfDriverIds must be an array of valid positive integer driver IDs" },
             { status: 400 }
           );
         }
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
         fastest_lap_driver_id: fastestLapDriverId,
         fastest_pit_stop_driver_id: fastestPitStopDriverId,
         driver_of_the_day_driver_id: driverOfTheDayDriverId ?? null,
-        dnf_driver_ids: dnfDriverIds ?? null,
+        ...(dnfDriverIds !== undefined && { dnf_driver_ids: dnfDriverIds ? [...new Set(dnfDriverIds)] : null }),
         source: "manual" as const,
       };
 

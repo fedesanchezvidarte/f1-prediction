@@ -868,7 +868,7 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
                           )}
                           {race.raceResult.dnf_driver_ids && race.raceResult.dnf_driver_ids.length > 0 && (
                             <div className="col-span-2">
-                              <span className="text-muted">{admin.mostDnfs}: </span>
+                              <span className="text-muted">{admin.driverStatsDnfs}: </span>
                               <span className="text-f1-white">
                                 {(race.raceResult.dnf_driver_ids as number[]).map((id) => getDriverName(id)).join(", ")}
                               </span>

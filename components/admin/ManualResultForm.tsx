@@ -97,7 +97,8 @@ export function ManualResultForm({
 
   const initDnfs = (): number[] => {
     if (sessionType === "race" && existingResult && "dnf_driver_ids" in existingResult) {
-      return (existingResult as RaceResult).dnf_driver_ids ?? [];
+      const ids = (existingResult as RaceResult).dnf_driver_ids ?? [];
+      return [...new Set(ids)];
     }
     return [];
   };
@@ -317,7 +318,7 @@ export function ManualResultForm({
       {sessionType === "race" && (
         <div>
           <label className="mb-1 block text-[11px] font-medium text-muted">
-            {admin.mostDnfs ?? "DNFs"} ({admin.driverStatsDnfsOptional ?? "optional"})
+            {admin.driverStatsDnfs ?? "DNFs"} ({admin.driverStatsDnfsOptional ?? "optional"})
           </label>
           <div className="max-h-40 overflow-y-auto rounded-lg border border-border bg-input-bg p-2 space-y-1">
             {drivers.map((d) => (
