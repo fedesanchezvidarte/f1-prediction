@@ -8,6 +8,7 @@ This document indexes all custom agents available in the F1 Prediction project. 
 |---|---|---|---|
 | **Feature Orchestrator** | `.github/agents/feature-orchestrator.agent.md` | *(coordinates all)* | Claude Opus 4.6 |
 | **Architect** | `.github/agents/architect.agent.md` | `architecture` | Claude Sonnet 4.6 / Opus 4.6 |
+| **Database Expert** | `.github/agents/database-expert.agent.md` | `supabase`, `supabase-postgres-best-practices` | Claude Sonnet 4.6 |
 | **Libs Expert** | `.github/agents/libs-expert.agent.md` | `lib-patterns` | Claude Sonnet 4.6 |
 | **API Expert** | `.github/agents/api-expert.agent.md` | `api-patterns` | Claude Sonnet 4.6 |
 | **UI/UX Expert** | `.github/agents/ui-ux-expert.agent.md` | `ui-ux-patterns` | Claude Sonnet 4.6 / Opus 4.6 |
@@ -25,6 +26,11 @@ This document indexes all custom agents available in the F1 Prediction project. 
 **Use for:** System design, C4 architecture diagrams, database schema planning, feature decomposition.
 
 **Invoke when:** Planning a new feature (produces Feature Brief), designing database migrations, creating LikeC4 diagrams, or analyzing system dependencies.
+
+### Database Expert
+**Use for:** Schema migrations, RLS policies, query optimization, Postgres best practices, and direct SQL execution via Supabase MCP.
+
+**Invoke when:** Applying database migrations, auditing RLS policies, optimizing slow queries, inspecting live data, generating TypeScript types from the schema, or any task requiring direct interaction with the Supabase database.
 
 ### Libs Expert
 **Use for:** Business logic in `lib/` — pure scoring functions, achievement calculators, service-layer functions.
@@ -58,7 +64,7 @@ The Feature Orchestrator manages these 10 phases:
 | # | Phase | Agent | Blocking? |
 |---|---|---|---|
 | 1 | Requirements & Architecture | Architect | Blocks all |
-| 2 | Database Schema & Types | Architect | Blocks 3–6 |
+| 2 | Database Schema & Types | Architect → Database Expert | Blocks 3–6 |
 | 3 | Business Logic (`lib/`) | Libs Expert | Blocks 4 |
 | 4 | API Routes (`app/api/`) | API Expert | ∥ with 5 |
 | 5 | UI/UX Components & Pages | UI/UX Expert | ∥ with 4 |
@@ -77,6 +83,10 @@ For LikeC4 DSL syntax, refer to the [official LikeC4 documentation](https://like
 ```
 .github/skills/
 ├── architecture/
+│   └── SKILL.md
+├── supabase/
+│   └── SKILL.md
+├── supabase-postgres-best-practices/
 │   └── SKILL.md
 ├── lib-patterns/
 │   ├── SKILL.md

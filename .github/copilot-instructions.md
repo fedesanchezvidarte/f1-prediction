@@ -27,12 +27,13 @@ Domain-specific knowledge is organized as skills in `.github/skills/`. Each skil
 
 ## Specialized Agents
 
-Seven custom agents live in `.github/agents/` and are organized by application layer. For end-to-end feature development, use the **Feature Orchestrator** which coordinates all phases.
+Eight custom agents live in `.github/agents/` and are organized by application layer. For end-to-end feature development, use the **Feature Orchestrator** which coordinates all phases.
 
 | Agent | File | Paired Skill | When to use |
 |---|---|---|---|
 | **Feature Orchestrator** | [`feature-orchestrator.agent.md`](agents/feature-orchestrator.agent.md) | *(coordinates all)* | End-to-end feature development across all layers |
 | **Architect** | [`architect.agent.md`](agents/architect.agent.md) | `architecture` | System design, C4 diagrams, DB schemas, feature decomposition |
+| **Database Expert** | [`database-expert.agent.md`](agents/database-expert.agent.md) | `supabase`, `supabase-postgres-best-practices` | Schema migrations, RLS policies, query optimization, direct SQL via Supabase MCP |
 | **Libs Expert** | [`libs-expert.agent.md`](agents/libs-expert.agent.md) | `lib-patterns` | Pure functions and service-layer code in `lib/` |
 | **API Expert** | [`api-expert.agent.md`](agents/api-expert.agent.md) | `api-patterns` | Route handlers in `app/api/` |
 | **UI/UX Expert** | [`ui-ux-expert.agent.md`](agents/ui-ux-expert.agent.md) | `ui-ux-patterns` | Components, pages, translations, styling |
