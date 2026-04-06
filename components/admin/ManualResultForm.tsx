@@ -22,6 +22,7 @@ interface RaceResult {
   fastest_lap_driver_id: number;
   fastest_pit_stop_driver_id: number;
   driver_of_the_day_driver_id?: number | null;
+  dnf_driver_ids?: number[] | null;
 }
 
 interface SprintResult {
@@ -94,11 +95,19 @@ export function ManualResultForm({
     return null;
   };
 
+  const initDnfs = (): number[] => {
+    if (sessionType === "race" && existingResult && "dnf_driver_ids" in existingResult) {
+      return (existingResult as RaceResult).dnf_driver_ids ?? [];
+    }
+    return [];
+  };
+
   const [positions, setPositions] = useState<(number | null)[]>(initPositions);
   const [pole, setPole] = useState<number | null>(initPole);
   const [fastestLap, setFastestLap] = useState<number | null>(initFastestLap);
   const [fastestPit, setFastestPit] = useState<number | null>(initFastestPit);
   const [driverOfTheDay, setDriverOfTheDay] = useState<number | null>(initDriverOfTheDay);
+  const [dnfDriverIds, setDnfDriverIds] = useState<number[]>(initDnfs);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -141,6 +150,7 @@ export function ManualResultForm({
               fastestLapDriverId: fastestLap,
               fastestPitStopDriverId: fastestPit,
               driverOfTheDayDriverId: driverOfTheDay,
+              dnfDriverIds: dnfDriverIds.length > 0 ? dnfDriverIds : null,
             }
           : {
               raceId,
@@ -300,6 +310,37 @@ export function ManualResultForm({
               </option>
             ))}
           </select>
+        </div>
+      )}
+
+      {/* DNFs (race only) */}
+      {sessionType === "race" && (
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-muted">
+            {admin.mostDnfs ?? "DNFs"} ({admin.driverStatsDnfsOptional ?? "optional"})
+          </label>
+          <div className="max-h-40 overflow-y-auto rounded-lg border border-border bg-input-bg p-2 space-y-1">
+            {drivers.map((d) => (
+              <label
+                key={d.id}
+                className="flex items-center gap-2 rounded px-2 py-1 text-xs text-f1-white transition-colors hover:bg-card-hover cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={dnfDriverIds.includes(d.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setDnfDriverIds((prev) => [...prev, d.id]);
+                    } else {
+                      setDnfDriverIds((prev) => prev.filter((id) => id !== d.id));
+                    }
+                  }}
+                  className="rounded border-border accent-f1-red"
+                />
+                {d.name_acronym} — {d.first_name} {d.last_name} ({d.teamName})
+              </label>
+            ))}
+          </div>
         </div>
       )}
 

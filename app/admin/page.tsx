@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminUser } from "@/lib/admin";
+import { computeDriverStats, getStatsLeaders } from "@/lib/driver-stats";
+import type { DriverStatsMap, DriverStatsLeaders } from "@/lib/driver-stats";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AdminPanel } from "@/components/admin/AdminPanel";
@@ -54,7 +56,7 @@ export default async function AdminPage() {
   // Get all race results
   const { data: raceResults } = await supabase
     .from("race_results")
-    .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id");
+    .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id, dnf_driver_ids");
 
   // Get all sprint results
   const { data: sprintResults } = await supabase
@@ -106,6 +108,15 @@ export default async function AdminPage() {
     submitted: (championPredCounts ?? []).filter((p) => p.status === "submitted").length,
     scored: (championPredCounts ?? []).filter((p) => p.status === "scored").length,
   };
+
+  // Compute driver stats from race results
+  const driverStats: DriverStatsMap = computeDriverStats(
+    (raceResults ?? []).map((r) => ({
+      top_10: r.top_10 as number[],
+      dnf_driver_ids: (r as Record<string, unknown>).dnf_driver_ids as number[] | null,
+    }))
+  );
+  const driverStatsLeaders: DriverStatsLeaders = getStatsLeaders(driverStats);
 
   // Build result maps
   const raceResultMap: Record<number, typeof raceResults extends (infer T)[] | null ? T : never> = {};
@@ -173,6 +184,8 @@ export default async function AdminPage() {
           championResult={championResult ?? null}
           teamBestDriverResults={(teamBestDriverResults ?? []).map((r) => ({ teamId: r.team_id, driverId: r.driver_id }))}
           championPredictions={championPredictions}
+          driverStats={driverStats}
+          driverStatsLeaders={driverStatsLeaders}
         />
       </main>
       <Footer />

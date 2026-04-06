@@ -407,6 +407,12 @@ const en = {
     mostDnfs: "Most DNFs",
     mostPodiums: "Most Podiums",
     mostWins: "Most Wins",
+    driverStatsTitle: "Driver Stats",
+    driverStatsWins: "Wins",
+    driverStatsPodiums: "Podiums",
+    driverStatsDnfs: "DNFs",
+    driverStatsDnfsOptional: "optional",
+    driverStatsSuggested: "Suggested",
     teamBestDrivers: "Team Best Drivers",
     datetimeManager: {
       title: "Event Datetimes",

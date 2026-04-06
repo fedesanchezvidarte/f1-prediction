@@ -397,6 +397,12 @@ const es: Messages = {
     mostDnfs: "Más Abandonos",
     mostPodiums: "Más Podios",
     mostWins: "Más Victorias",
+    driverStatsTitle: "Estadísticas de Pilotos",
+    driverStatsWins: "Victorias",
+    driverStatsPodiums: "Podios",
+    driverStatsDnfs: "Abandonos",
+    driverStatsDnfsOptional: "opcional",
+    driverStatsSuggested: "Sugerido",
     teamBestDrivers: "Mejores Pilotos por Equipo",
     datetimeManager: {
       title: "Fechas del Evento",

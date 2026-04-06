@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Loader2, Save, X } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import type { DriverStatsLeaders } from "@/lib/driver-stats";
 
 interface AdminDriver {
   id: number;
@@ -39,6 +40,7 @@ interface ChampionResultFormProps {
   teams: AdminTeam[];
   existingResult: ChampionResult | null;
   existingTeamBestDriverResults: TeamBestDriverResult[];
+  driverStatsLeaders: DriverStatsLeaders;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -48,6 +50,7 @@ export function ChampionResultForm({
   teams,
   existingResult,
   existingTeamBestDriverResults,
+  driverStatsLeaders,
   onSuccess,
   onCancel,
 }: ChampionResultFormProps) {
@@ -61,13 +64,13 @@ export function ChampionResultForm({
     existingResult?.wcc_team_id ?? null
   );
   const [mostDnfsDriverId, setMostDnfsDriverId] = useState<number | null>(
-    existingResult?.most_dnfs_driver_id ?? null
+    existingResult?.most_dnfs_driver_id ?? driverStatsLeaders.mostDnfs?.driverId ?? null
   );
   const [mostPodiumsDriverId, setMostPodiumsDriverId] = useState<number | null>(
-    existingResult?.most_podiums_driver_id ?? null
+    existingResult?.most_podiums_driver_id ?? driverStatsLeaders.mostPodiums?.driverId ?? null
   );
   const [mostWinsDriverId, setMostWinsDriverId] = useState<number | null>(
-    existingResult?.most_wins_driver_id ?? null
+    existingResult?.most_wins_driver_id ?? driverStatsLeaders.mostWins?.driverId ?? null
   );
 
   // Team best driver selections: { [teamId]: driverId }
@@ -93,6 +96,11 @@ export function ChampionResultForm({
     }
     return map;
   }, [drivers]);
+
+  function getDriverName(driverId: number): string {
+    const d = drivers.find((dr) => dr.id === driverId);
+    return d ? `${d.name_acronym} (#${d.driver_number})` : `ID ${driverId}`;
+  }
 
   function isFormValid() {
     return wdcDriverId !== null && wccTeamId !== null;
@@ -217,6 +225,11 @@ export function ChampionResultForm({
             </option>
           ))}
         </select>
+        {driverStatsLeaders.mostDnfs && (
+          <p className="mt-0.5 text-[10px] text-muted">
+            {admin.driverStatsSuggested ?? "Suggested"}: {getDriverName(driverStatsLeaders.mostDnfs.driverId)} ({driverStatsLeaders.mostDnfs.count})
+          </p>
+        )}
       </div>
 
       {/* Most Podiums */}
@@ -238,6 +251,11 @@ export function ChampionResultForm({
             </option>
           ))}
         </select>
+        {driverStatsLeaders.mostPodiums && (
+          <p className="mt-0.5 text-[10px] text-muted">
+            {admin.driverStatsSuggested ?? "Suggested"}: {getDriverName(driverStatsLeaders.mostPodiums.driverId)} ({driverStatsLeaders.mostPodiums.count})
+          </p>
+        )}
       </div>
 
       {/* Most Wins */}
@@ -259,6 +277,11 @@ export function ChampionResultForm({
             </option>
           ))}
         </select>
+        {driverStatsLeaders.mostWins && (
+          <p className="mt-0.5 text-[10px] text-muted">
+            {admin.driverStatsSuggested ?? "Suggested"}: {getDriverName(driverStatsLeaders.mostWins.driverId)} ({driverStatsLeaders.mostWins.count})
+          </p>
+        )}
       </div>
 
       {/* Team Best Drivers */}

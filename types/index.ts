@@ -131,6 +131,7 @@ export interface RaceResult {
   fastestLap: Driver;
   fastestPitStop?: Driver;
   driverOfTheDay?: Driver;
+  dnfDriverIds?: number[];
 }
 
 export interface SprintResult {
