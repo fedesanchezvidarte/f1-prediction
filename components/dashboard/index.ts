@@ -6,4 +6,6 @@ export { PlaceholderCard } from "./PlaceholderCard";
 export { PointSystemCard } from "./PointSystemCard";
 export { PointSystemModal } from "./PointSystemModal";
 export { PredictionsCard } from "./PredictionsCard";
+export { RaceCalendarCard } from "./RaceCalendarCard";
+export { RaceCalendarModal } from "./RaceCalendarModal";
 export { UserPointsCard } from "./UserPointsCard";
