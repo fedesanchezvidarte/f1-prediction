@@ -76,6 +76,12 @@ export interface ChampionPrediction {
   mostPodiumsDriver: Driver | null;
   mostWinsDriver: Driver | null;
   pointsEarned: number | null;
+  /** Per-field points earned. Each value is 0 until the award is scored. */
+  wdcPoints: number;
+  wccPoints: number;
+  mostDnfsPoints: number;
+  mostPodiumsPoints: number;
+  mostWinsPoints: number;
   isHalfPoints: boolean;
 }
 

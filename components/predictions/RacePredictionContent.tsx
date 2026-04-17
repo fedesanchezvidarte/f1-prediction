@@ -34,6 +34,12 @@ import type {
 } from "@/types";
 import { getRaceStatus, getChampionPredictionPhase } from "@/lib/race-utils";
 import type { ChampionPredictionPhase } from "@/lib/race-utils";
+import {
+  computeRaceFieldPoints,
+  computeSprintFieldPoints,
+  type RaceFieldPoints,
+  type SprintFieldPoints,
+} from "@/lib/scoring";
 import { DriverSelect, type MatchStatus } from "./DriverSelect";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
@@ -321,7 +327,20 @@ export function RacePredictionContent({
       }
 
       if (isChampionTab) {
-        setChampPred({ ...champPred, wdcWinner: null, wccWinner: null, mostDnfsDriver: null, mostPodiumsDriver: null, mostWinsDriver: null, status: "pending" });
+        setChampPred({
+          ...champPred,
+          wdcWinner: null,
+          wccWinner: null,
+          mostDnfsDriver: null,
+          mostPodiumsDriver: null,
+          mostWinsDriver: null,
+          status: "pending",
+          wdcPoints: 0,
+          wccPoints: 0,
+          mostDnfsPoints: 0,
+          mostPodiumsPoints: 0,
+          mostWinsPoints: 0,
+        });
         setTeamBestDriverPreds((prev) => prev.map((p) => ({ ...p, driverId: null, driverNumber: null, status: "pending" as const })));
       } else if (tab === "sprint") {
         updateSprintPrediction({
@@ -509,6 +528,29 @@ export function RacePredictionContent({
     };
   }, [currentResult, currentPrediction]);
 
+  const raceFieldPoints = useMemo((): RaceFieldPoints | null => {
+    if (!currentResult || !currentPrediction || currentPrediction.status !== "scored") {
+      return null;
+    }
+    const predTop10: (number | null)[] = [
+      currentPrediction.raceWinner?.driverNumber ?? null,
+      ...currentPrediction.restOfTop10.map((d) => d?.driverNumber ?? null),
+    ];
+    const resultTop10: number[] = currentResult.top10.map((d) => d.driverNumber);
+    return computeRaceFieldPoints({
+      predTop10,
+      predPole: currentPrediction.polePosition?.driverNumber ?? null,
+      predFastestLap: currentPrediction.fastestLap?.driverNumber ?? null,
+      predFastestPitStop: currentPrediction.fastestPitStop?.driverNumber ?? null,
+      predDriverOfTheDay: currentPrediction.driverOfTheDay?.driverNumber ?? null,
+      resultTop10,
+      resultPole: currentResult.polePosition.driverNumber,
+      resultFastestLap: currentResult.fastestLap.driverNumber,
+      resultFastestPitStop: currentResult.fastestPitStop?.driverNumber ?? -1,
+      resultDriverOfTheDay: currentResult.driverOfTheDay?.driverNumber ?? null,
+    });
+  }, [currentResult, currentPrediction]);
+
   const sprintMatchStatuses = useMemo((): SprintMatchStatuses | null => {
     if (!currentSprintResult || !currentSprintPred) return null;
     const resultTop8Numbers = currentSprintResult.top8.map((d) => d.driverNumber);
@@ -536,6 +578,25 @@ export function RacePredictionContent({
       restOfTop8: restStatuses,
       fastestLap: fieldStatus(currentSprintPred.fastestLap, currentSprintResult.fastestLap),
     };
+  }, [currentSprintResult, currentSprintPred]);
+
+  const sprintFieldPoints = useMemo((): SprintFieldPoints | null => {
+    if (!currentSprintResult || !currentSprintPred || currentSprintPred.status !== "scored") {
+      return null;
+    }
+    const predTop8: (number | null)[] = [
+      currentSprintPred.sprintWinner?.driverNumber ?? null,
+      ...currentSprintPred.restOfTop8.map((d) => d?.driverNumber ?? null),
+    ];
+    const resultTop8: number[] = currentSprintResult.top8.map((d) => d.driverNumber);
+    return computeSprintFieldPoints({
+      predTop8,
+      predSprintPole: currentSprintPred.sprintPole?.driverNumber ?? null,
+      predFastestLap: currentSprintPred.fastestLap?.driverNumber ?? null,
+      resultTop8,
+      resultSprintPole: currentSprintResult.sprintPole.driverNumber,
+      resultFastestLap: currentSprintResult.fastestLap.driverNumber,
+    });
   }, [currentSprintResult, currentSprintPred]);
 
   return (
@@ -746,6 +807,7 @@ export function RacePredictionContent({
               getDisabledForWinner={() => getDisabledForWinner("sprint")}
               onChange={(update) => updateSprintPrediction(update)}
               matchStatuses={sprintMatchStatuses}
+              fieldPoints={sprintFieldPoints}
             />
           ) : (
             <p className="py-8 text-center text-xs text-muted">
@@ -761,6 +823,7 @@ export function RacePredictionContent({
             getDisabledForWinner={() => getDisabledForWinner("race")}
             onChange={(update) => updateRacePrediction(update)}
             matchStatuses={raceMatchStatuses}
+            fieldPoints={raceFieldPoints}
           />
         ) : (
           <p className="py-8 text-center text-xs text-muted">
@@ -1279,6 +1342,7 @@ function RaceForm({
   getDisabledForWinner,
   onChange,
   matchStatuses,
+  fieldPoints,
 }: {
   prediction: FullRacePrediction;
   drivers: Driver[];
@@ -1287,6 +1351,7 @@ function RaceForm({
   getDisabledForWinner: () => Driver[];
   onChange: (update: Partial<FullRacePrediction>) => void;
   matchStatuses: RaceMatchStatuses | null;
+  fieldPoints: RaceFieldPoints | null;
 }) {
   const { t } = useLanguage();
   return (
@@ -1300,6 +1365,7 @@ function RaceForm({
           onChange={(d) => onChange({ polePosition: d })}
           disabled={!isEditable}
           matchStatus={matchStatuses?.polePosition}
+          pointsAwarded={fieldPoints?.polePosition ?? null}
         />
         <DriverSelect
           label={t.predictionsPage.raceWinner}
@@ -1309,6 +1375,7 @@ function RaceForm({
           onChange={(d) => onChange({ raceWinner: d })}
           disabled={!isEditable}
           matchStatus={matchStatuses?.raceWinner}
+          pointsAwarded={fieldPoints?.raceWinner ?? null}
         />
       </div>
 
@@ -1335,6 +1402,7 @@ function RaceForm({
               }}
               disabled={!isEditable}
               matchStatus={matchStatuses?.restOfTop10[i]}
+              pointsAwarded={fieldPoints?.restOfTop10[i] ?? null}
             />
           ))}
         </div>
@@ -1349,6 +1417,7 @@ function RaceForm({
           onChange={(d) => onChange({ fastestLap: d })}
           disabled={!isEditable}
           matchStatus={matchStatuses?.fastestLap}
+          pointsAwarded={fieldPoints?.fastestLap ?? null}
         />
         <DriverSelect
           label={t.predictionsPage.fastestPitStop}
@@ -1358,6 +1427,7 @@ function RaceForm({
           onChange={(d) => onChange({ fastestPitStop: d })}
           disabled={!isEditable}
           matchStatus={matchStatuses?.fastestPitStop}
+          pointsAwarded={fieldPoints?.fastestPitStop ?? null}
         />
         <DriverSelect
           label={t.predictionsPage.driverOfTheDay}
@@ -1367,8 +1437,26 @@ function RaceForm({
           onChange={(d) => onChange({ driverOfTheDay: d })}
           disabled={!isEditable}
           matchStatus={matchStatuses?.driverOfTheDay}
+          pointsAwarded={fieldPoints?.driverOfTheDay ?? null}
         />
       </div>
+
+      {fieldPoints && (
+        <BonusBadges
+          badges={[
+            fieldPoints.perfectPodiumBonus > 0
+              ? { label: t.predictionsPage.perfectPodiumBonus, points: fieldPoints.perfectPodiumBonus, tone: "green" as const }
+              : fieldPoints.matchPodiumBonus > 0
+                ? { label: t.predictionsPage.matchPodiumBonus, points: fieldPoints.matchPodiumBonus, tone: "amber" as const }
+                : null,
+            fieldPoints.perfectTop10Bonus > 0
+              ? { label: t.predictionsPage.perfectTop10Bonus, points: fieldPoints.perfectTop10Bonus, tone: "green" as const }
+              : fieldPoints.matchTop10Bonus > 0
+                ? { label: t.predictionsPage.matchTop10Bonus, points: fieldPoints.matchTop10Bonus, tone: "amber" as const }
+                : null,
+          ].filter((b): b is { label: string; points: number; tone: "green" | "amber" } => b !== null)}
+        />
+      )}
     </div>
   );
 }
@@ -1383,6 +1471,7 @@ function SprintForm({
   getDisabledForWinner,
   onChange,
   matchStatuses,
+  fieldPoints,
 }: {
   prediction: SprintPrediction;
   drivers: Driver[];
@@ -1391,6 +1480,7 @@ function SprintForm({
   getDisabledForWinner: () => Driver[];
   onChange: (update: Partial<SprintPrediction>) => void;
   matchStatuses: SprintMatchStatuses | null;
+  fieldPoints: SprintFieldPoints | null;
 }) {
   const { t } = useLanguage();
   return (
@@ -1404,6 +1494,7 @@ function SprintForm({
           onChange={(d) => onChange({ sprintPole: d })}
           disabled={!isEditable}
           matchStatus={matchStatuses?.sprintPole}
+          pointsAwarded={fieldPoints?.sprintPole ?? null}
         />
         <DriverSelect
           label={t.predictionsPage.sprintWinnerP1}
@@ -1413,6 +1504,7 @@ function SprintForm({
           onChange={(d) => onChange({ sprintWinner: d })}
           disabled={!isEditable}
           matchStatus={matchStatuses?.sprintWinner}
+          pointsAwarded={fieldPoints?.sprintWinner ?? null}
         />
       </div>
 
@@ -1439,6 +1531,7 @@ function SprintForm({
               }}
               disabled={!isEditable}
               matchStatus={matchStatuses?.restOfTop8[i]}
+              pointsAwarded={fieldPoints?.restOfTop8[i] ?? null}
             />
           ))}
         </div>
@@ -1453,7 +1546,63 @@ function SprintForm({
           onChange={(d) => onChange({ fastestLap: d })}
           disabled={!isEditable}
           matchStatus={matchStatuses?.fastestLap}
+          pointsAwarded={fieldPoints?.fastestLap ?? null}
         />
+      </div>
+
+      {fieldPoints && (
+        <BonusBadges
+          badges={[
+            fieldPoints.perfectPodiumBonus > 0
+              ? { label: t.predictionsPage.perfectPodiumBonus, points: fieldPoints.perfectPodiumBonus, tone: "green" as const }
+              : fieldPoints.matchPodiumBonus > 0
+                ? { label: t.predictionsPage.matchPodiumBonus, points: fieldPoints.matchPodiumBonus, tone: "amber" as const }
+                : null,
+            fieldPoints.perfectTop8Bonus > 0
+              ? { label: t.predictionsPage.perfectTop8Bonus, points: fieldPoints.perfectTop8Bonus, tone: "green" as const }
+              : fieldPoints.matchTop8Bonus > 0
+                ? { label: t.predictionsPage.matchTop8Bonus, points: fieldPoints.matchTop8Bonus, tone: "amber" as const }
+                : null,
+          ].filter((b): b is { label: string; points: number; tone: "green" | "amber" } => b !== null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------- Bonus Badges ---------- */
+
+function BonusBadges({
+  badges,
+}: {
+  badges: { label: string; points: number; tone: "green" | "amber" }[];
+}) {
+  const { t } = useLanguage();
+  if (badges.length === 0) return null;
+  return (
+    <div className="border-t border-border pt-3">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+          {t.predictionsPage.bonuses}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {badges.map((b) => {
+          const toneClass =
+            b.tone === "green"
+              ? "border-f1-green/30 bg-f1-green/10 text-f1-green"
+              : "border-f1-amber/30 bg-f1-amber/10 text-f1-amber";
+          return (
+            <span
+              key={b.label}
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${toneClass}`}
+            >
+              <Trophy size={10} />
+              {b.label}
+              <span className="tabular-nums">+{b.points}</span>
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -1525,11 +1674,20 @@ function ChampionForm({
         disabledDrivers={[]}
         onChange={(d) => onChange({ ...prediction, wdcWinner: d })}
         disabled={!isEditable}
+        pointsAwarded={prediction.status === "scored" ? prediction.wdcPoints : null}
       />
 
       <div className="relative">
-        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted">
-          {t.predictionsPage.wcc}
+        <label className="mb-1 flex items-center justify-between gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
+          <span>{t.predictionsPage.wcc}</span>
+          {prediction.status === "scored" && prediction.wccPoints > 0 && (
+            <span
+              className="inline-flex items-center rounded-full bg-f1-green/15 px-1.5 py-0.5 text-[9px] font-bold leading-none text-f1-green normal-case tracking-normal tabular-nums"
+              aria-label={`+${prediction.wccPoints} points earned`}
+            >
+              +{prediction.wccPoints}
+            </span>
+          )}
         </label>
         <button
           ref={teamBtnRef}
@@ -1602,6 +1760,7 @@ function ChampionForm({
           disabledDrivers={[]}
           onChange={(d) => onChange({ ...prediction, mostWinsDriver: d })}
           disabled={!isEditable}
+          pointsAwarded={prediction.status === "scored" ? prediction.mostWinsPoints : null}
         />
         <DriverSelect
           label={t.predictionsPage.mostPodiums}
@@ -1610,6 +1769,7 @@ function ChampionForm({
           disabledDrivers={[]}
           onChange={(d) => onChange({ ...prediction, mostPodiumsDriver: d })}
           disabled={!isEditable}
+          pointsAwarded={prediction.status === "scored" ? prediction.mostPodiumsPoints : null}
         />
         <DriverSelect
           label={t.predictionsPage.mostDnfs}
@@ -1618,6 +1778,7 @@ function ChampionForm({
           disabledDrivers={[]}
           onChange={(d) => onChange({ ...prediction, mostDnfsDriver: d })}
           disabled={!isEditable}
+          pointsAwarded={prediction.status === "scored" ? prediction.mostDnfsPoints : null}
         />
       </div>
 
@@ -1650,6 +1811,14 @@ function ChampionForm({
                 </span>
                 {pred?.isHalfPoints && (
                   <span className="text-[9px] text-f1-amber" title={t.predictionsPage.halfPointsWarning}>½</span>
+                )}
+                {pred?.status === "scored" && pred.pointsEarned > 0 && (
+                  <span
+                    className="inline-flex items-center rounded-full bg-f1-green/15 px-1.5 py-0.5 text-[9px] font-bold leading-none text-f1-green tabular-nums"
+                    aria-label={`+${pred.pointsEarned} points earned`}
+                  >
+                    +{pred.pointsEarned}
+                  </span>
                 )}
                 <div className="ml-auto flex gap-1.5">
                   {team.drivers.map((d) => {

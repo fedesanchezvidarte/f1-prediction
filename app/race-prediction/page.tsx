@@ -250,6 +250,11 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     mostPodiumsDriver: findDriver(mostPodiumsAward?.driverId ?? null),
     mostWinsDriver: findDriver(mostWinsAward?.driverId ?? null),
     pointsEarned: championAwards.reduce((sum, a) => sum + (a?.pointsEarned ?? 0), 0),
+    wdcPoints: wdcAward?.pointsEarned ?? 0,
+    wccPoints: wccAward?.pointsEarned ?? 0,
+    mostDnfsPoints: mostDnfsAward?.pointsEarned ?? 0,
+    mostPodiumsPoints: mostPodiumsAward?.pointsEarned ?? 0,
+    mostWinsPoints: mostWinsAward?.pointsEarned ?? 0,
     isHalfPoints: anyHalfPoints,
   };
 
