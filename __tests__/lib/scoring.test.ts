@@ -8,6 +8,8 @@ import {
   scoreRacePrediction,
   scoreSprintPrediction,
   scoreChampionPrediction,
+  computeRaceFieldPoints,
+  computeSprintFieldPoints,
   type RaceScoringInput,
   type SprintScoringInput,
   type ChampionScoringInput,
@@ -639,5 +641,162 @@ describe("scoreChampionPrediction", () => {
     );
     expect(result.total).toBe(10);
     expect(result.mostWinsMatch).toBe(true);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   computeRaceFieldPoints
+   ═══════════════════════════════════════════════════════════════════════ */
+describe("computeRaceFieldPoints", () => {
+  it("returns 1 pt per field + perfect podium + perfect top-10 bonuses on a full match", () => {
+    const fp = computeRaceFieldPoints(makeRaceInput());
+    expect(fp.polePosition).toBe(1);
+    expect(fp.raceWinner).toBe(1);
+    expect(fp.restOfTop10).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1]);
+    expect(fp.fastestLap).toBe(1);
+    expect(fp.fastestPitStop).toBe(1);
+    expect(fp.driverOfTheDay).toBe(1);
+    expect(fp.perfectPodiumBonus).toBe(10);
+    expect(fp.matchPodiumBonus).toBe(0);
+    expect(fp.perfectTop10Bonus).toBe(10);
+    expect(fp.matchTop10Bonus).toBe(0);
+    expect(fp.total).toBe(34);
+  });
+
+  it("awards match-only podium bonus (+5) when top 3 correct but out of order", () => {
+    const fp = computeRaceFieldPoints(
+      makeRaceInput({
+        predTop10: [3, 1, 2, 14, 15, 16, 17, 18, 19, 20],
+        predPole: 99,
+        predFastestLap: 99,
+        predFastestPitStop: 99,
+        predDriverOfTheDay: 99,
+      })
+    );
+    expect(fp.perfectPodiumBonus).toBe(0);
+    expect(fp.matchPodiumBonus).toBe(5);
+    expect(fp.raceWinner).toBe(0);
+    expect(fp.restOfTop10.slice(0, 2)).toEqual([0, 0]);
+  });
+
+  it("returns all zeros when nothing matches", () => {
+    const fp = computeRaceFieldPoints(
+      makeRaceInput({
+        predTop10: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        predPole: 11,
+        predFastestLap: 12,
+        predFastestPitStop: 13,
+        predDriverOfTheDay: 14,
+      })
+    );
+    expect(fp.total).toBe(0);
+    expect(fp.polePosition).toBe(0);
+    expect(fp.raceWinner).toBe(0);
+    expect(fp.restOfTop10.every((p) => p === 0)).toBe(true);
+    expect(fp.perfectPodiumBonus).toBe(0);
+    expect(fp.matchPodiumBonus).toBe(0);
+    expect(fp.perfectTop10Bonus).toBe(0);
+    expect(fp.matchTop10Bonus).toBe(0);
+  });
+
+  it("reports 0 per-slot points when predictions are null", () => {
+    const fp = computeRaceFieldPoints(
+      makeRaceInput({
+        predTop10: [null, null, null, null, null, null, null, null, null, null],
+        predPole: null,
+        predFastestLap: null,
+        predFastestPitStop: null,
+        predDriverOfTheDay: null,
+      })
+    );
+    expect(fp.raceWinner).toBe(0);
+    expect(fp.restOfTop10).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(fp.polePosition).toBe(0);
+    expect(fp.total).toBe(0);
+  });
+
+  it("awards perfect podium (+10) and match top-10 (+5) when top 3 exact but rest shuffled", () => {
+    // P4-P10 cyclic shift of result [4..10] → [10,4,5,6,7,8,9] — all present, none in place.
+    const fp = computeRaceFieldPoints(
+      makeRaceInput({
+        predTop10: [1, 2, 3, 10, 4, 5, 6, 7, 8, 9],
+        predPole: 99,
+        predFastestLap: 99,
+        predFastestPitStop: 99,
+        predDriverOfTheDay: 99,
+      })
+    );
+    expect(fp.perfectPodiumBonus).toBe(10);
+    expect(fp.matchPodiumBonus).toBe(0);
+    expect(fp.perfectTop10Bonus).toBe(0);
+    expect(fp.matchTop10Bonus).toBe(5);
+    // 3 exact positions (P1,P2,P3) + perfectPodium(10) + matchTop10(5) = 18
+    expect(fp.total).toBe(18);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   computeSprintFieldPoints
+   ═══════════════════════════════════════════════════════════════════════ */
+describe("computeSprintFieldPoints", () => {
+  it("returns 1 pt per field + perfect podium + perfect top-8 bonuses on a full match", () => {
+    const fp = computeSprintFieldPoints(makeSprintInput());
+    expect(fp.sprintPole).toBe(1);
+    expect(fp.sprintWinner).toBe(1);
+    expect(fp.restOfTop8).toEqual([1, 1, 1, 1, 1, 1, 1]);
+    expect(fp.fastestLap).toBe(1);
+    expect(fp.perfectPodiumBonus).toBe(5);
+    expect(fp.matchPodiumBonus).toBe(0);
+    expect(fp.perfectTop8Bonus).toBe(5);
+    expect(fp.matchTop8Bonus).toBe(0);
+    // 8 positions + pole(1) + FL(1) + perfectPodium(5) + perfectTop8(5) = 20
+    expect(fp.total).toBe(20);
+  });
+
+  it("awards match-only podium bonus (+2) when top 3 correct but out of order", () => {
+    const fp = computeSprintFieldPoints(
+      makeSprintInput({
+        predTop8: [3, 1, 2, 14, 15, 16, 17, 18],
+        predSprintPole: 99,
+        predFastestLap: 99,
+      })
+    );
+    expect(fp.perfectPodiumBonus).toBe(0);
+    expect(fp.matchPodiumBonus).toBe(2);
+    expect(fp.sprintWinner).toBe(0);
+  });
+
+  it("returns all zeros when nothing matches", () => {
+    const fp = computeSprintFieldPoints(
+      makeSprintInput({
+        predTop8: [11, 12, 13, 14, 15, 16, 17, 18],
+        predSprintPole: 11,
+        predFastestLap: 12,
+      })
+    );
+    expect(fp.total).toBe(0);
+    expect(fp.restOfTop8.every((p) => p === 0)).toBe(true);
+    expect(fp.sprintWinner).toBe(0);
+    expect(fp.perfectPodiumBonus).toBe(0);
+    expect(fp.matchPodiumBonus).toBe(0);
+    expect(fp.perfectTop8Bonus).toBe(0);
+    expect(fp.matchTop8Bonus).toBe(0);
+  });
+
+  it("awards perfect podium (+5) and match top-8 (+2) when top 3 exact but rest shuffled", () => {
+    // P4-P8 cyclic shift of result [4..8] → [8,4,5,6,7] — all present, none in place.
+    const fp = computeSprintFieldPoints(
+      makeSprintInput({
+        predTop8: [1, 2, 3, 8, 4, 5, 6, 7],
+        predSprintPole: 99,
+        predFastestLap: 99,
+      })
+    );
+    expect(fp.perfectPodiumBonus).toBe(5);
+    expect(fp.matchPodiumBonus).toBe(0);
+    expect(fp.perfectTop8Bonus).toBe(0);
+    expect(fp.matchTop8Bonus).toBe(2);
+    // 3 exact positions + perfectPodium(5) + matchTop8(2) = 10
+    expect(fp.total).toBe(10);
   });
 });
