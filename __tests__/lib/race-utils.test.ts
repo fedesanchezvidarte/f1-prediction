@@ -4,8 +4,8 @@
  * Covers: getRaceStatus, getNextRace, getPredictionCardRaces
  * Uses jest.useFakeTimers() to control Date.
  */
-import { getRaceStatus, getNextRace, getPredictionCardRaces, getChampionPredictionPhase, CHAMPION_CLOSE_ROUND } from "@/lib/race-utils";
-import type { Race } from "@/types";
+import { getRaceStatus, getNextRace, getPredictionCardRaces, getChampionPredictionPhase, CHAMPION_CLOSE_ROUND, getRaceCalendarEntries, countryCodeToFlag } from "@/lib/race-utils";
+import type { Race, PredictionStatus } from "@/types";
 
 /* ── Helper: minimal Race object factory ── */
 function makeRace(overrides: Partial<Race> & Pick<Race, "dateStart" | "dateEnd">): Race {
@@ -322,5 +322,102 @@ describe("getChampionPredictionPhase", () => {
   it("returns 'half' during the summer break gap before Round 14", () => {
     jest.setSystemTime(new Date("2026-08-15T00:00:00Z"));
     expect(getChampionPredictionPhase(seasonRaces)).toBe("half");
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   getRaceCalendarEntries
+   ═══════════════════════════════════════════════════════════════════════ */
+describe("getRaceCalendarEntries", () => {
+  const pastRace = makeRace({
+    meetingKey: 100,
+    raceName: "Past GP",
+    round: 1,
+    dateStart: "2026-01-01T14:00:00Z",
+    dateEnd: "2026-01-01T16:00:00Z",
+  });
+  const liveRace = makeRace({
+    meetingKey: 101,
+    raceName: "Live GP",
+    round: 2,
+    dateStart: "2026-06-15T14:00:00Z",
+    dateEnd: "2026-06-15T17:00:00Z",
+  });
+  const upcomingRace = makeRace({
+    meetingKey: 102,
+    raceName: "Future GP",
+    round: 3,
+    dateStart: "2026-08-01T14:00:00Z",
+    dateEnd: "2026-08-01T16:00:00Z",
+    hasSprint: true,
+  });
+
+  beforeEach(() => {
+    jest.setSystemTime(new Date("2026-06-15T15:00:00Z"));
+  });
+
+  it("returns entries sorted by round", () => {
+    const statuses = new Map<number, PredictionStatus>();
+    const result = getRaceCalendarEntries([upcomingRace, pastRace, liveRace], statuses);
+    expect(result.map((e) => e.race.round)).toEqual([1, 2, 3]);
+  });
+
+  it("assigns correct raceStatus to each entry", () => {
+    const statuses = new Map<number, PredictionStatus>();
+    const result = getRaceCalendarEntries([pastRace, liveRace, upcomingRace], statuses);
+    expect(result[0].raceStatus).toBe("completed");
+    expect(result[1].raceStatus).toBe("live");
+    expect(result[2].raceStatus).toBe("upcoming");
+  });
+
+  it("maps prediction statuses by meetingKey", () => {
+    const statuses = new Map<number, PredictionStatus>([
+      [100, "scored"],
+      [101, "submitted"],
+    ]);
+    const result = getRaceCalendarEntries([pastRace, liveRace, upcomingRace], statuses);
+    expect(result[0].predictionStatus).toBe("scored");
+    expect(result[1].predictionStatus).toBe("submitted");
+    expect(result[2].predictionStatus).toBeNull();
+  });
+
+  it("returns empty array for no races", () => {
+    const result = getRaceCalendarEntries([], new Map());
+    expect(result).toEqual([]);
+  });
+
+  it("does not mutate the original races array", () => {
+    const original = [upcomingRace, pastRace, liveRace];
+    const copy = [...original];
+    getRaceCalendarEntries(original, new Map());
+    expect(original).toEqual(copy);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   countryCodeToFlag
+   ═══════════════════════════════════════════════════════════════════════ */
+describe("countryCodeToFlag", () => {
+  it("converts known alpha-3 codes to flag emoji", () => {
+    expect(countryCodeToFlag("AUS")).toBe("🇦🇺");
+    expect(countryCodeToFlag("GBR")).toBe("🇬🇧");
+    expect(countryCodeToFlag("JPN")).toBe("🇯🇵");
+    expect(countryCodeToFlag("BRA")).toBe("🇧🇷");
+  });
+
+  it("is case-insensitive", () => {
+    expect(countryCodeToFlag("aus")).toBe("🇦🇺");
+    expect(countryCodeToFlag("Gbr")).toBe("🇬🇧");
+  });
+
+  it("returns flag emoji for unknown codes", () => {
+    expect(countryCodeToFlag("XYZ")).toBe("🏁");
+    expect(countryCodeToFlag("")).toBe("🏁");
+  });
+
+  it("handles USA-related codes", () => {
+    expect(countryCodeToFlag("USA")).toBe("🇺🇸");
+    expect(countryCodeToFlag("MIA")).toBe("🇺🇸");
+    expect(countryCodeToFlag("LVG")).toBe("🇺🇸");
   });
 });

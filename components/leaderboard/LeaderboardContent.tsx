@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { DetailedLeaderboardEntry, Race } from "@/types";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 
 type ViewMode = "simple" | "detailed";
 
@@ -328,8 +329,8 @@ function DetailedTable({
                 <div className="leading-tight">
                   <span className="text-muted">R{race.round}</span>
                   <br />
-                  <span className="text-[9px] text-muted/70">
-                    {race.countryCode}
+                  <span className="flex justify-center">
+                    <CountryFlag countryCode={race.countryCode} className="inline-block h-2.5 w-3.5 rounded-[1px]" />
                   </span>
                 </div>
               </th>

@@ -1,4 +1,4 @@
-import type { Race, RaceStatus } from "@/types";
+import type { Race, RaceStatus, PredictionStatus } from "@/types";
 
 /* ── Pure utility functions — safe for both client & server components ── */
 
@@ -79,4 +79,53 @@ export function getPredictionCardRaces(races: Race[]): (Race | null)[] {
   }
   while (slots.length < 3) slots.push(null);
   return slots;
+}
+
+/* ── Race Calendar helpers ─────────────────────────────────────────── */
+
+export interface RaceCalendarEntry {
+  race: Race;
+  raceStatus: RaceStatus;
+  predictionStatus: PredictionStatus | null;
+}
+
+/**
+ * Builds a list of calendar entries for every race in the season.
+ *
+ * @param races - full season race list (any order)
+ * @param predictionStatusByMeetingKey - map of meetingKey → PredictionStatus
+ * @returns sorted (by round) array of calendar entries
+ */
+export function getRaceCalendarEntries(
+  races: Race[],
+  predictionStatusByMeetingKey: Map<number, PredictionStatus>,
+): RaceCalendarEntry[] {
+  return [...races]
+    .sort((a, b) => a.round - b.round)
+    .map((race) => ({
+      race,
+      raceStatus: getRaceStatus(race),
+      predictionStatus: predictionStatusByMeetingKey.get(race.meetingKey) ?? null,
+    }));
+}
+
+/**
+ * Converts an ISO 3166-1 alpha-3 country code into a flag emoji.
+ * Falls back to a globe emoji for unknown codes.
+ */
+const ALPHA3_TO_ALPHA2: Record<string, string> = {
+  AUS: "AU", CHN: "CN", JPN: "JP", BHR: "BH", SAU: "SA", USA: "US",
+  MIA: "US", LVG: "US", ESP: "ES", MON: "MC", CAN: "CA", AUT: "AT",
+  GBR: "GB", BEL: "BE", HUN: "HU", NLD: "NL", ITA: "IT", AZE: "AZ",
+  SGP: "SG", MEX: "MX", BRA: "BR", QAT: "QA", UAE: "AE", ABU: "AE",
+  POR: "PT", TUR: "TR", RUS: "RU", IND: "IN", KOR: "KR", MYS: "MY",
+  ZAF: "ZA", ARG: "AR", DEU: "DE", FRA: "FR", SWE: "SE",
+};
+
+export function countryCodeToFlag(alpha3: string): string {
+  const alpha2 = ALPHA3_TO_ALPHA2[alpha3.toUpperCase()];
+  if (!alpha2) return "🏁";
+  return String.fromCodePoint(
+    ...alpha2.split("").map((c) => 0x1f1e6 + c.charCodeAt(0) - 65),
+  );
 }

@@ -8,12 +8,13 @@ import {
   LeaderboardCard,
   NextRaceCountdown,
   NoUpcomingRaces,
-  PlaceholderCard,
   PointSystemCard,
   PredictionsCard,
+  RaceCalendarCard,
   UserPointsCard,
 } from "@/components/dashboard";
 import { fetchRacesFromDb, getNextRace, getPredictionCardRaces } from "@/lib/races";
+import { getRaceCalendarEntries } from "@/lib/race-utils";
 import { fetchAchievementsData } from "@/lib/achievements";
 import type { UserStats, LeaderboardEntry, RacePrediction, PredictionStatus } from "@/types";
 
@@ -182,6 +183,13 @@ export default async function Home() {
   const nextRace = getNextRace(races);
   const predictionCardRaces = getPredictionCardRaces(races);
 
+  // Build prediction status map for the calendar
+  const predictionStatusByMeetingKey = new Map<number, PredictionStatus>();
+  for (const pred of predictions) {
+    predictionStatusByMeetingKey.set(pred.raceId, pred.status);
+  }
+  const calendarEntries = getRaceCalendarEntries(races, predictionStatusByMeetingKey);
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Navbar displayName={displayName} avatarUrl={avatarUrl ?? undefined} isAdmin={isAdminUser(user)} />
@@ -232,9 +240,9 @@ export default async function Home() {
                   total={achievements.length}
                 />
               </div>
-              {/* Placeholder */}
+              {/* Race Calendar */}
               <div className="border-t border-border sm:border-t-0">
-                <PlaceholderCard />
+                <RaceCalendarCard entries={calendarEntries} />
               </div>
             </div>
           </div>
