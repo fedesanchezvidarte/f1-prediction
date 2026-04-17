@@ -150,6 +150,15 @@ const en = {
     stillCooking: "Still cooking...",
   },
 
+  raceCalendar: {
+    title: "Race Calendar",
+    tapToView: "Tap to view full schedule",
+    modalTitle: "{{year}} Race Calendar",
+    closeModal: "Close calendar",
+    sprint: "Sprint",
+    live: "Live",
+  },
+
   // ── Leaderboard page ────────────────────────────────────────────────────
   leaderboardPage: {
     title: "Leaderboard",

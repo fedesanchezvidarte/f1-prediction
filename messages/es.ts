@@ -152,6 +152,15 @@ const es: Messages = {
     stillCooking: "En construcción...",
   },
 
+  raceCalendar: {
+    title: "Calendario",
+    tapToView: "Toca para ver el calendario",
+    modalTitle: "Calendario {{year}}",
+    closeModal: "Cerrar calendario",
+    sprint: "Sprint",
+    live: "En Vivo",
+  },
+
   // ── Leaderboard page ────────────────────────────────────────────────────
   leaderboardPage: {
     title: "Clasificación",
