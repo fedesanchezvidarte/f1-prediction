@@ -44,3 +44,5 @@ next-env.d.ts
 
 # LikeC4 build output
 docs/architecture/dist/
+.mcp.json
+.claude/settings.local.json

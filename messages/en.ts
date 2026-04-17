@@ -256,6 +256,14 @@ const en = {
     championUpdateTitle: "Update Championship Prediction?",
     championHalfPointsNote: "Since Round 2 has started, the following updated fields will earn half points:",
     championHalfPointsFirstNote: "Since Round 2 has already started, this submission will earn half points for all your selections.",
+    // Bonus badges
+    bonuses: "Bonuses",
+    perfectPodiumBonus: "Perfect Podium",
+    matchPodiumBonus: "Match Podium",
+    perfectTop10Bonus: "Perfect Top 10",
+    matchTop10Bonus: "Match Top 10",
+    perfectTop8Bonus: "Perfect Top 8",
+    matchTop8Bonus: "Match Top 8",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────

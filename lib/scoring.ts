@@ -184,6 +184,90 @@ export function scoreChampionPrediction(input: ChampionScoringInput): ChampionSc
   return { wdcMatch, wccMatch, mostDnfsMatch, mostPodiumsMatch, mostWinsMatch, isHalfPoints, total };
 }
 
+/* ── Per-field point breakdowns (for UI display) ───────────────────── */
+
+export interface RaceFieldPoints {
+  polePosition: number;
+  raceWinner: number;
+  restOfTop10: number[];
+  fastestLap: number;
+  fastestPitStop: number;
+  driverOfTheDay: number;
+  perfectPodiumBonus: number;
+  matchPodiumBonus: number;
+  perfectTop10Bonus: number;
+  matchTop10Bonus: number;
+  total: number;
+}
+
+export interface SprintFieldPoints {
+  sprintPole: number;
+  sprintWinner: number;
+  restOfTop8: number[];
+  fastestLap: number;
+  perfectPodiumBonus: number;
+  matchPodiumBonus: number;
+  perfectTop8Bonus: number;
+  matchTop8Bonus: number;
+  total: number;
+}
+
+export function computeRaceFieldPoints(input: RaceScoringInput): RaceFieldPoints {
+  const breakdown = scoreRacePrediction(input);
+  const { predTop10, resultTop10 } = input;
+
+  const raceWinner =
+    predTop10[0] !== null && predTop10[0] === resultTop10[0] ? 1 : 0;
+
+  const restOfTop10: number[] = [];
+  for (let i = 1; i < 10; i++) {
+    restOfTop10.push(
+      predTop10[i] !== null && predTop10[i] === resultTop10[i] ? 1 : 0
+    );
+  }
+
+  return {
+    polePosition: breakdown.poleMatch ? 1 : 0,
+    raceWinner,
+    restOfTop10,
+    fastestLap: breakdown.fastestLapMatch ? 1 : 0,
+    fastestPitStop: breakdown.fastestPitStopMatch ? 1 : 0,
+    driverOfTheDay: breakdown.driverOfTheDayMatch ? 1 : 0,
+    perfectPodiumBonus: breakdown.perfectPodium ? 10 : 0,
+    matchPodiumBonus: breakdown.matchPodium ? 5 : 0,
+    perfectTop10Bonus: breakdown.perfectTopN ? 10 : 0,
+    matchTop10Bonus: breakdown.matchTopN ? 5 : 0,
+    total: breakdown.total,
+  };
+}
+
+export function computeSprintFieldPoints(input: SprintScoringInput): SprintFieldPoints {
+  const breakdown = scoreSprintPrediction(input);
+  const { predTop8, resultTop8 } = input;
+
+  const sprintWinner =
+    predTop8[0] !== null && predTop8[0] === resultTop8[0] ? 1 : 0;
+
+  const restOfTop8: number[] = [];
+  for (let i = 1; i < 8; i++) {
+    restOfTop8.push(
+      predTop8[i] !== null && predTop8[i] === resultTop8[i] ? 1 : 0
+    );
+  }
+
+  return {
+    sprintPole: breakdown.poleMatch ? 1 : 0,
+    sprintWinner,
+    restOfTop8,
+    fastestLap: breakdown.fastestLapMatch ? 1 : 0,
+    perfectPodiumBonus: breakdown.perfectPodium ? 5 : 0,
+    matchPodiumBonus: breakdown.matchPodium ? 2 : 0,
+    perfectTop8Bonus: breakdown.perfectTopN ? 5 : 0,
+    matchTop8Bonus: breakdown.matchTopN ? 2 : 0,
+    total: breakdown.total,
+  };
+}
+
 /* ── Season Award scoring (unified model) ──────────────────────────── */
 
 export interface SeasonAwardScoringInput {

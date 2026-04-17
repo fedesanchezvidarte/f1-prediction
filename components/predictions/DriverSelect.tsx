@@ -15,6 +15,8 @@ interface DriverSelectProps {
   disabled?: boolean;
   position?: number;
   matchStatus?: MatchStatus;
+  /** Points earned by this field once scored. When > 0, renders a `+N` badge. */
+  pointsAwarded?: number | null;
 }
 
 export function DriverSelect({
@@ -26,6 +28,7 @@ export function DriverSelect({
   disabled = false,
   position,
   matchStatus = null,
+  pointsAwarded = null,
 }: DriverSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -66,15 +69,27 @@ export function DriverSelect({
   const isDisabled = (driver: Driver) =>
     disabledDrivers.some((dd) => dd.driverNumber === driver.driverNumber);
 
+  const showPoints = pointsAwarded !== null && pointsAwarded > 0;
+
   return (
     <div ref={ref} className="relative">
-      <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted">
-        {position !== undefined && (
-          <span className="mr-1 text-[10px] tabular-nums text-muted/60">
-            P{position}
+      <label className="mb-1 flex items-center justify-between gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
+        <span className="flex items-center">
+          {position !== undefined && (
+            <span className="mr-1 text-[10px] tabular-nums text-muted/60">
+              P{position}
+            </span>
+          )}
+          {label}
+        </span>
+        {showPoints && (
+          <span
+            className="inline-flex items-center rounded-full bg-f1-green/15 px-1.5 py-0.5 text-[9px] font-bold leading-none text-f1-green normal-case tracking-normal tabular-nums"
+            aria-label={`+${pointsAwarded} points earned`}
+          >
+            +{pointsAwarded}
           </span>
         )}
-        {label}
       </label>
       <button
         ref={buttonRef}

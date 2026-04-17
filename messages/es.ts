@@ -250,6 +250,14 @@ const es: Messages = {
     championUpdateTitle: "¿Actualizar Predicción de Campeonato?",
     championHalfPointsNote: "Como la Ronda 2 ya ha comenzado, los siguientes campos actualizados obtendrán la mitad de puntos:",
     championHalfPointsFirstNote: "Como la Ronda 2 ya ha comenzado, este envío obtendrá la mitad de puntos para todas tus selecciones.",
+    // Bonificaciones
+    bonuses: "Bonificaciones",
+    perfectPodiumBonus: "Podio Perfecto",
+    matchPodiumBonus: "Podio Acertado",
+    perfectTop10Bonus: "Top 10 Perfecto",
+    matchTop10Bonus: "Top 10 Acertado",
+    perfectTop8Bonus: "Top 8 Perfecto",
+    matchTop8Bonus: "Top 8 Acertado",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────
