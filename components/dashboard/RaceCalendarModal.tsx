@@ -3,8 +3,8 @@
 import { X, Zap } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { countryCodeToFlag } from "@/lib/race-utils";
 import type { RaceCalendarEntry } from "@/lib/race-utils";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 
 interface RaceCalendarModalProps {
   entries: RaceCalendarEntry[];
@@ -103,9 +103,7 @@ export function RaceCalendarModal({ entries, onClose }: RaceCalendarModalProps) 
                 {/* Race info */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm" aria-hidden>
-                      {countryCodeToFlag(race.countryCode)}
-                    </span>
+                    <CountryFlag countryCode={race.countryCode} className="inline-block h-3 w-4 rounded-[1px]" />
                     <p className="truncate text-xs font-medium text-f1-white">
                       {race.raceName}
                     </p>

@@ -5,6 +5,7 @@ import { Clock, Radio, MapPin } from "lucide-react";
 import type { Race } from "@/types";
 import { getRaceStatus } from "@/lib/race-utils";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 
 interface NextRaceCountdownProps {
   race: Race;
@@ -93,7 +94,10 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
       </div>
 
       <div className="mt-3">
-        <p className="text-sm font-semibold text-f1-white">{race.raceName}</p>
+        <div className="flex items-center gap-2">
+          <CountryFlag countryCode={race.countryCode} className="inline-block h-3.5 w-5 rounded-[1px] shrink-0" />
+          <p className="text-sm font-semibold text-f1-white">{race.raceName}</p>
+        </div>
         <div className="mt-1 flex items-center gap-1 text-xs text-muted">
           <MapPin size={12} />
           {race.location}, {race.countryName}
