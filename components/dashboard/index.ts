@@ -1,4 +1,3 @@
-export { AchievementsCard } from "./AchievementsCard";
 export { LeaderboardCard } from "./LeaderboardCard";
 export { NextRaceCountdown } from "./NextRaceCountdown";
 export { NoUpcomingRaces } from "./NoUpcomingRaces";
@@ -8,4 +7,4 @@ export { PointSystemModal } from "./PointSystemModal";
 export { PredictionsCard } from "./PredictionsCard";
 export { RaceCalendarCard } from "./RaceCalendarCard";
 export { RaceCalendarModal } from "./RaceCalendarModal";
-export { UserPointsCard } from "./UserPointsCard";
+export { UserSummaryCard } from "./UserSummaryCard";

@@ -161,9 +161,6 @@ export interface UserStats {
   totalPoints: number;
   rank: number;
   totalUsers: number;
-  predictionsSubmitted: number;
-  perfectPodiums: number;
-  bestRacePoints: number;
 }
 
 export interface DetailedLeaderboardEntry extends LeaderboardEntry {

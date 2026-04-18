@@ -91,8 +91,6 @@ const en = {
   userPoints: {
     yourPoints: "Your Points",
     rank: "Rank",
-    predictions: "Predictions",
-    bestRace: "Best Race",
   },
 
   nextRace: {
