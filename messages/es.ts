@@ -93,8 +93,6 @@ const es: Messages = {
   userPoints: {
     yourPoints: "Tus Puntos",
     rank: "Posición",
-    predictions: "Predicciones",
-    bestRace: "Mejor Carrera",
   },
 
   nextRace: {

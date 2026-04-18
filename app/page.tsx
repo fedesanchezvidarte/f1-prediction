@@ -4,14 +4,14 @@ import { isAdminUser } from "@/lib/admin";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import {
-  AchievementsCard,
   LeaderboardCard,
   NextRaceCountdown,
   NoUpcomingRaces,
+  PlaceholderCard,
   PointSystemCard,
   PredictionsCard,
   RaceCalendarCard,
-  UserPointsCard,
+  UserSummaryCard,
 } from "@/components/dashboard";
 import { fetchRacesFromDb, getNextRace, getPredictionCardRaces } from "@/lib/races";
 import { getRaceCalendarEntries } from "@/lib/race-utils";
@@ -127,9 +127,6 @@ export default async function Home() {
     totalPoints: leaderboardRow?.total_points ?? 0,
     rank: currentUserRank,
     totalUsers,
-    predictionsSubmitted: leaderboardRow?.predictions_count ?? 0,
-    perfectPodiums: leaderboardRow?.perfect_podiums ?? 0,
-    bestRacePoints: leaderboardRow?.best_race_points ?? 0,
   };
 
   // Fetch races with live DB datetimes
@@ -200,9 +197,14 @@ export default async function Home() {
           <div className="overflow-hidden rounded-2xl border border-border">
             <div className="grid grid-cols-1 sm:grid-cols-3">
               {/* Row 1 */}
-              {/* User Points - spans 2 cols */}
+              {/* User Summary - spans 2 cols */}
               <div className="border-b border-border sm:col-span-2 sm:border-r">
-                <UserPointsCard stats={userStats} />
+                <UserSummaryCard
+                  stats={userStats}
+                  earned={earnedAchievementIds}
+                  achievements={achievements}
+                  total={achievements.length}
+                />
               </div>
               {/* Next Race Countdown - spans 1 col */}
               <div className="border-b border-border">
@@ -229,20 +231,16 @@ export default async function Home() {
 
               {/* Row 3 */}
               {/* Point System */}
-              <div className="sm:border-r">
+              <div className="border-border sm:border-r">
                 <PointSystemCard />
               </div>
-              {/* Achievements */}
-              <div className="border-t border-border sm:border-r sm:border-t-0">
-                <AchievementsCard
-                  earned={earnedAchievementIds}
-                  achievements={achievements}
-                  total={achievements.length}
-                />
-              </div>
               {/* Race Calendar */}
-              <div className="border-t border-border sm:border-t-0">
+              <div className="border-t border-border sm:border-r sm:border-t-0">
                 <RaceCalendarCard entries={calendarEntries} />
+              </div>
+              {/* Placeholder */}
+              <div className="border-t border-border sm:border-t-0">
+                <PlaceholderCard />
               </div>
             </div>
           </div>
