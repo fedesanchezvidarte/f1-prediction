@@ -231,7 +231,7 @@ export default async function Home() {
 
               {/* Row 3 */}
               {/* Point System */}
-              <div className="sm:border-r">
+              <div className="border-border sm:border-r">
                 <PointSystemCard />
               </div>
               {/* Race Calendar */}
