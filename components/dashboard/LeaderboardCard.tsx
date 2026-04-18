@@ -50,6 +50,9 @@ export function LeaderboardCard({
           <p className="text-xs font-medium uppercase tracking-wider text-muted">
             {t.leaderboardCard.leaderboard}
           </p>
+          <span className="rounded bg-f1-amber/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-f1-amber">
+            Top 10
+          </span>
         </div>
         <Link
           href="/leaderboard"
