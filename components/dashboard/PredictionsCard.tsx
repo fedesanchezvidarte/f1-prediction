@@ -9,6 +9,7 @@ import {
   Radio,
   Crown,
   AlertTriangle,
+  Zap,
 } from "lucide-react";
 import type { Race, RacePrediction, PredictionStatus } from "@/types";
 import { getRaceStatus } from "@/lib/race-utils";
@@ -31,7 +32,7 @@ function PredictionStatusBadge({ status }: { status: RacePrediction["status"] })
 
   if (status === "submitted") {
     return (
-      <span className="flex items-center gap-1 rounded-full bg-f1-green/15 px-2 py-0.5 text-[10px] font-medium text-f1-green">
+      <span className="flex items-center gap-1 rounded-full bg-f1-blue/15 px-2 py-0.5 text-[10px] font-medium text-f1-blue">
         <CheckCircle2 size={10} />
         {t.predictionsCard.submitted}
       </span>
@@ -39,7 +40,7 @@ function PredictionStatusBadge({ status }: { status: RacePrediction["status"] })
   }
   if (status === "scored") {
     return (
-      <span className="flex items-center gap-1 rounded-full bg-f1-purple/15 px-2 py-0.5 text-[10px] font-medium text-f1-purple">
+      <span className="flex items-center gap-1 rounded-full bg-f1-green/15 px-2 py-0.5 text-[10px] font-medium text-f1-green">
         <CheckCircle2 size={10} />
         {t.predictionsCard.scored}
       </span>
@@ -92,7 +93,15 @@ function RaceSlot({
             {race.raceName.replace(" Grand Prix", " GP")}
           </p>
         </div>
-        {prediction && <PredictionStatusBadge status={prediction.status} />}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {race.hasSprint && (
+            <span className="flex items-center gap-0.5 rounded-full bg-f1-purple/10 px-1.5 py-0.5 text-[9px] font-semibold text-f1-purple">
+              <Zap size={10} />
+              {t.predictionsCard.sprint}
+            </span>
+          )}
+          {prediction && <PredictionStatusBadge status={prediction.status} />}
+        </div>
       </div>
 
       {prediction?.status === "scored" && prediction.pointsEarned != null && (
@@ -183,8 +192,7 @@ export function PredictionsCard({ predictions, races, championPrediction }: Pred
         </Link>
       </div>
 
-      <div className="mt-3 flex flex-1 flex-col gap-2">
-        {showChampion && <ChampionSlot champion={championPrediction} />}
+      <div className="mt-4 flex flex-1 flex-col gap-2">
         {races.map((race, i) => {
           const prediction = race
             ? predictions.find((p) => p.raceId === race.meetingKey)
@@ -197,6 +205,7 @@ export function PredictionsCard({ predictions, races, championPrediction }: Pred
             />
           );
         })}
+        {showChampion && <ChampionSlot champion={championPrediction} />}
       </div>
     </div>
   );

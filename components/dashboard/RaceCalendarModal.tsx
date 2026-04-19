@@ -116,7 +116,7 @@ export function RaceCalendarModal({ entries, onClose }: RaceCalendarModalProps) 
                 {/* Right side: badges */}
                 <div className="flex shrink-0 items-center gap-1.5">
                   {race.hasSprint && (
-                    <span className="flex items-center gap-0.5 rounded-full bg-f1-amber/10 px-1.5 py-0.5 text-[9px] font-semibold text-f1-amber">
+                    <span className="flex items-center gap-0.5 rounded-full bg-f1-purple/10 px-1.5 py-0.5 text-[9px] font-semibold text-f1-purple">
                       <Zap size={10} />
                       {t.raceCalendar.sprint}
                     </span>
@@ -147,8 +147,8 @@ function PredictionBadge({ status }: { status: "pending" | "submitted" | "scored
   const { t } = useLanguage();
   const config = {
     pending: { label: t.predictionsCard.pending, cls: "bg-f1-amber/10 text-f1-amber" },
-    submitted: { label: t.predictionsCard.submitted, cls: "bg-green-500/10 text-green-400" },
-    scored: { label: t.predictionsCard.scored, cls: "bg-f1-purple/10 text-f1-purple" },
+    submitted: { label: t.predictionsCard.submitted, cls: "bg-f1-blue/10 text-f1-blue" },
+    scored: { label: t.predictionsCard.scored, cls: "bg-f1-green/10 text-f1-green" },
   };
   const { label, cls } = config[status];
   return (

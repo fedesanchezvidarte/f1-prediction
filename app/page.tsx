@@ -54,7 +54,7 @@ export default async function Home() {
 
   const { data: sprintPredictions } = await supabase
     .from("sprint_predictions")
-    .select("race_id, points_earned")
+    .select("race_id, status, points_earned")
     .eq("user_id", user.id);
 
   // Fetch current season to ensure the raceId→meetingKey mapping is season-aware
@@ -133,11 +133,12 @@ export default async function Home() {
   const races = await fetchRacesFromDb();
 
   const sprintEarningsByMeetingKey = new Map<number, number>();
+  const sprintStatusByMeetingKey = new Map<number, PredictionStatus>();
   for (const sp of sprintPredictions ?? []) {
     const meetingKey = raceIdToMeetingKey.get(sp.race_id);
-    if (meetingKey !== undefined && sp.points_earned != null) {
-      sprintEarningsByMeetingKey.set(meetingKey, sp.points_earned);
-    }
+    if (meetingKey === undefined) continue;
+    if (sp.points_earned != null) sprintEarningsByMeetingKey.set(meetingKey, sp.points_earned);
+    if (sp.status) sprintStatusByMeetingKey.set(meetingKey, sp.status as PredictionStatus);
   }
 
   const predictions: RacePrediction[] = races.map((race) => {
@@ -151,11 +152,24 @@ export default async function Home() {
       racePts !== null || sprintPts !== null
         ? (racePts ?? 0) + (sprintPts ?? 0)
         : undefined;
+
+    // Combined status: for sprint weekends, "submitted" requires both race and sprint predictions submitted.
+    const raceStatus = (pred?.status as PredictionStatus | undefined) ?? "pending";
+    const sprintStatus = sprintStatusByMeetingKey.get(race.meetingKey) ?? "pending";
+    let combinedStatus: PredictionStatus;
+    if (raceStatus === "scored") {
+      combinedStatus = "scored";
+    } else {
+      const raceDone = raceStatus === "submitted";
+      const sprintDone = !race.hasSprint || sprintStatus === "submitted" || sprintStatus === "scored";
+      combinedStatus = raceDone && sprintDone ? "submitted" : "pending";
+    }
+
     return {
       raceId: race.meetingKey,
       raceName: race.raceName,
       round: race.round,
-      status: (pred?.status as RacePrediction["status"]) ?? "pending",
+      status: combinedStatus,
       top10: [],
       pointsEarned: totalPts,
       maxPoints: 42,
@@ -164,17 +178,31 @@ export default async function Home() {
 
   const { achievements, earnedIds: earnedAchievementIds } = await fetchAchievementsData(supabase, user.id);
 
-  // Fetch champion prediction status
-  const { data: champRow } = await supabase
-    .from("champion_predictions")
-    .select("status, points_earned, is_half_points")
+  // Fetch champion prediction status from unified season_award_predictions,
+  // scoped to the 5 top-level championship slugs (team best drivers excluded).
+  const CHAMPION_SLUGS = ["wdc", "wcc", "most_dnfs", "most_podiums", "most_wins"];
+  const { data: championRows } = await supabase
+    .from("season_award_predictions")
+    .select("status, points_earned, is_half_points, season_award_types!inner(slug)")
     .eq("user_id", user.id)
-    .single();
+    .eq("season_id", currentSeason?.id ?? -1)
+    .in("season_award_types.slug", CHAMPION_SLUGS);
+
+  const champRowsList = championRows ?? [];
+  const championStatus: PredictionStatus = champRowsList.some((r) => r.status === "scored")
+    ? "scored"
+    : champRowsList.some((r) => r.status === "submitted")
+      ? "submitted"
+      : "pending";
+  const championPointsEarned = champRowsList.some((r) => r.status === "scored")
+    ? champRowsList.reduce((sum, r) => sum + (r.points_earned ?? 0), 0)
+    : null;
+  const championIsHalfPoints = champRowsList.some((r) => r.is_half_points);
 
   const championPredictionSummary = {
-    status: (champRow?.status as PredictionStatus) ?? "pending",
-    pointsEarned: champRow?.points_earned ?? null,
-    isHalfPoints: champRow?.is_half_points ?? false,
+    status: championStatus,
+    pointsEarned: championPointsEarned,
+    isHalfPoints: championIsHalfPoints,
   };
 
   const nextRace = getNextRace(races);

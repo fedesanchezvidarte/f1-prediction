@@ -118,6 +118,7 @@ const es: Messages = {
     pointsEarned: "Puntos obtenidos",
     makePrediction: "Hacer Predicción",
     live: "En Vivo",
+    sprint: "Sprint",
     championPrediction: "Campeonato",
     makeChampionPrediction: "Hacer Predicción",
     halfPoints: "Mitad pts",

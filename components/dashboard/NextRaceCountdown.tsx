@@ -106,7 +106,7 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
 
       {!deadlinePassed && (
         <div className="mt-4">
-          <div className="flex justify-between gap-2 px-3 py-2">
+          <div className="flex justify-between gap-2 px-3 py-2 md:justify-center md:gap-4 md:px-0">
             <TimeUnit value={timeLeft.days} label={t.nextRace.days} />
             <span className="self-start pt-1 text-lg text-muted">:</span>
             <TimeUnit value={timeLeft.hours} label={t.nextRace.hrs} />
