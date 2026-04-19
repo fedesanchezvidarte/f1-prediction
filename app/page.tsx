@@ -195,10 +195,10 @@ export default async function Home() {
         <div className="mx-auto max-w-5xl">
           {/* Bento Grid */}
           <div className="overflow-hidden rounded-2xl border border-border">
-            <div className="grid grid-cols-1 sm:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-6">
               {/* Row 1 */}
-              {/* User Summary - spans 2 cols */}
-              <div className="border-b border-border sm:col-span-2 sm:border-r">
+              {/* User Summary - spans 3 cols */}
+              <div className="border-b border-border sm:col-span-3 sm:border-r">
                 <UserSummaryCard
                   stats={userStats}
                   earned={earnedAchievementIds}
@@ -206,8 +206,8 @@ export default async function Home() {
                   total={achievements.length}
                 />
               </div>
-              {/* Next Race Countdown - spans 1 col */}
-              <div className="border-b border-border">
+              {/* Next Race Countdown - spans 3 cols */}
+              <div className="border-b border-border sm:col-span-3">
                 {nextRace ? (
                   <NextRaceCountdown race={nextRace} />
                 ) : (
@@ -216,30 +216,30 @@ export default async function Home() {
               </div>
 
               {/* Row 2 */}
-              {/* Predictions - spans 1 col */}
-              <div className="border-b border-border sm:border-r">
+              {/* Predictions - spans 2 cols */}
+              <div className="border-b border-border sm:col-span-2 sm:border-r">
                 <PredictionsCard
                   predictions={predictions}
                   races={predictionCardRaces}
                   championPrediction={championPredictionSummary}
                 />
               </div>
-              {/* Leaderboard - spans 2 cols */}
-              <div className="border-b border-border sm:col-span-2">
+              {/* Leaderboard - spans 4 cols */}
+              <div className="border-b border-border sm:col-span-4">
                 <LeaderboardCard entries={leaderboard} currentUserId={user.id} />
               </div>
 
               {/* Row 3 */}
               {/* Point System */}
-              <div className="border-border sm:border-r">
+              <div className="border-border sm:col-span-2 sm:border-r">
                 <PointSystemCard />
               </div>
               {/* Race Calendar */}
-              <div className="border-t border-border sm:border-r sm:border-t-0">
+              <div className="border-t border-border sm:col-span-2 sm:border-r sm:border-t-0">
                 <RaceCalendarCard entries={calendarEntries} />
               </div>
               {/* Placeholder */}
-              <div className="border-t border-border sm:border-t-0">
+              <div className="border-t border-border sm:col-span-2 sm:border-t-0">
                 <PlaceholderCard />
               </div>
             </div>
