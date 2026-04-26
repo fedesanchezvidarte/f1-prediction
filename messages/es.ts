@@ -180,7 +180,7 @@ const es: Messages = {
   predictionsPage: {
     backToLeaderboard: "Clasificación",
     yourPredictions: " predicciones",
-    champion: "Campeón",
+    champion: "Campeonato",
     race: "Carrera",
     sprint: "Sprint",
     na: "N/D",
@@ -220,6 +220,7 @@ const es: Messages = {
     wdc: "Campeón Mundial de Pilotos (WDC)",
     wcc: "Campeón Mundial de Constructores (WCC)",
     selectTeam: "Seleccionar equipo...",
+    selectDriverPlaceholder: "Seleccionar piloto...",
     halfPointsWarning: "Las predicciones enviadas o actualizadas después de la Ronda 2 otorgan la mitad de puntos.",
     // New champion categories
     mostDnfs: "Más Abandonos",
@@ -266,6 +267,15 @@ const es: Messages = {
     matchTop10Bonus: "Top 10 Acertado",
     perfectTop8Bonus: "Top 8 Perfecto",
     matchTop8Bonus: "Top 8 Acertado",
+    // Selector de ronda
+    previousRound: "Ronda anterior",
+    nextRound: "Ronda siguiente",
+    selectRound: "Seleccionar ronda",
+    roundSelectorLabel: "Ronda de carrera",
+    jumpToRound: "Ir a la ronda",
+    championPrediction: "Predicción de campeonato",
+    predictionDeadline: "Plazo de predicción",
+    predictionsClosed: "Predicciones cerradas",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────

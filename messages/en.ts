@@ -223,6 +223,7 @@ const en = {
     wdc: "World Drivers' Champion (WDC)",
     wcc: "World Constructors' Champion (WCC)",
     selectTeam: "Select team...",
+    selectDriverPlaceholder: "Select driver...",
     halfPointsWarning: "Predictions submitted or updated after Round 2 earn half points.",
     // New champion categories
     mostDnfs: "Most DNFs",
@@ -272,6 +273,15 @@ const en = {
     matchTop10Bonus: "Match Top 10",
     perfectTop8Bonus: "Perfect Top 8",
     matchTop8Bonus: "Match Top 8",
+    // Round selector
+    previousRound: "Previous round",
+    nextRound: "Next round",
+    selectRound: "Select round",
+    roundSelectorLabel: "Race round",
+    jumpToRound: "Jump to round",
+    championPrediction: "Championship prediction",
+    predictionDeadline: "Prediction deadline",
+    predictionsClosed: "Predictions closed",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────

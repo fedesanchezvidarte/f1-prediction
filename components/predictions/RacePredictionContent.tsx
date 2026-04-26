@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef, useTransition } from "react";
@@ -18,8 +19,10 @@ import {
   Eye,
   EyeOff,
   Crown,
+  MapPin,
   Loader2,
 } from "lucide-react";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import type {
   Race,
   Driver,
@@ -622,73 +625,54 @@ export function RacePredictionContent({
         )}
       </div>
 
-      {/* Race Navigation */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
-        <button
-          disabled={raceIndex === 0 && !isChampionTab}
-          onClick={() => {
-            if (isChampionTab) {
+      {/* Round selector + race info (fused) — or champion header */}
+      {isChampionTab ? (
+        <>
+          <RoundSelectorBar
+            races={races}
+            raceIndex={raceIndex}
+            isChampionTab
+            nextRaceIndex={nextRaceIndex}
+            champNeedsAttention={champNeedsAttention}
+            currentRace={currentRace}
+            raceStatus={raceStatus}
+            formatDate={formatDate}
+            onSelectRound={(i) => {
+              setRaceIndex(i);
+              setTab("race");
+            }}
+            onPrev={() => {
               setTab("race");
               setRaceIndex(races.length - 1);
-            } else if (raceIndex > 0) {
+            }}
+            onNext={() => {
+              /* champion is the rightmost; no-op */
+            }}
+            onSelectChampion={() => setTab("champion")}
+          />
+          <ChampionHeader championPhase={championPhase} />
+        </>
+      ) : (
+        <RoundSelectorBar
+          races={races}
+          raceIndex={raceIndex}
+          isChampionTab={false}
+          nextRaceIndex={nextRaceIndex}
+          champNeedsAttention={champNeedsAttention}
+          currentRace={currentRace}
+          raceStatus={raceStatus}
+          formatDate={formatDate}
+          onSelectRound={(i) => {
+            setRaceIndex(i);
+            if (tab === "sprint" && !races[i].hasSprint) setTab("race");
+          }}
+          onPrev={() => {
+            if (raceIndex > 0) {
               setRaceIndex(raceIndex - 1);
               setTab("race");
             }
           }}
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-30"
-        >
-          <ChevronLeft size={14} />
-        </button>
-
-        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
-          {races.map((race, i) => {
-            const isSelected = !isChampionTab && raceIndex === i;
-            const isNextRace = i === nextRaceIndex;
-            return (
-              <button
-                key={race.meetingKey}
-                onClick={() => {
-                  setRaceIndex(i);
-                  if (tab === "champion") setTab("race");
-                  if (tab === "sprint" && !race.hasSprint) setTab("race");
-                }}
-                className={`relative rounded-md px-2 py-1 text-[10px] font-medium transition-colors sm:px-2.5 ${
-                  isSelected
-                    ? "bg-f1-red text-white"
-                    : isNextRace
-                      ? "bg-f1-red/15 text-f1-red ring-1 ring-f1-red/40"
-                      : "text-muted hover:bg-card-hover hover:text-f1-white"
-                }`}
-              >
-                {isNextRace && !isSelected && (
-                  <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-f1-red animate-pulse" />
-                )}
-                <span className="hidden sm:inline">R{race.round}</span>
-                <span className="sm:hidden">{race.round}</span>
-              </button>
-            );
-          })}
-          <button
-            onClick={() => setTab("champion")}
-            className={`relative flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium transition-colors sm:px-2.5 ${
-              isChampionTab
-                ? "bg-f1-amber text-black"
-                : champNeedsAttention
-                  ? "bg-f1-amber/15 text-f1-amber ring-1 ring-f1-amber/40"
-                  : "text-muted hover:bg-card-hover hover:text-f1-white"
-            }`}
-          >
-            {champNeedsAttention && !isChampionTab && (
-              <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-f1-amber animate-pulse" />
-            )}
-            <Crown size={10} />
-            <span className="hidden sm:inline">{t.predictionsPage.champion}</span>
-          </button>
-        </div>
-
-        <button
-          disabled={isChampionTab}
-          onClick={() => {
+          onNext={() => {
             if (raceIndex < races.length - 1) {
               setRaceIndex(raceIndex + 1);
               setTab("race");
@@ -696,22 +680,7 @@ export function RacePredictionContent({
               setTab("champion");
             }
           }}
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-30"
-        >
-          <ChevronRight size={14} />
-        </button>
-      </div>
-
-      {/* Race Info / Champion Header */}
-      {isChampionTab ? (
-        <ChampionHeader championPhase={championPhase} />
-      ) : (
-        <RaceInfoBar
-          race={currentRace}
-          raceStatus={raceStatus}
-          formatDate={formatDate}
-          pointsEarned={pointsEarned}
-          deadline={activeDeadline}
+          onSelectChampion={() => setTab("champion")}
         />
       )}
 
@@ -760,19 +729,38 @@ export function RacePredictionContent({
         </div>
       )}
 
-      {/* Results Toggle — show when race is completed OR when results data exists
-         (e.g. admin entered results before the race dates have passed) */}
-      {!isChampionTab && (raceStatus === "completed" || currentResult || currentSprintResult) && (
-        <div className="border-b border-border px-4 py-2 sm:px-5">
-          <button
-            onClick={() => setShowResults(!showResults)}
-            className="flex items-center gap-1.5 text-[11px] font-medium text-f1-blue transition-colors hover:text-f1-blue/80"
-          >
-            {showResults ? <EyeOff size={12} /> : <Eye size={12} />}
-            {showResults ? t.predictionsPage.hideResults : t.predictionsPage.showResults}
-          </button>
-        </div>
-      )}
+      {/* Status row: countdown (upcoming), predictions-closed banner, and/or
+          show-results toggle (completed). The same horizontal slot serves all
+          three states so the layout stays consistent across race phases. */}
+      {!isChampionTab && (() => {
+        const showCountdown = raceStatus !== "completed" && !qualifyingStarted;
+        const showClosedBanner = qualifyingStarted && raceStatus !== "completed";
+        const hasResultsData = !!currentResult || !!currentSprintResult;
+        const showResultsToggle = raceStatus === "completed" || hasResultsData;
+        if (!showCountdown && !showClosedBanner && !showResultsToggle) return null;
+        return (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2 sm:px-5">
+            {showResultsToggle ? (
+              <button
+                onClick={() => setShowResults(!showResults)}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-f1-blue transition-colors hover:text-f1-blue/80"
+              >
+                {showResults ? <EyeOff size={12} /> : <Eye size={12} />}
+                {showResults ? t.predictionsPage.hideResults : t.predictionsPage.showResults}
+              </button>
+            ) : (
+              <span aria-hidden />
+            )}
+            {showCountdown && <DeadlineCountdown deadline={activeDeadline} />}
+            {showClosedBanner && (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-f1-red/10 px-2 py-1 text-[11px] font-semibold text-f1-red">
+                <Clock size={12} />
+                {t.predictionsPage.predictionsClosed}
+              </span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Results Display */}
       {showResults && !isChampionTab && tab === "race" && currentResult && (
@@ -1154,112 +1142,396 @@ function SubmitConfirmModal({
 
 /* ---------- Race Info Bar ---------- */
 
-function RaceInfoBar({
-  race,
-  raceStatus,
-  formatDate,
-  pointsEarned: _pointsEarned,
-  deadline,
-}: {
-  race: Race;
+/* ---------- Round Selector Bar (fused round picker + race info + countdown) ---------- */
+
+interface RoundSelectorBarProps {
+  races: Race[];
+  raceIndex: number;
+  isChampionTab: boolean;
+  nextRaceIndex: number;
+  champNeedsAttention: boolean;
+  currentRace: Race;
   raceStatus: RaceStatus;
   formatDate: (d: string) => string;
-  pointsEarned: number | null;
-  deadline: string;
-}) {
-  const [deadlinePassed, setDeadlinePassed] = useState(
-    () => new Date(deadline).getTime() <= Date.now()
-  );
-  const showCountdown = raceStatus !== "completed" && !deadlinePassed;
+  onSelectRound: (index: number) => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onSelectChampion: () => void;
+}
 
-  const [timeLeft, setTimeLeft] = useState(() => {
-    const diff = new Date(deadline).getTime() - Date.now();
-    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-    return {
-      days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-      hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-      minutes: Math.floor((diff / (1000 * 60)) % 60),
-      seconds: Math.floor((diff / 1000) % 60),
-    };
-  });
+function RoundSelectorBar({
+  races,
+  raceIndex,
+  isChampionTab,
+  nextRaceIndex,
+  champNeedsAttention,
+  currentRace,
+  raceStatus,
+  formatDate,
+  onSelectRound,
+  onPrev,
+  onNext,
+  onSelectChampion,
+}: RoundSelectorBarProps) {
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState<number>(raceIndex);
+  const listboxRef = useRef<HTMLUListElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Re-initialise derived state when the deadline prop changes (e.g. tab switch)
-  const prevDeadlineRef = useRef(deadline);
-  if (prevDeadlineRef.current !== deadline) {
-    prevDeadlineRef.current = deadline;
-    // eslint-disable-next-line react-hooks/purity
-    const passed = new Date(deadline).getTime() <= Date.now();
-    setDeadlinePassed(passed);
-    // eslint-disable-next-line react-hooks/purity
-    const diff = new Date(deadline).getTime() - Date.now();
-    if (diff > 0) {
-      setTimeLeft({
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((diff / (1000 * 60)) % 60),
-        seconds: Math.floor((diff / 1000) % 60),
-      });
-    } else {
-      setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-    }
-  }
+  // The championship option lives at the end of the listbox.
+  const championshipIndex = races.length;
+  const lastIndex = championshipIndex; // total options - 1
 
+  // Keep activeIndex aligned with selection when the dropdown opens.
   useEffect(() => {
-    if (!showCountdown) return;
-    const timer = setInterval(() => {
-      const diff = new Date(deadline).getTime() - Date.now();
-      if (diff <= 0) {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        setDeadlinePassed(true);
-        return;
-      }
-      setTimeLeft({
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((diff / (1000 * 60)) % 60),
-        seconds: Math.floor((diff / 1000) % 60),
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [deadline, showCountdown]);
+    if (open) setActiveIndex(isChampionTab ? championshipIndex : raceIndex);
+  }, [open, raceIndex, isChampionTab, championshipIndex]);
 
-  const pad = (n: number) => String(n).padStart(2, "0");
+  // Close on outside click / Esc
+  useEffect(() => {
+    if (!open) return;
+    const onDocMouseDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onDocKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onDocKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onDocKey);
+    };
+  }, [open]);
+
+  // Scroll the active option into view as the user navigates.
+  useEffect(() => {
+    if (!open || !listboxRef.current) return;
+    const el = listboxRef.current.querySelector<HTMLElement>(
+      `[data-index="${activeIndex}"]`
+    );
+    el?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex, open]);
+
+  // Move focus into the listbox when it opens so keyboard navigation works.
+  useEffect(() => {
+    if (open) listboxRef.current?.focus();
+  }, [open]);
+
+  const onTriggerKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setOpen(true);
+    }
+  };
+
+  const commitSelection = (index: number) => {
+    if (index === championshipIndex) {
+      onSelectChampion();
+    } else {
+      onSelectRound(index);
+    }
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const onListKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(lastIndex, i + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(0, i - 1));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActiveIndex(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActiveIndex(lastIndex);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      commitSelection(activeIndex);
+    } else if (e.key === "Tab") {
+      setOpen(false);
+    }
+  };
+
+  // Which round to display in the chip — when on champion tab the chip shows
+  // "Championship" instead of the round/race name.
+  const chipRace = currentRace;
 
   return (
-    <div className={`relative border-b border-border px-4 sm:px-5 ${showCountdown ? "pt-3 pb-7" : "py-3"}`}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-f1-white">
-                {race.raceName}
-              </h2>
-              <RaceStatusBadge status={raceStatus} />
-            </div>
-            <p className="mt-0.5 text-[11px] text-muted">
-              {race.circuitShortName} — {race.location}, {race.countryName}
-            </p>
+    <div
+      ref={containerRef}
+      className="border-b border-border px-4 py-4 sm:px-5"
+    >
+      {/* Top row: prev arrow · round chip + dropdown · champion pill · status pill · next arrow */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <button
+          type="button"
+          onClick={onPrev}
+          disabled={!isChampionTab && raceIndex === 0}
+          aria-label={t.predictionsPage.previousRound}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-30"
+        >
+          <ChevronLeft size={16} />
+        </button>
+
+        {/* Round chip + listbox dropdown */}
+        <div className="relative min-w-0 flex-1">
+          <button
+            ref={triggerRef}
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            onKeyDown={onTriggerKeyDown}
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            aria-label={
+              isChampionTab
+                ? `${t.predictionsPage.roundSelectorLabel}: ${t.predictionsPage.championship}`
+                : `${t.predictionsPage.roundSelectorLabel}: R${chipRace.round} ${chipRace.raceName}`
+            }
+            className="flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-f1-white transition-colors hover:border-border-hover"
+          >
+            {isChampionTab ? (
+              <>
+                <Crown size={14} className="shrink-0 text-f1-amber" />
+                <span className="flex min-w-0 flex-1 items-baseline gap-1.5 truncate text-left">
+                  <span className="truncate text-xs font-semibold">
+                    {t.predictionsPage.championship}
+                  </span>
+                </span>
+              </>
+            ) : (
+              <>
+                <CountryFlag
+                  countryCode={chipRace.countryCode}
+                  className="inline-block h-3.5 w-5 rounded-[1px] shrink-0"
+                />
+                <span className="flex min-w-0 flex-1 items-baseline gap-1.5 truncate text-left">
+                  <span className="text-[11px] font-mono text-muted shrink-0">
+                    R{String(chipRace.round).padStart(2, "0")}
+                  </span>
+                  <span className="truncate text-xs font-semibold">
+                    {chipRace.raceName}
+                  </span>
+                </span>
+              </>
+            )}
+            <ChevronDown
+              size={14}
+              className={`shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </button>
+
+          {open && (
+            <ul
+              ref={listboxRef}
+              role="listbox"
+              tabIndex={-1}
+              aria-label={t.predictionsPage.jumpToRound}
+              aria-activedescendant={
+                activeIndex === championshipIndex
+                  ? "round-option-championship"
+                  : `round-option-${activeIndex}`
+              }
+              onKeyDown={onListKeyDown}
+              className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-lg border border-border bg-card shadow-xl focus:outline-none"
+            >
+              {races.map((race, i) => {
+                const isSelected = !isChampionTab && i === raceIndex;
+                const isActive = i === activeIndex;
+                const isNext = i === nextRaceIndex;
+                return (
+                  <li
+                    key={race.meetingKey}
+                    id={`round-option-${i}`}
+                    data-index={i}
+                    role="option"
+                    aria-selected={isSelected}
+                    onMouseEnter={() => setActiveIndex(i)}
+                    onClick={() => commitSelection(i)}
+                    className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-left transition-colors ${
+                      isActive ? "bg-card-hover" : ""
+                    } ${isSelected ? "border-l-2 border-f1-red" : "border-l-2 border-transparent"}`}
+                  >
+                    <CountryFlag
+                      countryCode={race.countryCode}
+                      className="inline-block h-3.5 w-5 rounded-[1px] shrink-0"
+                    />
+                    <span className="text-[10px] font-mono text-muted shrink-0">
+                      R{String(race.round).padStart(2, "0")}
+                    </span>
+                    <span className="flex-1 truncate text-xs text-f1-white">
+                      {race.raceName}
+                    </span>
+                    {isNext && (
+                      <span className="rounded-full bg-f1-red/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-f1-red">
+                        {t.predictionsPage.upcoming}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+
+              {/* Divider + Championship option (always last) */}
+              <li role="separator" aria-hidden className="my-1 border-t border-border" />
+              <li
+                id="round-option-championship"
+                data-index={championshipIndex}
+                role="option"
+                aria-selected={isChampionTab}
+                onMouseEnter={() => setActiveIndex(championshipIndex)}
+                onClick={() => commitSelection(championshipIndex)}
+                className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-left transition-colors ${
+                  activeIndex === championshipIndex ? "bg-card-hover" : ""
+                } ${isChampionTab ? "border-l-2 border-f1-amber" : "border-l-2 border-transparent"}`}
+              >
+                <Crown size={14} className="shrink-0 text-f1-amber" />
+                <span className="flex-1 truncate text-xs font-semibold text-f1-white">
+                  {t.predictionsPage.championship}
+                </span>
+                {champNeedsAttention && !isChampionTab && (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-f1-amber"
+                    aria-hidden
+                  />
+                )}
+              </li>
+            </ul>
+          )}
+        </div>
+
+        {/* Champion pill — separate from rounds */}
+        <button
+          type="button"
+          onClick={onSelectChampion}
+          aria-pressed={isChampionTab}
+          aria-label={t.predictionsPage.championPrediction}
+          className={`relative flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-[10px] font-medium transition-colors sm:px-2.5 ${
+            isChampionTab
+              ? "bg-f1-amber text-black"
+              : champNeedsAttention
+                ? "bg-f1-amber/15 text-f1-amber ring-1 ring-f1-amber/40"
+                : "border border-border text-muted hover:border-border-hover hover:text-f1-white"
+          }`}
+        >
+          {champNeedsAttention && !isChampionTab && (
+            <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-f1-amber animate-pulse" aria-hidden />
+          )}
+          <Crown size={12} />
+          <span className="hidden sm:inline">{t.predictionsPage.champion}</span>
+        </button>
+
+        {/* Race status pill (only on race tab) */}
+        {!isChampionTab && (
+          <div className="hidden shrink-0 sm:block">
+            <RaceStatusBadge status={raceStatus} />
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] tabular-nums text-muted">
-            {formatDate(race.dateStart)} – {formatDate(race.dateEnd)}
-          </span>
-          <span className="rounded-full bg-card px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted">
-            R{race.round}
-          </span>
-        </div>
+        )}
+
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={isChampionTab}
+          aria-label={t.predictionsPage.nextRound}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border text-muted transition-colors hover:border-border-hover hover:text-f1-white disabled:opacity-30"
+        >
+          <ChevronRight size={16} />
+        </button>
       </div>
 
-      {/* Prediction deadline countdown — bottom-right corner */}
-      {showCountdown && (
-        <div className="absolute bottom-2 right-4 flex items-center gap-1 sm:right-5">
-          <Clock size={11} className="text-muted" />
-          <span className="text-[11px] tabular-nums text-f1-white">
-            {timeLeft.days > 0 && `${timeLeft.days}d `}{pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
-          </span>
+      {/* Mobile-only status pill row */}
+      {!isChampionTab && (
+        <div className="mt-2 flex items-center gap-2 sm:hidden">
+          <RaceStatusBadge status={raceStatus} />
         </div>
       )}
+
+      {/* Race meta: location · date range · R{round} pill */}
+      {!isChampionTab && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+          <div className="flex min-w-0 items-center gap-1.5 text-[11px] text-muted">
+            <MapPin size={12} className="shrink-0" />
+            <span className="truncate">
+              {currentRace.location}, {currentRace.countryName}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] tabular-nums text-muted">
+              {formatDate(currentRace.dateStart)} – {formatDate(currentRace.dateEnd)}
+            </span>
+            <span className="rounded-full bg-card px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted">
+              R{currentRace.round}
+            </span>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+/* ---------- Deadline Countdown (compact, shown in the results-toggle row) ---------- */
+
+function computeTimeLeft(target: string) {
+  const diff = new Date(target).getTime() - Date.now();
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+  };
+}
+
+function DeadlineCountdown({ deadline }: { deadline: string }) {
+  const { t, language } = useLanguage();
+  const [timeLeft, setTimeLeft] = useState(() => computeTimeLeft(deadline));
+
+  useEffect(() => {
+    // Reset immediately when the deadline prop changes, then tick every second.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTimeLeft(computeTimeLeft(deadline));
+    const timer = setInterval(() => {
+      setTimeLeft(computeTimeLeft(deadline));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [deadline]);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const numeric = `${pad(timeLeft.days)}:${pad(timeLeft.hours)}:${pad(timeLeft.minutes)}:${pad(timeLeft.seconds)}`;
+
+  // Human-readable announcement for screen readers.
+  const announce =
+    language === "es"
+      ? `${timeLeft.days} días, ${timeLeft.hours} horas, ${timeLeft.minutes} minutos`
+      : `${timeLeft.days} days, ${timeLeft.hours} hours, ${timeLeft.minutes} minutes`;
+
+  return (
+    <div
+      role="timer"
+      aria-live="off"
+      aria-label={t.predictionsPage.predictionDeadline}
+      className="flex items-center gap-1.5"
+    >
+      <Clock size={12} className="text-f1-amber" />
+      <span className="text-[11px] font-medium tracking-wider text-muted">
+        {t.predictionsPage.predictionDeadline}
+      </span>
+      <span className="text-[11px] font-semibold tabular-nums text-f1-white">
+        {numeric}
+      </span>
+      <span className="sr-only" aria-live="polite">
+        {announce}
+      </span>
     </div>
   );
 }

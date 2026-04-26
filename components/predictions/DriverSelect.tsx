@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronDown, X } from "lucide-react";
 import type { Driver } from "@/types";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export type MatchStatus = "exact" | "close" | "miss" | null;
 
@@ -30,6 +31,7 @@ export function DriverSelect({
   matchStatus = null,
   pointsAwarded = null,
 }: DriverSelectProps) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [openUpward, setOpenUpward] = useState(false);
@@ -129,7 +131,7 @@ export function DriverSelect({
             </span>
           </span>
         ) : (
-          <span className="text-muted">Select driver...</span>
+          <span className="text-muted">{t.predictionsPage.selectDriverPlaceholder}</span>
         )}
         <div className="flex items-center gap-1">
           {value && !disabled && (
