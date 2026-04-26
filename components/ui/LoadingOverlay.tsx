@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { SpeedTrailSpinner } from "./SpeedTrailSpinner";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -16,15 +15,11 @@ interface LoadingOverlayProps {
  */
 export function LoadingOverlay({ isLoading }: LoadingOverlayProps) {
   const { t } = useLanguage();
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  if (!isLoading) return null;
+  if (typeof document === "undefined") return null;
 
-  if (!isLoading || !mounted) return null;
-
-  const overlay = (
+  return createPortal(
     <div
       role="status"
       aria-live="polite"
@@ -36,8 +31,7 @@ export function LoadingOverlay({ isLoading }: LoadingOverlayProps) {
       }}
     >
       <SpeedTrailSpinner size={56} />
-    </div>
+    </div>,
+    document.body
   );
-
-  return createPortal(overlay, document.body);
 }
