@@ -10,6 +10,7 @@ import { AuthFooter } from "@/components/AuthFooter";
 import { GoogleIcon } from "@/components/GoogleIcon";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { AuthLanguageSwitcher } from "@/components/auth/AuthLanguageSwitcher";
+import { LoadingOverlay } from "@/components/ui/LoadingOverlay";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { t } = useLanguage();
 
@@ -37,12 +39,14 @@ export default function LoginPage() {
       return;
     }
 
+    setIsRedirecting(true);
     router.push("/");
     router.refresh();
   }
 
   async function handleGoogleLogin() {
     setError(null);
+    setIsRedirecting(true);
     const supabase = createClient();
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
     const { error } = await supabase.auth.signInWithOAuth({
@@ -54,6 +58,7 @@ export default function LoginPage() {
 
     if (error) {
       setError(error.message);
+      setIsRedirecting(false);
     }
   }
 
@@ -180,6 +185,7 @@ export default function LoginPage() {
       </div>
 
       <AuthFooter />
+      <LoadingOverlay isLoading={isRedirecting} />
     </div>
   );
 }

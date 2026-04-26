@@ -20,6 +20,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { LoadingOverlay } from "@/components/ui/LoadingOverlay";
 
 interface NavbarProps {
   displayName: string;
@@ -31,6 +32,7 @@ export function Navbar({ displayName, avatarUrl, isAdmin = false }: NavbarProps)
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -51,6 +53,8 @@ export function Navbar({ displayName, avatarUrl, isAdmin = false }: NavbarProps)
     setIsSigningOut(true);
     const supabase = createClient();
     await supabase.auth.signOut();
+    setShowSignOutModal(false);
+    setIsRedirecting(true);
     router.push("/login");
     router.refresh();
   }
@@ -314,6 +318,8 @@ export function Navbar({ displayName, avatarUrl, isAdmin = false }: NavbarProps)
           </div>
         </div>
       )}
+
+      <LoadingOverlay isLoading={isRedirecting} />
     </header>
   );
 }

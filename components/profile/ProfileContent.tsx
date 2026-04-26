@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
+import { LoadingOverlay } from "@/components/ui/LoadingOverlay";
 import type { Profile } from "@/types";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
@@ -55,6 +56,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
   const [saving, setSaving] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
@@ -168,6 +170,8 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
     setIsSigningOut(true);
     const supabase = createClient();
     await supabase.auth.signOut();
+    setShowSignOutModal(false);
+    setIsRedirecting(true);
     router.push("/login");
     router.refresh();
   }
@@ -235,6 +239,8 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
     }
 
     await supabase.auth.signOut();
+    setShowDeleteConfirm(false);
+    setIsRedirecting(true);
     router.push("/login");
     router.refresh();
   }
@@ -615,6 +621,8 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
           </div>
         </div>
       )}
+
+      <LoadingOverlay isLoading={isRedirecting} />
 
       {/* ── Delete Account Confirmation Modal ── */}
       {showDeleteConfirm && (

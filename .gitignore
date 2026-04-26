@@ -46,3 +46,6 @@ next-env.d.ts
 docs/architecture/dist/
 .mcp.json
 .claude/settings.local.json
+
+# Claude Design
+.claude/design/

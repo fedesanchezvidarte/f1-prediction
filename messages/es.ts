@@ -454,6 +454,11 @@ const es: Messages = {
     season: "Temporada 2026",
     buyMeCoffee: "invítame un café",
   },
+
+  // ── Loading states ──────────────────────────────────────────────────────
+  loading: {
+    redirecting: "Cargando...",
+  },
 };
 
 export default es;

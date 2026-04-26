@@ -464,6 +464,11 @@ const en = {
     season: "Season 2026",
     buyMeCoffee: "buy me a coffee",
   },
+
+  // ── Loading states ──────────────────────────────────────────────────────
+  loading: {
+    redirecting: "Loading...",
+  },
 };
 
 export type Messages = typeof en;
