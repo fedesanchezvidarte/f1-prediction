@@ -493,7 +493,7 @@ export function RacePredictionContent({
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return d.toLocaleDateString(language === "es" ? "es-ES" : "en-US", { month: "short", day: "numeric", year: "numeric" });
+    return d.toLocaleDateString(language === "es" ? "es-ES" : "en-US", { month: "short", day: "numeric" });
   };
 
   const raceMatchStatuses = useMemo((): RaceMatchStatuses | null => {
@@ -740,24 +740,27 @@ export function RacePredictionContent({
         if (!showCountdown && !showClosedBanner && !showResultsToggle) return null;
         return (
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2 sm:px-5">
-            {showResultsToggle ? (
-              <button
-                onClick={() => setShowResults(!showResults)}
-                className="flex items-center gap-1.5 text-[11px] font-medium text-f1-blue transition-colors hover:text-f1-blue/80"
-              >
-                {showResults ? <EyeOff size={12} /> : <Eye size={12} />}
-                {showResults ? t.predictionsPage.hideResults : t.predictionsPage.showResults}
-              </button>
-            ) : (
-              <span aria-hidden />
-            )}
-            {showCountdown && <DeadlineCountdown deadline={activeDeadline} />}
-            {showClosedBanner && (
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-f1-red/10 px-2 py-1 text-[11px] font-semibold text-f1-red">
-                <Clock size={12} />
-                {t.predictionsPage.predictionsClosed}
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {showResultsToggle && (
+                <button
+                  onClick={() => setShowResults(!showResults)}
+                  className="flex items-center gap-1.5 text-[11px] font-medium text-f1-blue transition-colors hover:text-f1-blue/80"
+                >
+                  {showResults ? <EyeOff size={12} /> : <Eye size={12} />}
+                  {showResults ? t.predictionsPage.hideResults : t.predictionsPage.showResults}
+                </button>
+              )}
+              {showCountdown && <DeadlineCountdown deadline={activeDeadline} />}
+              {showClosedBanner && (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-f1-red/10 px-2 py-1 text-[11px] font-semibold text-f1-red">
+                  <Clock size={12} />
+                  {t.predictionsPage.predictionsClosed}
+                </span>
+              )}
+            </div>
+            <div className="sm:hidden">
+              <RaceStatusBadge status={raceStatus} />
+            </div>
           </div>
         );
       })()}
@@ -1448,13 +1451,6 @@ function RoundSelectorBar({
         </button>
       </div>
 
-      {/* Mobile-only status pill row */}
-      {!isChampionTab && (
-        <div className="mt-2 flex items-center gap-2 sm:hidden">
-          <RaceStatusBadge status={raceStatus} />
-        </div>
-      )}
-
       {/* Race meta: location · date range · R{round} pill */}
       {!isChampionTab && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
@@ -1467,9 +1463,6 @@ function RoundSelectorBar({
           <div className="flex items-center gap-2">
             <span className="text-[11px] tabular-nums text-muted">
               {formatDate(currentRace.dateStart)} – {formatDate(currentRace.dateEnd)}
-            </span>
-            <span className="rounded-full bg-card px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted">
-              R{currentRace.round}
             </span>
           </div>
         </div>

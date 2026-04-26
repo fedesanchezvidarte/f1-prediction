@@ -183,7 +183,7 @@ const es: Messages = {
     champion: "Campeonato",
     race: "Carrera",
     sprint: "Sprint",
-    na: "N/D",
+    na: "N/A",
     showResults: "Ver Resultados",
     hideResults: "Ocultar Resultados",
     raceResults: "Resultados de Carrera",
