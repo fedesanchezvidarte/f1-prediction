@@ -59,3 +59,91 @@ body {
   background-color: var(--color-f1-red);
   color: white;
 }
+
+/* SpeedTrail spinner — see components/ui/SpeedTrailSpinner.tsx
+   Tweakable via CSS custom properties on a parent:
+     --sp-brand       brand color (default: var(--color-f1-red))
+     --sp-rate        global speed multiplier (default: 1)
+     --sp-speed-dur   cycle duration (default: 1.6s)
+     --sp-speed-fade  mask fade distance % (default: 22%) */
+.sp-wrap {
+  display: inline-flex;
+  align-items: center;
+}
+/* Frosted glass backdrop for the redirect LoadingOverlay.
+   Tint is intentionally light so the blurred page content stays visible.
+   Light theme override lives below the dark default. */
+.loading-backdrop {
+  background-color: rgba(13, 13, 13, 0.2);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+.light .loading-backdrop {
+  background-color: rgba(244, 244, 245, 0.25);
+}
+.sp-speed {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 var(--sp-speed-fade, 22%),
+    #000 calc(100% - var(--sp-speed-fade, 22%)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 var(--sp-speed-fade, 22%),
+    #000 calc(100% - var(--sp-speed-fade, 22%)),
+    transparent 100%
+  );
+}
+.sp-speed-logo {
+  position: relative;
+  z-index: 2;
+  animation: sp-speed-logo calc(var(--sp-speed-dur, 1.6s) / var(--sp-rate, 1)) linear infinite;
+  will-change: transform, opacity;
+}
+@keyframes sp-speed-logo {
+  0%   { transform: translateX(-110%); opacity: 0; }
+  42%  { transform: translateX(  50%); opacity: 1; }
+  58%  { transform: translateX(  50%); opacity: 1; }
+  100% { transform: translateX( 210%); opacity: 0; }
+}
+.sp-speed-line {
+  position: absolute;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--sp-brand, var(--color-f1-red)),
+    transparent
+  );
+  animation: sp-speed-line calc(1.2s / var(--sp-rate, 1)) linear infinite;
+}
+.sp-speed-line--1 {
+  top: 22%;
+  width: 80%;
+  animation-delay: 0s;
+  opacity: 0.5;
+}
+.sp-speed-line--2 {
+  top: 50%;
+  width: 100%;
+  animation-delay: calc(0.2s / var(--sp-rate, 1));
+  opacity: 0.85;
+}
+.sp-speed-line--3 {
+  top: 78%;
+  width: 70%;
+  animation-delay: calc(0.4s / var(--sp-rate, 1));
+  opacity: 0.4;
+}
+@keyframes sp-speed-line {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
