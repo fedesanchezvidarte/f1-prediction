@@ -5,6 +5,8 @@ const es: Messages = {
   navbar: {
     season: "Temporada 2026",
     openMenu: "Abrir menú de usuario",
+    switchToLight: "Cambiar a tema claro",
+    switchToDark: "Cambiar a tema oscuro",
     navigate: "Navegar",
     settings: "Ajustes",
     language: "Idioma",

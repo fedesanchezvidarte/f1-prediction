@@ -77,15 +77,51 @@ export function Navbar({ displayName, avatarUrl, isAdmin = false }: NavbarProps)
     <header className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
       <Link href="/" className="flex items-center gap-3">
         <Image src="/logo.svg" alt="F1 Prediction" width={36} height={36} priority />
-        <div className="flex items-baseline gap-2">
+        <div className="flex flex-col leading-tight md:flex-row md:items-baseline md:gap-2">
           <span className="text-lg font-bold tracking-tight text-f1-white">
             F1 Prediction
           </span>
-          <span className="text-xs text-muted">{t.navbar.season}</span>
+          <span className="text-[11px] text-muted md:text-xs">{t.navbar.season}</span>
         </div>
       </Link>
 
-      <div className="relative flex items-center gap-3" ref={menuRef}>
+      <div className="relative flex items-center gap-2 md:gap-4" ref={menuRef}>
+        {/* Desktop inline nav links */}
+        <nav className="hidden md:flex items-center gap-1" aria-label={t.navbar.navigate}>
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
+                  isActive
+                    ? "font-semibold text-f1-red"
+                    : "text-muted hover:text-f1-white"
+                }`}
+                aria-current={isActive ? "page" : undefined}
+              >
+                <span className={isActive ? "text-f1-red" : "text-muted/60"}>
+                  {link.icon}
+                </span>
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Subtle divider before theme toggle on desktop */}
+        <span className="hidden md:block h-5 w-px bg-border" aria-hidden="true" />
+
+        {/* Icon-only theme toggle */}
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-card-hover hover:text-f1-white ring-1 ring-transparent hover:ring-border-hover"
+          aria-label={theme === "dark" ? t.navbar.switchToLight : t.navbar.switchToDark}
+        >
+          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="group flex items-center rounded-full p-0.5 transition-all ring-1 ring-transparent hover:ring-border-hover"
@@ -225,25 +261,27 @@ export function Navbar({ displayName, avatarUrl, isAdmin = false }: NavbarProps)
                   <div className="flex rounded-md border border-border overflow-hidden">
                     <button
                       onClick={() => setTheme("dark")}
-                      className={`flex items-center gap-1 px-2 py-0.5 text-[10px] transition-colors ${
+                      aria-label={t.navbar.dark}
+                      aria-pressed={theme === "dark"}
+                      className={`flex items-center justify-center px-2 py-1 transition-colors ${
                         theme === "dark"
-                          ? "font-semibold text-f1-white bg-card-hover"
-                          : "font-medium text-muted hover:text-f1-white"
+                          ? "text-f1-white bg-card-hover"
+                          : "text-muted hover:text-f1-white"
                       }`}
                     >
-                      <Moon size={9} />
-                      {t.navbar.dark}
+                      <Moon size={12} />
                     </button>
                     <button
                       onClick={() => setTheme("light")}
-                      className={`flex items-center gap-1 px-2 py-0.5 text-[10px] border-l border-border transition-colors ${
+                      aria-label={t.navbar.light}
+                      aria-pressed={theme === "light"}
+                      className={`flex items-center justify-center px-2 py-1 border-l border-border transition-colors ${
                         theme === "light"
-                          ? "font-semibold text-f1-white bg-card-hover"
-                          : "font-medium text-muted hover:text-f1-white"
+                          ? "text-f1-white bg-card-hover"
+                          : "text-muted hover:text-f1-white"
                       }`}
                     >
-                      <Sun size={9} />
-                      {t.navbar.light}
+                      <Sun size={12} />
                     </button>
                   </div>
                 </div>
