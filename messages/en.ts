@@ -3,6 +3,8 @@ const en = {
   navbar: {
     season: "Season 2026",
     openMenu: "Open user menu",
+    switchToLight: "Switch to light theme",
+    switchToDark: "Switch to dark theme",
     navigate: "Navigate",
     settings: "Settings",
     language: "Language",
