@@ -49,3 +49,6 @@ docs/architecture/dist/
 
 # Claude Design
 .claude/design/
+
+# Playwright MCP
+.playwright-mcp/

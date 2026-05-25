@@ -216,13 +216,13 @@ export default async function Home() {
   const calendarEntries = getRaceCalendarEntries(races, predictionStatusByMeetingKey);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col">
       <Navbar displayName={displayName} avatarUrl={avatarUrl ?? undefined} isAdmin={isAdminUser(user)} />
 
       <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-5xl">
           {/* Bento Grid */}
-          <div className="overflow-hidden rounded-2xl border border-border">
+          <div className="overflow-hidden rounded-2xl border border-border bg-background">
             <div className="grid grid-cols-1 sm:grid-cols-6">
               {/* Row 1 */}
               {/* User Summary - spans 3 cols */}

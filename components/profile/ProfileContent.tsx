@@ -260,7 +260,7 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
       )}
 
       {/* Main card */}
-      <div className="overflow-hidden rounded-2xl border border-border">
+      <div className="overflow-hidden rounded-2xl border border-border bg-background">
 
         {/* ── Header ── */}
         <div className="flex items-center gap-2 border-b border-border px-5 py-3">

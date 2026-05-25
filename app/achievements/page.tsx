@@ -111,7 +111,7 @@ export default async function AchievementsPage() {
   const progressMap = buildProgressMap(achievements, progress);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col">
       <Navbar displayName={displayName} avatarUrl={avatarUrl ?? undefined} isAdmin={isAdminUser(user)} />
 
       <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8">

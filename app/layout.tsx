@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import { NavigationProgressProvider } from "@/components/providers/NavigationProgressProvider";
+import { DotsWallpaper } from "@/components/ui/DotsWallpaper";
 import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
@@ -36,10 +37,11 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background font-sans text-foreground antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen font-sans text-foreground antialiased`}
       >
         <LanguageProvider>
           <ThemeProvider>
+            <DotsWallpaper />
             <NavigationProgressProvider>{children}</NavigationProgressProvider>
           </ThemeProvider>
         </LanguageProvider>

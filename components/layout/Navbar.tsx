@@ -74,7 +74,7 @@ export function Navbar({ displayName, avatarUrl, isAdmin = false }: NavbarProps)
   ];
 
   return (
-    <header className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
+    <header className="flex items-center justify-between border-b border-border bg-background px-4 py-3 sm:px-6 sm:py-4">
       <Link href="/" className="flex items-center gap-3">
         <Image src="/logo.svg" alt="F1 Prediction" width={36} height={36} priority />
         <div className="flex flex-col leading-tight md:flex-row md:items-baseline md:gap-2">

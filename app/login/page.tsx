@@ -63,14 +63,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-between bg-background px-4">
+    <div className="relative flex min-h-screen flex-col items-center justify-between px-4">
       <div className="absolute top-4 right-4">
         <AuthLanguageSwitcher />
       </div>
       <div className="flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-8">
         <F1Logo />
 
-        <div className="w-full space-y-6">
+        <div className="w-full space-y-6 overflow-hidden rounded-2xl border border-border bg-background p-6 sm:p-8">
           <div className="text-center">
             <h2 className="text-3xl font-semibold text-f1-white">
               {t.login.title}!

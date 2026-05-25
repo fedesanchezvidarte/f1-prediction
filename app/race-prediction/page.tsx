@@ -72,7 +72,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   const seasonId = currentSeason?.id;
   if (!seasonId) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted">No active season found.</p>
       </div>
     );
@@ -344,7 +344,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col">
       <Navbar displayName={displayName} avatarUrl={avatarUrl ?? undefined} isAdmin={isAdminUser(user)} />
 
       <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8">

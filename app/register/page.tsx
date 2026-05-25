@@ -71,13 +71,13 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="relative flex min-h-screen flex-col items-center justify-between bg-background px-4">
+      <div className="relative flex min-h-screen flex-col items-center justify-between px-4">
         <div className="absolute top-4 right-4">
           <AuthLanguageSwitcher />
         </div>
         <div className="flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-8">
           <F1Logo />
-          <div className="w-full space-y-4 text-center">
+          <div className="w-full space-y-4 overflow-hidden rounded-2xl border border-border bg-background p-6 text-center sm:p-8">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-f1-green/10">
               <svg
                 className="h-8 w-8 text-f1-green"
@@ -116,14 +116,14 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-between bg-background px-4">
+    <div className="relative flex min-h-screen flex-col items-center justify-between px-4">
       <div className="absolute top-4 right-4">
         <AuthLanguageSwitcher />
       </div>
       <div className="flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-8">
         <F1Logo />
 
-        <div className="w-full space-y-6">
+        <div className="w-full space-y-6 overflow-hidden rounded-2xl border border-border bg-background p-6 sm:p-8">
           <div className="text-center">
             <h2 className="text-3xl font-semibold text-f1-white">
               {t.register.title}!

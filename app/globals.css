@@ -50,8 +50,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
-body {
+html {
   background: var(--background);
+}
+
+body {
+  background: transparent;
   color: var(--foreground);
 }
 
