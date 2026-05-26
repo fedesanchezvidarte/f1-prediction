@@ -107,6 +107,7 @@ const en = {
     lightsOut: "Lights out, and away we go!",
     noUpcoming: "No upcoming races",
     predictionDeadline: "Time left to submit your prediction",
+    makePrediction: "Make Prediction",
   },
 
   predictionsCard: {
@@ -129,6 +130,33 @@ const en = {
     viewAll: "View all",
     you: "You",
     pts: "pts",
+  },
+
+  standingsCard: {
+    title: "Championship Standings",
+    viewAll: "View all",
+    pts: "pts",
+    noData: "Standings will appear after the first race.",
+  },
+
+  standingsModal: {
+    title: "Championship Standings",
+    closeModal: "Close standings",
+    tabs: {
+      wdc: "Drivers",
+      wcc: "Constructors",
+      stats: "Stats",
+    },
+    rank: "Pos",
+    driver: "Driver",
+    team: "Team",
+    wins: "Wins",
+    podiums: "Pod.",
+    points: "Pts",
+    mostWins: "Most Wins",
+    mostPodiums: "Most Podiums",
+    mostDnfs: "Most DNFs",
+    empty: "No data yet",
   },
 
   pointSystem: {

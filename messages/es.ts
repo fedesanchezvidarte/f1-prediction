@@ -109,6 +109,7 @@ const es: Messages = {
     lightsOut: "¡Luces apagadas, y a correr!",
     noUpcoming: "Sin carreras próximas",
     predictionDeadline: "Tiempo restante para enviar tu predicción",
+    makePrediction: "Hacer Predicción",
   },
 
   predictionsCard: {
@@ -131,6 +132,33 @@ const es: Messages = {
     viewAll: "Ver todo",
     you: "Tú",
     pts: "pts",
+  },
+
+  standingsCard: {
+    title: "Clasificación del Campeonato",
+    viewAll: "Ver todo",
+    pts: "pts",
+    noData: "La clasificación aparecerá tras la primera carrera.",
+  },
+
+  standingsModal: {
+    title: "Clasificación del Campeonato",
+    closeModal: "Cerrar clasificación",
+    tabs: {
+      wdc: "Pilotos",
+      wcc: "Constructores",
+      stats: "Estadísticas",
+    },
+    rank: "Pos",
+    driver: "Piloto",
+    team: "Equipo",
+    wins: "Vict.",
+    podiums: "Pod.",
+    points: "Pts",
+    mostWins: "Más Victorias",
+    mostPodiums: "Más Podios",
+    mostDnfs: "Más Abandonos",
+    empty: "Sin datos aún",
   },
 
   pointSystem: {

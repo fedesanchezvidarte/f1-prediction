@@ -101,6 +101,16 @@ model {
       technology 'TypeScript · lib/drivers.ts · lib/teams.ts'
     }
 
+    driverStats = libComponent 'Driver Stats' {
+      description 'Pure aggregators + service that compute wins, podiums, and DNFs per driver from race_results. Backs the Champion-prediction stat leaders (mostWins / mostPodiums / mostDnfs).'
+      technology 'TypeScript · lib/driver-stats.ts'
+    }
+
+    championshipStandings = libComponent 'Championship Standings' {
+      description 'Pure aggregators + service that compute the WDC + WCC standings and stat leaders from race_results and sprint_results using official F1 points (25-18-15-12-10-8-6-4-2-1 + FL bonus / 8-7-6-5-4-3-2-1). Includes countback tiebreaks on race-only finishes.'
+      technology 'TypeScript · lib/championship-standings.ts'
+    }
+
     supabaseClient = libComponent 'Supabase Client' {
       description 'Factory for server-side and browser Supabase clients using @supabase/ssr with cookie-based session management.'
       technology 'Supabase SSR · lib/supabase/'
@@ -136,7 +146,7 @@ model {
     // ── UI Pages Layer (app/) ───────────────────────────────────
 
     dashboardPage = uiPage 'Dashboard' {
-      description 'Home page: user points and rank, next race countdown, prediction slot overview, leaderboard preview, and achievements summary widget'
+      description 'Home page: user points and rank, next race countdown (with sprint-aware Make Prediction CTA), championship standings card (WDC top-5 + modal with WDC/WCC/Stats tabs deep-linkable via ?standings=…), leaderboard preview, and achievements summary widget'
       technology 'React Server Component · app/page.tsx'
     }
 
@@ -205,10 +215,18 @@ model {
     raceService -> supabaseClient 'fetchRacesFromDb() from seasons + races tables'
 
     // Dashboard
-    dashboardPage -> raceService 'fetchRacesFromDb() · getNextRace() · getPredictionCardRaces()'
+    dashboardPage -> raceService 'fetchRacesFromDb() · getNextRace()'
     dashboardPage -> supabaseClient 'queries profiles, leaderboard, race_predictions, user_achievements'
     dashboardPage -> achievementDefs 'ACHIEVEMENT_ICONS for preview widget'
     dashboardPage -> pointSystem 'POINT_SYSTEM for rules card'
+    dashboardPage -> championshipStandings 'fetchChampionshipStandings() — WDC, WCC, stat leaders for the StandingsCard'
+
+    // Championship Standings
+    championshipStandings -> driverStats 're-uses computeDriverStats() + getStatsLeaders() for stat leaders parity'
+    championshipStandings -> supabaseClient 'reads seasons, races, drivers (with teams), teams, race_results, sprint_results'
+
+    // Driver Stats
+    driverStats -> supabaseClient 'reads seasons, races, race_results for the active season'
 
     // Race Prediction
     racePredictionPage -> supabaseClient 'browser client: reads drivers, teams, existing predictions'
@@ -284,6 +302,8 @@ views {
     include f1prediction.webapp.adminUtils
     include f1prediction.webapp.pointSystem
     include f1prediction.webapp.driverData
+    include f1prediction.webapp.driverStats
+    include f1prediction.webapp.championshipStandings
     include f1prediction.webapp.supabaseClient
     include f1prediction.supabase
 
@@ -342,6 +362,7 @@ views {
     include f1prediction.webapp.raceService
     include f1prediction.webapp.achievementDefs
     include f1prediction.webapp.pointSystem
+    include f1prediction.webapp.championshipStandings
     include f1prediction.webapp.supabaseClient
     include f1prediction.supabase
 
