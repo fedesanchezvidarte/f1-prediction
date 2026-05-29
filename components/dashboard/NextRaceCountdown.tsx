@@ -175,7 +175,7 @@ function PredictionCta({ race }: { race: Race }) {
   return (
     <Link
       href={href}
-      className="mt-3 flex items-center justify-center gap-1 rounded-md bg-f1-red/10 py-2 text-xs font-medium text-f1-red transition-colors hover:bg-f1-red/20"
+      className="mt-3 flex items-center justify-center gap-1 rounded-md bg-f1-red py-2 text-xs font-semibold text-white shadow-sm shadow-f1-red/30 transition-colors hover:bg-f1-red-hover"
     >
       {t.nextRace.makePrediction}
       <ChevronRight size={14} />

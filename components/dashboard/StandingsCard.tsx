@@ -77,14 +77,16 @@ export function StandingsCard({ standings }: StandingsCardProps) {
               >
                 <div className="flex min-w-0 items-center gap-2">
                   <RankBadge rank={entry.rank} />
+                  <span
+                    className="h-6 w-1 shrink-0 rounded-sm"
+                    style={{ backgroundColor: `#${entry.driver.teamColor}` }}
+                    aria-hidden="true"
+                  />
                   <div className="min-w-0">
                     <span className="block truncate text-xs font-medium text-f1-white">
                       {entry.driver.firstName.charAt(0)}. {entry.driver.lastName}
                     </span>
-                    <span
-                      className="block truncate text-[10px]"
-                      style={{ color: `#${entry.driver.teamColor}` }}
-                    >
+                    <span className="block truncate text-[10px] text-muted">
                       {entry.driver.teamName}
                     </span>
                   </div>
