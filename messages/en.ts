@@ -244,6 +244,9 @@ const en = {
     restOfTop10: "Rest of Top 10",
     restOfTop10Sub: "(P2 – P10, excluding race winner)",
     fastestPitStop: "Fastest Pit Stop",
+    // Qualifying top-3 (new points system)
+    qualifyingTop3: "Qualifying Top 3",
+    qualifyingTop3Sub: "(Q1 – Q3 · 3 pts exact · 1 pt if off by one)",
     // Sprint form labels
     sprintPolePosition: "Sprint Pole Position",
     sprintWinnerP1: "Sprint Winner (P1)",
@@ -303,6 +306,8 @@ const en = {
     matchTop10Bonus: "Match Top 10",
     perfectTop8Bonus: "Perfect Top 8",
     matchTop8Bonus: "Match Top 8",
+    perfectQualifyingBonus: "Perfect Qualifying",
+    matchQualifyingBonus: "Match Qualifying",
     // Round selector
     previousRound: "Previous round",
     nextRound: "Next round",
@@ -432,6 +437,10 @@ const en = {
     resetResultError: "Failed to reset result",
     predictionsReverted: "predictions reverted",
     selectDriver: "Select driver...",
+    selectDriverOptional: "Select driver (optional)...",
+    qualifyingTop3: "Qualifying Top 3 (Q1–Q3) + Q4",
+    p11: "P11 (proximity boundary)",
+    p9: "P9 (proximity boundary)",
     saveResult: "Save & Score",
     saving: "Saving...",
     saveError: "Failed to save results",

@@ -59,7 +59,7 @@ export default async function AdminPage() {
   const { data: raceResults } = raceIds.length > 0
     ? await supabase
         .from("race_results")
-        .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id, dnf_driver_ids")
+        .select("race_id, pole_position_driver_id, qualifying_top_3, qualifying_p4_driver_id, top_10, p11_driver_id, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id, dnf_driver_ids")
         .in("race_id", raceIds)
     : { data: [] as never[] };
 
@@ -67,7 +67,7 @@ export default async function AdminPage() {
   const { data: sprintResults } = raceIds.length > 0
     ? await supabase
         .from("sprint_results")
-        .select("race_id, sprint_pole_driver_id, top_8, fastest_lap_driver_id")
+        .select("race_id, sprint_pole_driver_id, qualifying_top_3, qualifying_p4_driver_id, top_8, p9_driver_id, fastest_lap_driver_id")
         .in("race_id", raceIds)
     : { data: [] as never[] };
 

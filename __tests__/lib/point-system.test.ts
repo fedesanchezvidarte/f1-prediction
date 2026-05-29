@@ -31,14 +31,14 @@ describe("POINT_SYSTEM", () => {
     }
   });
 
-  it("Race Predictions maxPoints is 34", () => {
+  it("Race Predictions maxPoints is 92", () => {
     const raceSection = POINT_SYSTEM.find((s) => s.title === "Race Predictions")!;
-    expect(raceSection.maxPoints).toBe(34);
+    expect(raceSection.maxPoints).toBe(92);
   });
 
-  it("Sprint Race Predictions maxPoints is 20", () => {
+  it("Sprint Race Predictions maxPoints is 78", () => {
     const sprintSection = POINT_SYSTEM.find((s) => s.title === "Sprint Race Predictions")!;
-    expect(sprintSection.maxPoints).toBe(20);
+    expect(sprintSection.maxPoints).toBe(78);
   });
 
   it("Championship Predictions maxPoints is 92", () => {

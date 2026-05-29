@@ -58,16 +58,20 @@ function chain(data: unknown = null, error: unknown = null) {
 const validRaceBody = {
   raceId: 1,
   sessionType: "race",
-  polePositionDriverId: 10,
+  qualifyingTop3: [10, 20, 30],
+  qualifyingP4DriverId: 40,
   top10: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+  p11DriverId: 110,
   fastestLapDriverId: 20,
   fastestPitStopDriverId: 30,
 };
 const validSprintBody = {
   raceId: 1,
   sessionType: "sprint",
-  sprintPoleDriverId: 10,
+  qualifyingTop3: [10, 20, 30],
+  qualifyingP4DriverId: 40,
   top8: [10, 20, 30, 40, 50, 60, 70, 80],
+  p9DriverId: 90,
   fastestLapDriverId: 20,
 };
 
@@ -141,6 +145,22 @@ describe("POST /api/results/manual", () => {
     );
     expect(status).toBe(400);
     expect(json.error).toMatch(/top10/i);
+  });
+
+  it("returns 400 when race qualifyingTop3 has wrong length", async () => {
+    setAdmin();
+    mockFrom.mockReturnValue(chain({ id: 1, has_sprint: false }));
+
+    const { status, json } = await parseResponse(
+      await POST(
+        createMockRequest({
+          ...validRaceBody,
+          qualifyingTop3: [10, 20], // too few
+        })
+      )
+    );
+    expect(status).toBe(400);
+    expect(json.error).toMatch(/qualifyingTop3/i);
   });
 
   it("returns 400 when top10 contains invalid IDs", async () => {
