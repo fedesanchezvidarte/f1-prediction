@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { HelpCircle } from "lucide-react";
 import { PointSystemModal } from "./PointSystemModal";
-import { POINT_SYSTEM } from "@/lib/point-system";
+import { buildPointSystem } from "@/lib/point-system";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export function PointSystemCard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { t } = useLanguage();
+  const sections = buildPointSystem(t.pointSystem.sections);
 
   return (
     <>
@@ -29,7 +30,7 @@ export function PointSystemCard() {
 
       {isModalOpen && (
         <PointSystemModal
-          sections={POINT_SYSTEM}
+          sections={sections}
           onClose={() => setIsModalOpen(false)}
         />
       )}

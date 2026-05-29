@@ -1684,7 +1684,6 @@ function RaceForm({
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
             {t.predictionsPage.restOfTop10}
           </span>
-          <span className="text-[9px] text-muted/50">{t.predictionsPage.restOfTop10Sub}</span>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {prediction.restOfTop10.map((driver, i) => (
@@ -1794,7 +1793,6 @@ function QualifyingTop3Section({
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
           {t.predictionsPage.qualifyingTop3}
         </span>
-        <span className="text-[9px] text-muted/50">{t.predictionsPage.qualifyingTop3Sub}</span>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {qualifyingTop3.map((driver, i) => (
@@ -1870,7 +1868,6 @@ function SprintForm({
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
             {t.predictionsPage.restOfTop8}
           </span>
-          <span className="text-[9px] text-muted/50">{t.predictionsPage.restOfTop8Sub}</span>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {prediction.restOfTop8.map((driver, i) => (

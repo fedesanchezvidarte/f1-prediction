@@ -1,11 +1,15 @@
 /**
- * Tests for lib/point-system.ts — static data integrity checks.
+ * Tests for lib/point-system.ts — localized point-system builder.
  *
- * Verifies that POINT_SYSTEM has consistent structure and expected sections.
+ * Verifies that buildPointSystem produces consistent structure and the
+ * expected sections/maxima when given the English locale strings.
  */
-import { POINT_SYSTEM } from "@/lib/point-system";
+import { buildPointSystem } from "@/lib/point-system";
+import en from "@/messages/en";
 
-describe("POINT_SYSTEM", () => {
+const POINT_SYSTEM = buildPointSystem(en.pointSystem.sections);
+
+describe("buildPointSystem", () => {
   it("has exactly 3 sections", () => {
     expect(POINT_SYSTEM).toHaveLength(3);
   });

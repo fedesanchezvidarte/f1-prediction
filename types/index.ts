@@ -193,6 +193,8 @@ export interface PointSystemRule {
   category: string;
   description: string;
   points: number;
+  /** Optional worked example shown via an info-icon tooltip (proximity & bonus rules). */
+  example?: string;
 }
 
 export interface PointSystemSection {

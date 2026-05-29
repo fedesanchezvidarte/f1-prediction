@@ -1,4 +1,5 @@
 export { LeaderboardCard } from "./LeaderboardCard";
+export { NewPointsSystemBanner } from "./NewPointsSystemBanner";
 export { NextRaceCountdown } from "./NextRaceCountdown";
 export { NoUpcomingRaces } from "./NoUpcomingRaces";
 export { PlaceholderCard } from "./PlaceholderCard";
