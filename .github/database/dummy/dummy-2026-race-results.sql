@@ -118,14 +118,21 @@ race_data(rnd, pole, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, fl, fps, dotd) AS 
   (24, 'NOR','NOR','VER','PIA','RUS','LEC','HAM','ANT','ALB','SAI','GAS','NOR','NOR','NOR')
 )
 INSERT INTO race_results
-  (race_id, pole_position_driver_id, top_10,
+  (race_id, pole_position_driver_id, qualifying_top_3, qualifying_p4_driver_id,
+   top_10, p11_driver_id,
    fastest_lap_driver_id, fastest_pit_stop_driver_id,
    driver_of_the_day_driver_id, source)
 SELECT
   r.id,
   dpole.id,
+  -- Dev qualifying top-3 ≈ pole + P2 + P3; Q4 ≈ P4 (exercises the new path).
+  jsonb_build_array(dpole.id, d2.id, d3.id),
+  d4.id,
   jsonb_build_array(d1.id, d2.id, d3.id, d4.id, d5.id,
                     d6.id, d7.id, d8.id, d9.id, d10.id),
+  -- P11 boundary ≈ P10 driver shifted is unavailable in dev data; reuse P10's
+  -- successor is unknown, so leave it NULL (no extra proximity in dev).
+  NULL,
   dfl.id,
   dfps.id,
   ddotd.id,
@@ -148,7 +155,10 @@ JOIN d dfps     ON dfps.a  = rd.fps
 JOIN d ddotd    ON ddotd.a = rd.dotd
 ON CONFLICT (race_id) DO UPDATE SET
   pole_position_driver_id     = EXCLUDED.pole_position_driver_id,
+  qualifying_top_3            = EXCLUDED.qualifying_top_3,
+  qualifying_p4_driver_id     = EXCLUDED.qualifying_p4_driver_id,
   top_10                      = EXCLUDED.top_10,
+  p11_driver_id               = EXCLUDED.p11_driver_id,
   fastest_lap_driver_id       = EXCLUDED.fastest_lap_driver_id,
   fastest_pit_stop_driver_id  = EXCLUDED.fastest_pit_stop_driver_id,
   driver_of_the_day_driver_id = EXCLUDED.driver_of_the_day_driver_id,
@@ -172,11 +182,16 @@ sprint_data(rnd, pole, p1, p2, p3, p4, p5, p6, p7, p8, fl) AS (VALUES
   (23,      'VER',      'VER',      'NOR',      'HAM',      'PIA',      'LEC',      'RUS',      'ANT',      'SAI',      'HAM')
 )
 INSERT INTO sprint_results
-  (race_id, sprint_pole_driver_id, top_8, fastest_lap_driver_id, source)
+  (race_id, sprint_pole_driver_id, qualifying_top_3, qualifying_p4_driver_id,
+   top_8, p9_driver_id, fastest_lap_driver_id, source)
 SELECT
   r.id,
   dpole.id,
+  -- Dev sprint qualifying top-3 ≈ pole + P2 + P3; Q4 ≈ P4.
+  jsonb_build_array(dpole.id, d2.id, d3.id),
+  d4.id,
   jsonb_build_array(d1.id, d2.id, d3.id, d4.id, d5.id, d6.id, d7.id, d8.id),
+  NULL,
   dfl.id,
   'manual'
 FROM sprint_data sd
@@ -192,10 +207,13 @@ JOIN d d7       ON d7.a    = sd.p7
 JOIN d d8       ON d8.a    = sd.p8
 JOIN d dfl      ON dfl.a   = sd.fl
 ON CONFLICT (race_id) DO UPDATE SET
-  sprint_pole_driver_id = EXCLUDED.sprint_pole_driver_id,
-  top_8                 = EXCLUDED.top_8,
-  fastest_lap_driver_id = EXCLUDED.fastest_lap_driver_id,
-  source                = EXCLUDED.source;
+  sprint_pole_driver_id   = EXCLUDED.sprint_pole_driver_id,
+  qualifying_top_3        = EXCLUDED.qualifying_top_3,
+  qualifying_p4_driver_id = EXCLUDED.qualifying_p4_driver_id,
+  top_8                   = EXCLUDED.top_8,
+  p9_driver_id            = EXCLUDED.p9_driver_id,
+  fastest_lap_driver_id   = EXCLUDED.fastest_lap_driver_id,
+  source                  = EXCLUDED.source;
 
 
 -- ─────────────────────────────────────────────────────────────

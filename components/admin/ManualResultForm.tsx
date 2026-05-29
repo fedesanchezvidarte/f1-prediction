@@ -18,7 +18,10 @@ interface AdminDriver {
 interface RaceResult {
   race_id: number;
   pole_position_driver_id: number;
+  qualifying_top_3?: number[] | null;
+  qualifying_p4_driver_id?: number | null;
   top_10: number[];
+  p11_driver_id?: number | null;
   fastest_lap_driver_id: number;
   fastest_pit_stop_driver_id: number;
   driver_of_the_day_driver_id?: number | null;
@@ -28,7 +31,10 @@ interface RaceResult {
 interface SprintResult {
   race_id: number;
   sprint_pole_driver_id: number;
+  qualifying_top_3?: number[] | null;
+  qualifying_p4_driver_id?: number | null;
   top_8: number[];
+  p9_driver_id?: number | null;
   fastest_lap_driver_id: number;
 }
 
@@ -64,12 +70,38 @@ export function ManualResultForm({
     return Array(positionCount).fill(null);
   };
 
-  const initPole = (): number | null => {
-    if (sessionType === "race" && existingResult && "pole_position_driver_id" in existingResult) {
-      return existingResult.pole_position_driver_id;
+  // Qualifying top-3 [Q1, Q2, Q3]. Falls back to the legacy single pole column
+  // (Q1) for existing results saved before the new points system.
+  const initQualifyingTop3 = (): (number | null)[] => {
+    if (existingResult) {
+      const stored = (existingResult as RaceResult | SprintResult).qualifying_top_3;
+      if (stored && stored.length > 0) {
+        return [stored[0] ?? null, stored[1] ?? null, stored[2] ?? null];
+      }
+      const legacyPole =
+        sessionType === "race" && "pole_position_driver_id" in existingResult
+          ? existingResult.pole_position_driver_id
+          : sessionType === "sprint" && "sprint_pole_driver_id" in existingResult
+            ? existingResult.sprint_pole_driver_id
+            : null;
+      if (legacyPole != null) return [legacyPole, null, null];
     }
-    if (sessionType === "sprint" && existingResult && "sprint_pole_driver_id" in existingResult) {
-      return existingResult.sprint_pole_driver_id;
+    return [null, null, null];
+  };
+
+  const initQualifyingP4 = (): number | null => {
+    if (existingResult && "qualifying_p4_driver_id" in existingResult) {
+      return (existingResult as RaceResult | SprintResult).qualifying_p4_driver_id ?? null;
+    }
+    return null;
+  };
+
+  const initBoundary = (): number | null => {
+    if (sessionType === "race" && existingResult && "p11_driver_id" in existingResult) {
+      return (existingResult as RaceResult).p11_driver_id ?? null;
+    }
+    if (sessionType === "sprint" && existingResult && "p9_driver_id" in existingResult) {
+      return (existingResult as SprintResult).p9_driver_id ?? null;
     }
     return null;
   };
@@ -104,7 +136,9 @@ export function ManualResultForm({
   };
 
   const [positions, setPositions] = useState<(number | null)[]>(initPositions);
-  const [pole, setPole] = useState<number | null>(initPole);
+  const [qualifyingTop3, setQualifyingTop3] = useState<(number | null)[]>(initQualifyingTop3);
+  const [qualifyingP4, setQualifyingP4] = useState<number | null>(initQualifyingP4);
+  const [boundary, setBoundary] = useState<number | null>(initBoundary);
   const [fastestLap, setFastestLap] = useState<number | null>(initFastestLap);
   const [fastestPit, setFastestPit] = useState<number | null>(initFastestPit);
   const [driverOfTheDay, setDriverOfTheDay] = useState<number | null>(initDriverOfTheDay);
@@ -126,7 +160,10 @@ export function ManualResultForm({
   function isFormValid(): boolean {
     const nonNull = positions.filter((id) => id !== null);
     if (nonNull.length !== positionCount) return false;
-    if (pole === null) return false;
+    // All three qualifying slots are required and must be distinct.
+    const qualiNonNull = qualifyingTop3.filter((id): id is number => id !== null);
+    if (qualiNonNull.length !== 3) return false;
+    if (new Set(qualiNonNull).size !== 3) return false;
     if (fastestLap === null) return false;
     if (sessionType === "race" && fastestPit === null) return false;
     // Check for duplicate driver IDs in positions
@@ -146,8 +183,10 @@ export function ManualResultForm({
           ? {
               raceId,
               sessionType: "race",
-              polePositionDriverId: pole,
+              qualifyingTop3,
+              qualifyingP4DriverId: qualifyingP4,
               top10: positions,
+              p11DriverId: boundary,
               fastestLapDriverId: fastestLap,
               fastestPitStopDriverId: fastestPit,
               driverOfTheDayDriverId: driverOfTheDay,
@@ -156,8 +195,10 @@ export function ManualResultForm({
           : {
               raceId,
               sessionType: "sprint",
-              sprintPoleDriverId: pole,
+              qualifyingTop3,
+              qualifyingP4DriverId: qualifyingP4,
               top8: positions,
+              p9DriverId: boundary,
               fastestLapDriverId: fastestLap,
             };
 
@@ -198,23 +239,66 @@ export function ManualResultForm({
         </button>
       </div>
 
-      {/* Pole Position */}
+      {/* Qualifying Top 3 (Q1–Q3) + Q4 boundary */}
       <div>
         <label className="mb-1 block text-[11px] font-medium text-muted">
-          {sessionType === "race" ? admin.pole : admin.sprintPole}
+          {admin.qualifyingTop3}
         </label>
-        <select
-          value={pole ?? ""}
-          onChange={(e) => setPole(e.target.value ? Number(e.target.value) : null)}
-          className="w-full rounded-lg border border-border bg-input-bg px-3 py-2 text-xs text-f1-white outline-none transition-colors focus:border-f1-amber"
-        >
-          <option value="">{admin.selectDriver}</option>
-          {drivers.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name_acronym} — {d.first_name} {d.last_name} ({d.teamName})
-            </option>
-          ))}
-        </select>
+        <div className="space-y-1.5">
+          {[0, 1, 2].map((i) => {
+            const qualiSelected = new Set(
+              qualifyingTop3.filter((id): id is number => id !== null)
+            );
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-bold text-muted bg-card">
+                  Q{i + 1}
+                </span>
+                <select
+                  value={qualifyingTop3[i] ?? ""}
+                  onChange={(e) => {
+                    const driverId = e.target.value ? Number(e.target.value) : null;
+                    setQualifyingTop3((prev) => {
+                      const next = [...prev];
+                      next[i] = driverId;
+                      return next;
+                    });
+                  }}
+                  className="flex-1 rounded-lg border border-border bg-input-bg px-3 py-1.5 text-xs text-f1-white outline-none transition-colors focus:border-f1-amber"
+                >
+                  <option value="">{admin.selectDriver}</option>
+                  {drivers.map((d) => {
+                    const isDup = qualiSelected.has(d.id) && d.id !== qualifyingTop3[i];
+                    return (
+                      <option key={d.id} value={d.id} disabled={isDup}>
+                        {d.name_acronym} — {d.first_name} {d.last_name} ({d.teamName})
+                        {isDup ? " ✓" : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            );
+          })}
+          {/* Q4 — boundary slot for ±1 proximity scoring on the Q3 prediction. */}
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-bold text-muted bg-card">
+              Q4
+            </span>
+            <select
+              value={qualifyingP4 ?? ""}
+              onChange={(e) => setQualifyingP4(e.target.value ? Number(e.target.value) : null)}
+              className="flex-1 rounded-lg border border-border bg-input-bg px-3 py-1.5 text-xs text-f1-white outline-none transition-colors focus:border-f1-amber"
+            >
+              <option value="">{admin.selectDriverOptional}</option>
+              {drivers.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name_acronym} — {d.first_name} {d.last_name} ({d.teamName})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Top N positions */}
@@ -251,6 +335,29 @@ export function ManualResultForm({
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Boundary slot (P11 for race, P9 for sprint) — enables ±1 proximity scoring. */}
+      <div>
+        <label className="mb-1 block text-[11px] font-medium text-muted">
+          {sessionType === "race" ? admin.p11 : admin.p9}
+        </label>
+        <select
+          value={boundary ?? ""}
+          onChange={(e) => setBoundary(e.target.value ? Number(e.target.value) : null)}
+          className="w-full rounded-lg border border-border bg-input-bg px-3 py-2 text-xs text-f1-white outline-none transition-colors focus:border-f1-amber"
+        >
+          <option value="">{admin.selectDriverOptional}</option>
+          {drivers.map((d) => {
+            const isInTopN = selectedIds.has(d.id);
+            return (
+              <option key={d.id} value={d.id} disabled={isInTopN}>
+                {d.name_acronym} — {d.first_name} {d.last_name} ({d.teamName})
+                {isInTopN ? " ✓" : ""}
+              </option>
+            );
+          })}
+        </select>
       </div>
 
       {/* Fastest Lap */}

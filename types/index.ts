@@ -35,7 +35,8 @@ export interface RacePrediction {
   status: PredictionStatus;
   top10: Driver[];
   fastestLap?: Driver;
-  polePosition?: Driver;
+  /** Qualifying top-3 prediction [Q1, Q2, Q3]. Q1 is the legacy pole. */
+  qualifyingTop3?: (Driver | null)[];
   fastestPitStop?: Driver;
   pointsEarned?: number;
   maxPoints: number;
@@ -45,7 +46,8 @@ export interface FullRacePrediction {
   raceId: number;
   userId: string;
   status: PredictionStatus;
-  polePosition: Driver | null;
+  /** Qualifying top-3 prediction [Q1, Q2, Q3]. Q1 is the legacy pole. */
+  qualifyingTop3: (Driver | null)[];
   raceWinner: Driver | null;
   /** P2 through P10 (9 slots, excluding the race winner who is P1) */
   restOfTop10: (Driver | null)[];
@@ -59,7 +61,8 @@ export interface SprintPrediction {
   raceId: number;
   userId: string;
   status: PredictionStatus;
-  sprintPole: Driver | null;
+  /** Sprint qualifying top-3 prediction [Q1, Q2, Q3]. Q1 is the legacy sprint pole. */
+  qualifyingTop3: (Driver | null)[];
   sprintWinner: Driver | null;
   /** P2 through P8 (7 slots, excluding the sprint winner who is P1) */
   restOfTop8: (Driver | null)[];
@@ -131,9 +134,14 @@ export interface TeamWithDrivers {
 
 export interface RaceResult {
   raceId: number;
-  polePosition: Driver;
+  /** Qualifying top-3 result [Q1, Q2, Q3]. Q1 is the legacy pole. */
+  qualifyingTop3: Driver[];
+  /** Driver who qualified Q4 — boundary for ±1 proximity on the Q3 prediction. */
+  qualifyingP4?: Driver | null;
   raceWinner: Driver;
   top10: Driver[];
+  /** Driver who finished P11 — boundary for ±1 proximity on the P10 prediction. */
+  p11?: Driver | null;
   fastestLap: Driver;
   fastestPitStop?: Driver;
   driverOfTheDay?: Driver;
@@ -142,9 +150,14 @@ export interface RaceResult {
 
 export interface SprintResult {
   raceId: number;
-  sprintPole: Driver;
+  /** Sprint qualifying top-3 result [Q1, Q2, Q3]. Q1 is the legacy sprint pole. */
+  qualifyingTop3: Driver[];
+  /** Driver who qualified Q4 — boundary for ±1 proximity on the Q3 prediction. */
+  qualifyingP4?: Driver | null;
   sprintWinner: Driver;
   top8: Driver[];
+  /** Driver who finished P9 — boundary for ±1 proximity on the P8 prediction. */
+  p9?: Driver | null;
   fastestLap: Driver;
 }
 
@@ -180,6 +193,8 @@ export interface PointSystemRule {
   category: string;
   description: string;
   points: number;
+  /** Optional worked example shown via an info-icon tooltip (proximity & bonus rules). */
+  example?: string;
 }
 
 export interface PointSystemSection {

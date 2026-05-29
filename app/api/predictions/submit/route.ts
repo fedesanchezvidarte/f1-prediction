@@ -78,14 +78,14 @@ async function handleRacePrediction(
   userId: string,
   body: {
     raceId: number; // meetingKey
-    polePositionDriverNumber: number | null;
+    qualifyingTop3: (number | null)[]; // driver numbers [Q1, Q2, Q3]
     top10: (number | null)[]; // driver numbers
     fastestLapDriverNumber: number | null;
     fastestPitStopDriverNumber: number | null;
     driverOfTheDayDriverNumber: number | null;
   }
 ) {
-  const { raceId: meetingKey, polePositionDriverNumber, top10, fastestLapDriverNumber, fastestPitStopDriverNumber, driverOfTheDayDriverNumber } = body;
+  const { raceId: meetingKey, qualifyingTop3, top10, fastestLapDriverNumber, fastestPitStopDriverNumber, driverOfTheDayDriverNumber } = body;
 
   if (!Array.isArray(top10) || top10.length !== 10) {
     return NextResponse.json({ error: "top10 must be an array of exactly 10 elements" }, { status: 400 });
@@ -93,6 +93,14 @@ async function handleRacePrediction(
   const nonNullTop10 = top10.filter((d): d is number => d !== null);
   if (new Set(nonNullTop10).size !== nonNullTop10.length) {
     return NextResponse.json({ error: "top10 must not contain duplicate drivers" }, { status: 400 });
+  }
+
+  if (!Array.isArray(qualifyingTop3) || qualifyingTop3.length !== 3) {
+    return NextResponse.json({ error: "qualifyingTop3 must be an array of exactly 3 elements" }, { status: 400 });
+  }
+  const nonNullQuali = qualifyingTop3.filter((d): d is number => d !== null);
+  if (new Set(nonNullQuali).size !== nonNullQuali.length) {
+    return NextResponse.json({ error: "qualifyingTop3 must not contain duplicate drivers" }, { status: 400 });
   }
 
   const raceDbId = await getRaceDbId(supabase, meetingKey);
@@ -117,10 +125,14 @@ async function handleRacePrediction(
     return NextResponse.json({ error: "Cannot modify a scored prediction" }, { status: 400 });
   }
 
+  const qualifyingTop3Ids = qualifyingTop3.map(mapDriver);
+
   const predictionData = {
     user_id: userId,
     race_id: raceDbId,
-    pole_position_driver_id: mapDriver(polePositionDriverNumber),
+    qualifying_top_3: qualifyingTop3Ids,
+    // Keep the legacy NOT NULL pole column populated = Q1.
+    pole_position_driver_id: qualifyingTop3Ids[0] ?? null,
     top_10: top10.map(mapDriver),
     fastest_lap_driver_id: mapDriver(fastestLapDriverNumber),
     fastest_pit_stop_driver_id: mapDriver(fastestPitStopDriverNumber),
@@ -152,12 +164,12 @@ async function handleSprintPrediction(
   userId: string,
   body: {
     raceId: number; // meetingKey
-    sprintPoleDriverNumber: number | null;
+    qualifyingTop3: (number | null)[]; // driver numbers [Q1, Q2, Q3]
     top8: (number | null)[]; // driver numbers
     fastestLapDriverNumber: number | null;
   }
 ) {
-  const { raceId: meetingKey, sprintPoleDriverNumber, top8, fastestLapDriverNumber } = body;
+  const { raceId: meetingKey, qualifyingTop3, top8, fastestLapDriverNumber } = body;
 
   if (!Array.isArray(top8) || top8.length !== 8) {
     return NextResponse.json({ error: "top8 must be an array of exactly 8 elements" }, { status: 400 });
@@ -165,6 +177,14 @@ async function handleSprintPrediction(
   const nonNullTop8 = top8.filter((d): d is number => d !== null);
   if (new Set(nonNullTop8).size !== nonNullTop8.length) {
     return NextResponse.json({ error: "top8 must not contain duplicate drivers" }, { status: 400 });
+  }
+
+  if (!Array.isArray(qualifyingTop3) || qualifyingTop3.length !== 3) {
+    return NextResponse.json({ error: "qualifyingTop3 must be an array of exactly 3 elements" }, { status: 400 });
+  }
+  const nonNullQuali = qualifyingTop3.filter((d): d is number => d !== null);
+  if (new Set(nonNullQuali).size !== nonNullQuali.length) {
+    return NextResponse.json({ error: "qualifyingTop3 must not contain duplicate drivers" }, { status: 400 });
   }
 
   const raceDbId = await getRaceDbId(supabase, meetingKey);
@@ -189,10 +209,14 @@ async function handleSprintPrediction(
     return NextResponse.json({ error: "Cannot modify a scored prediction" }, { status: 400 });
   }
 
+  const qualifyingTop3Ids = qualifyingTop3.map(mapDriver);
+
   const predictionData = {
     user_id: userId,
     race_id: raceDbId,
-    sprint_pole_driver_id: mapDriver(sprintPoleDriverNumber),
+    qualifying_top_3: qualifyingTop3Ids,
+    // Keep the legacy sprint pole column populated = Q1.
+    sprint_pole_driver_id: qualifyingTop3Ids[0] ?? null,
     top_8: top8.map(mapDriver),
     fastest_lap_driver_id: mapDriver(fastestLapDriverNumber),
     status: "submitted",

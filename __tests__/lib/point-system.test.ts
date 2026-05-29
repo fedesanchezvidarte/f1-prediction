@@ -1,11 +1,15 @@
 /**
- * Tests for lib/point-system.ts — static data integrity checks.
+ * Tests for lib/point-system.ts — localized point-system builder.
  *
- * Verifies that POINT_SYSTEM has consistent structure and expected sections.
+ * Verifies that buildPointSystem produces consistent structure and the
+ * expected sections/maxima when given the English locale strings.
  */
-import { POINT_SYSTEM } from "@/lib/point-system";
+import { buildPointSystem } from "@/lib/point-system";
+import en from "@/messages/en";
 
-describe("POINT_SYSTEM", () => {
+const POINT_SYSTEM = buildPointSystem(en.pointSystem.sections);
+
+describe("buildPointSystem", () => {
   it("has exactly 3 sections", () => {
     expect(POINT_SYSTEM).toHaveLength(3);
   });
@@ -31,14 +35,14 @@ describe("POINT_SYSTEM", () => {
     }
   });
 
-  it("Race Predictions maxPoints is 34", () => {
+  it("Race Predictions maxPoints is 92", () => {
     const raceSection = POINT_SYSTEM.find((s) => s.title === "Race Predictions")!;
-    expect(raceSection.maxPoints).toBe(34);
+    expect(raceSection.maxPoints).toBe(92);
   });
 
-  it("Sprint Race Predictions maxPoints is 20", () => {
+  it("Sprint Race Predictions maxPoints is 78", () => {
     const sprintSection = POINT_SYSTEM.find((s) => s.title === "Sprint Race Predictions")!;
-    expect(sprintSection.maxPoints).toBe(20);
+    expect(sprintSection.maxPoints).toBe(78);
   });
 
   it("Championship Predictions maxPoints is 92", () => {

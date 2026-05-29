@@ -80,7 +80,7 @@ describe("POST /api/predictions/submit", () => {
           type: "race",
           raceId: 1,
           top10: [1, 2, 3],
-          polePositionDriverNumber: 1,
+          qualifyingTop3: [1, 2, 3],
         })
       )
     );
@@ -96,7 +96,39 @@ describe("POST /api/predictions/submit", () => {
           type: "race",
           raceId: 1,
           top10: [1, 1, 3, 4, 5, 6, 7, 8, 9, 10],
-          polePositionDriverNumber: 1,
+          qualifyingTop3: [1, 2, 3],
+        })
+      )
+    );
+    expect(status).toBe(400);
+    expect(json.error).toMatch(/duplicate/i);
+  });
+
+  it("returns 400 when race qualifyingTop3 has wrong length", async () => {
+    setUser({ id: "u1" });
+    const { status, json } = await parseResponse(
+      await POST(
+        createMockRequest({
+          type: "race",
+          raceId: 1,
+          top10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          qualifyingTop3: [1, 2],
+        })
+      )
+    );
+    expect(status).toBe(400);
+    expect(json.error).toMatch(/qualifyingTop3.*3/i);
+  });
+
+  it("returns 400 when race qualifyingTop3 contains duplicates", async () => {
+    setUser({ id: "u1" });
+    const { status, json } = await parseResponse(
+      await POST(
+        createMockRequest({
+          type: "race",
+          raceId: 1,
+          top10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          qualifyingTop3: [1, 1, 3],
         })
       )
     );
@@ -115,7 +147,7 @@ describe("POST /api/predictions/submit", () => {
           type: "race",
           raceId: 9999,
           top10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-          polePositionDriverNumber: 1,
+          qualifyingTop3: [1, 2, 3],
           fastestLapDriverNumber: 2,
           fastestPitStopDriverNumber: 3,
           driverOfTheDayDriverNumber: 4,
@@ -168,7 +200,7 @@ describe("POST /api/predictions/submit", () => {
           type: "race",
           raceId: 1,
           top10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-          polePositionDriverNumber: 1,
+          qualifyingTop3: [1, 2, 3],
           fastestLapDriverNumber: 2,
           fastestPitStopDriverNumber: 3,
           driverOfTheDayDriverNumber: 4,
@@ -189,7 +221,7 @@ describe("POST /api/predictions/submit", () => {
           type: "sprint",
           raceId: 1,
           top8: [1, 2, 3],
-          sprintPoleDriverNumber: 1,
+          qualifyingTop3: [1, 2, 3],
         })
       )
     );
@@ -205,12 +237,28 @@ describe("POST /api/predictions/submit", () => {
           type: "sprint",
           raceId: 1,
           top8: [1, 1, 3, 4, 5, 6, 7, 8],
-          sprintPoleDriverNumber: 1,
+          qualifyingTop3: [1, 2, 3],
         })
       )
     );
     expect(status).toBe(400);
     expect(json.error).toMatch(/duplicate/i);
+  });
+
+  it("returns 400 when sprint qualifyingTop3 has wrong length", async () => {
+    setUser({ id: "u1" });
+    const { status, json } = await parseResponse(
+      await POST(
+        createMockRequest({
+          type: "sprint",
+          raceId: 1,
+          top8: [1, 2, 3, 4, 5, 6, 7, 8],
+          qualifyingTop3: [1, 2],
+        })
+      )
+    );
+    expect(status).toBe(400);
+    expect(json.error).toMatch(/qualifyingTop3.*3/i);
   });
 
   // ── Champion prediction ─────────────────────────────────────────────

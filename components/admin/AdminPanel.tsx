@@ -40,7 +40,10 @@ interface AdminDriver {
 interface RaceResult {
   race_id: number;
   pole_position_driver_id: number;
+  qualifying_top_3?: number[] | null;
+  qualifying_p4_driver_id?: number | null;
   top_10: number[];
+  p11_driver_id?: number | null;
   fastest_lap_driver_id: number;
   fastest_pit_stop_driver_id: number;
   driver_of_the_day_driver_id?: number | null;
@@ -50,7 +53,10 @@ interface RaceResult {
 interface SprintResult {
   race_id: number;
   sprint_pole_driver_id: number;
+  qualifying_top_3?: number[] | null;
+  qualifying_p4_driver_id?: number | null;
   top_8: number[];
+  p9_driver_id?: number | null;
   fastest_lap_driver_id: number;
 }
 

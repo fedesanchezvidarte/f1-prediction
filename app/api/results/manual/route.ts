@@ -11,8 +11,10 @@ import { isAdminUser } from "@/lib/admin";
  * {
  *   raceId: number,
  *   sessionType: "race",
- *   polePositionDriverId: number,
+ *   qualifyingTop3: number[],  // ordered [Q1, Q2, Q3] driver IDs (Q1 = pole)
+ *   qualifyingP4DriverId: number, // Q4 — boundary for ±1 quali proximity
  *   top10: number[],           // ordered [P1, ..., P10] driver IDs
+ *   p11DriverId: number,       // P11 — boundary for ±1 top-10 proximity
  *   fastestLapDriverId: number,
  *   fastestPitStopDriverId: number,
  * }
@@ -21,8 +23,10 @@ import { isAdminUser } from "@/lib/admin";
  * {
  *   raceId: number,
  *   sessionType: "sprint",
- *   sprintPoleDriverId: number,
+ *   qualifyingTop3: number[],  // ordered [Q1, Q2, Q3] driver IDs (Q1 = sprint pole)
+ *   qualifyingP4DriverId: number, // Q4 — boundary for ±1 quali proximity
  *   top8: number[],            // ordered [P1, ..., P8] driver IDs
+ *   p9DriverId: number,        // P9 — boundary for ±1 top-8 proximity
  *   fastestLapDriverId: number,
  * }
  */
@@ -30,8 +34,10 @@ import { isAdminUser } from "@/lib/admin";
 interface RaceResultBody {
   raceId: number;
   sessionType: "race";
-  polePositionDriverId: number;
+  qualifyingTop3: number[];
+  qualifyingP4DriverId?: number | null;
   top10: number[];
+  p11DriverId?: number | null;
   fastestLapDriverId: number;
   fastestPitStopDriverId: number;
   driverOfTheDayDriverId?: number | null;
@@ -41,8 +47,10 @@ interface RaceResultBody {
 interface SprintResultBody {
   raceId: number;
   sessionType: "sprint";
-  sprintPoleDriverId: number;
+  qualifyingTop3: number[];
+  qualifyingP4DriverId?: number | null;
   top8: number[];
+  p9DriverId?: number | null;
   fastestLapDriverId: number;
 }
 
@@ -102,19 +110,28 @@ export async function POST(request: NextRequest) {
   try {
     if (sessionType === "race") {
       const {
-        polePositionDriverId,
+        qualifyingTop3,
+        qualifyingP4DriverId,
         top10,
+        p11DriverId,
         fastestLapDriverId,
         fastestPitStopDriverId,
         driverOfTheDayDriverId,
         dnfDriverIds,
       } = body as RaceResultBody;
 
-      if (!polePositionDriverId || !top10 || top10.length !== 10 || !fastestLapDriverId || !fastestPitStopDriverId) {
+      if (
+        !Array.isArray(qualifyingTop3) ||
+        qualifyingTop3.length !== 3 ||
+        !top10 ||
+        top10.length !== 10 ||
+        !fastestLapDriverId ||
+        !fastestPitStopDriverId
+      ) {
         return NextResponse.json(
           {
             error:
-              "Race results require: polePositionDriverId, top10 (10 driver IDs), fastestLapDriverId, fastestPitStopDriverId",
+              "Race results require: qualifyingTop3 (3 driver IDs), top10 (10 driver IDs), fastestLapDriverId, fastestPitStopDriverId",
           },
           { status: 400 }
         );
@@ -124,6 +141,14 @@ export async function POST(request: NextRequest) {
       if (top10.some((id) => typeof id !== "number" || id <= 0 || !Number.isFinite(id))) {
         return NextResponse.json(
           { error: "All top10 entries must be valid positive driver IDs" },
+          { status: 400 }
+        );
+      }
+
+      // Validate all qualifyingTop3 entries are valid positive numbers
+      if (qualifyingTop3.some((id) => typeof id !== "number" || id <= 0 || !Number.isFinite(id))) {
+        return NextResponse.json(
+          { error: "All qualifyingTop3 entries must be valid positive driver IDs" },
           { status: 400 }
         );
       }
@@ -140,8 +165,12 @@ export async function POST(request: NextRequest) {
 
       const resultData = {
         race_id: raceId,
-        pole_position_driver_id: polePositionDriverId,
+        qualifying_top_3: qualifyingTop3,
+        qualifying_p4_driver_id: qualifyingP4DriverId ?? null,
+        // Keep the legacy NOT NULL pole column populated = Q1.
+        pole_position_driver_id: qualifyingTop3[0],
         top_10: top10,
+        p11_driver_id: p11DriverId ?? null,
         fastest_lap_driver_id: fastestLapDriverId,
         fastest_pit_stop_driver_id: fastestPitStopDriverId,
         driver_of_the_day_driver_id: driverOfTheDayDriverId ?? null,
@@ -166,14 +195,20 @@ export async function POST(request: NextRequest) {
         if (error) throw error;
       }
     } else {
-      const { sprintPoleDriverId, top8, fastestLapDriverId } =
+      const { qualifyingTop3, qualifyingP4DriverId, top8, p9DriverId, fastestLapDriverId } =
         body as SprintResultBody;
 
-      if (!sprintPoleDriverId || !top8 || top8.length !== 8 || !fastestLapDriverId) {
+      if (
+        !Array.isArray(qualifyingTop3) ||
+        qualifyingTop3.length !== 3 ||
+        !top8 ||
+        top8.length !== 8 ||
+        !fastestLapDriverId
+      ) {
         return NextResponse.json(
           {
             error:
-              "Sprint results require: sprintPoleDriverId, top8 (8 driver IDs), fastestLapDriverId",
+              "Sprint results require: qualifyingTop3 (3 driver IDs), top8 (8 driver IDs), fastestLapDriverId",
           },
           { status: 400 }
         );
@@ -187,10 +222,22 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Validate all qualifyingTop3 entries are valid positive numbers
+      if (qualifyingTop3.some((id) => typeof id !== "number" || id <= 0 || !Number.isFinite(id))) {
+        return NextResponse.json(
+          { error: "All qualifyingTop3 entries must be valid positive driver IDs" },
+          { status: 400 }
+        );
+      }
+
       const resultData = {
         race_id: raceId,
-        sprint_pole_driver_id: sprintPoleDriverId,
+        qualifying_top_3: qualifyingTop3,
+        qualifying_p4_driver_id: qualifyingP4DriverId ?? null,
+        // Keep the legacy sprint pole column populated = Q1.
+        sprint_pole_driver_id: qualifyingTop3[0],
         top_8: top8,
+        p9_driver_id: p9DriverId ?? null,
         fastest_lap_driver_id: fastestLapDriverId,
         source: "manual" as const,
       };

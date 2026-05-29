@@ -137,7 +137,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   // Fetch race predictions for the target user
   const { data: racePredRows } = await supabase
     .from("race_predictions")
-    .select("race_id, status, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id, points_earned")
+    .select("race_id, status, pole_position_driver_id, qualifying_top_3, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id, points_earned")
     .eq("user_id", viewingUserId);
 
   const racePredByMeetingKey = new Map<number, (typeof racePredRows extends (infer T)[] | null ? T : never)>();
@@ -148,6 +148,21 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     }
   }
 
+  // Build a 3-slot qualifying-top-3 (Driver | null)[] from the stored array,
+  // falling back to the legacy single pole column for not-yet-backfilled rows.
+  function buildQualifyingTop3(
+    qualifyingTop3Ids: (number | null)[] | null | undefined,
+    legacyPoleId: number | null | undefined
+  ): (Driver | null)[] {
+    const ids: (number | null)[] =
+      qualifyingTop3Ids && qualifyingTop3Ids.length > 0
+        ? qualifyingTop3Ids
+        : legacyPoleId != null
+          ? [legacyPoleId]
+          : [];
+    return Array.from({ length: 3 }, (_, i) => findDriver(ids[i] ?? null));
+  }
+
   const predictions: FullRacePrediction[] = RACES.map((race) => {
     const row = racePredByMeetingKey.get(race.meetingKey);
     const top10Ids: (number | null)[] = row?.top_10 ?? [];
@@ -155,7 +170,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
       raceId: race.meetingKey,
       userId: viewingUserId,
       status: row?.status ?? "pending",
-      polePosition: findDriver(row?.pole_position_driver_id ?? null),
+      qualifyingTop3: buildQualifyingTop3(row?.qualifying_top_3, row?.pole_position_driver_id),
       raceWinner: findDriver(top10Ids[0] ?? null),
       restOfTop10: Array.from({ length: 9 }, (_, i) => findDriver(top10Ids[i + 1] ?? null)),
       fastestLap: findDriver(row?.fastest_lap_driver_id ?? null),
@@ -168,7 +183,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   // Fetch sprint predictions
   const { data: sprintPredRows } = await supabase
     .from("sprint_predictions")
-    .select("race_id, status, sprint_pole_driver_id, top_8, fastest_lap_driver_id, points_earned")
+    .select("race_id, status, sprint_pole_driver_id, qualifying_top_3, top_8, fastest_lap_driver_id, points_earned")
     .eq("user_id", viewingUserId);
 
   const sprintPredByMeetingKey = new Map<number, (typeof sprintPredRows extends (infer T)[] | null ? T : never)>();
@@ -187,7 +202,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
       raceId: race.meetingKey,
       userId: viewingUserId,
       status: row?.status ?? "pending",
-      sprintPole: findDriver(row?.sprint_pole_driver_id ?? null),
+      qualifyingTop3: buildQualifyingTop3(row?.qualifying_top_3, row?.sprint_pole_driver_id),
       sprintWinner: findDriver(top8Ids[0] ?? null),
       restOfTop8: Array.from({ length: 7 }, (_, i) => findDriver(top8Ids[i + 1] ?? null)),
       fastestLap: findDriver(row?.fastest_lap_driver_id ?? null),
@@ -280,9 +295,24 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   });
 
   // Fetch race results (same for all users)
+  // Build a qualifying-top-3 (Driver[]) result array, falling back to the
+  // legacy single pole column for not-yet-backfilled rows.
+  function buildResultQualifyingTop3(
+    qualifyingTop3Ids: (number | null)[] | null | undefined,
+    legacyPoleId: number | null | undefined
+  ): Driver[] {
+    const ids: (number | null)[] =
+      qualifyingTop3Ids && qualifyingTop3Ids.length > 0
+        ? qualifyingTop3Ids
+        : legacyPoleId != null
+          ? [legacyPoleId]
+          : [];
+    return ids.map((id) => findDriver(id ?? null)).filter((d): d is Driver => d !== null);
+  }
+
   const { data: raceResultRows } = await supabase
     .from("race_results")
-    .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id");
+    .select("race_id, pole_position_driver_id, qualifying_top_3, qualifying_p4_driver_id, top_10, p11_driver_id, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id");
 
   const raceResults: Record<number, RaceResult> = {};
   for (const row of raceResultRows ?? []) {
@@ -291,17 +321,21 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
 
     const top10Ids: number[] = row.top_10 ?? [];
     const top10 = top10Ids.map((id) => findDriver(id)).filter((d): d is Driver => d !== null);
-    const pole = findDriver(row.pole_position_driver_id);
+    const qualifyingTop3 = buildResultQualifyingTop3(row.qualifying_top_3, row.pole_position_driver_id);
+    const qualifyingP4 = findDriver(row.qualifying_p4_driver_id ?? null);
+    const p11 = findDriver(row.p11_driver_id ?? null);
     const fastestLap = findDriver(row.fastest_lap_driver_id);
     const fastestPit = findDriver(row.fastest_pit_stop_driver_id);
     const driverOfTheDay = findDriver(row.driver_of_the_day_driver_id);
-    if (top10.length > 0 && pole && fastestLap) {
+    if (top10.length > 0 && qualifyingTop3[0] && fastestLap) {
       raceResults[meetingKey] = {
         raceId: meetingKey,
-        polePosition: pole,
+        qualifyingTop3,
         raceWinner: top10[0],
         top10,
         fastestLap,
+        ...(qualifyingP4 ? { qualifyingP4 } : {}),
+        ...(p11 ? { p11 } : {}),
         ...(fastestPit ? { fastestPitStop: fastestPit } : {}),
         ...(driverOfTheDay ? { driverOfTheDay } : {}),
       };
@@ -310,7 +344,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
 
   const { data: sprintResultRows } = await supabase
     .from("sprint_results")
-    .select("race_id, sprint_pole_driver_id, top_8, fastest_lap_driver_id");
+    .select("race_id, sprint_pole_driver_id, qualifying_top_3, qualifying_p4_driver_id, top_8, p9_driver_id, fastest_lap_driver_id");
 
   const sprintResults: Record<number, SprintResult> = {};
   for (const row of sprintResultRows ?? []) {
@@ -319,15 +353,19 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
 
     const top8Ids: number[] = row.top_8 ?? [];
     const top8 = top8Ids.map((id) => findDriver(id)).filter((d): d is Driver => d !== null);
-    const pole = findDriver(row.sprint_pole_driver_id);
+    const qualifyingTop3 = buildResultQualifyingTop3(row.qualifying_top_3, row.sprint_pole_driver_id);
+    const qualifyingP4 = findDriver(row.qualifying_p4_driver_id ?? null);
+    const p9 = findDriver(row.p9_driver_id ?? null);
     const fastestLap = findDriver(row.fastest_lap_driver_id);
-    if (top8.length > 0 && pole && fastestLap) {
+    if (top8.length > 0 && qualifyingTop3[0] && fastestLap) {
       sprintResults[meetingKey] = {
         raceId: meetingKey,
-        sprintPole: pole,
+        qualifyingTop3,
         sprintWinner: top8[0],
         top8,
         fastestLap,
+        ...(qualifyingP4 ? { qualifyingP4 } : {}),
+        ...(p9 ? { p9 } : {}),
       };
     }
   }

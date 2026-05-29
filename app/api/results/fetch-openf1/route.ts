@@ -126,40 +126,50 @@ export async function POST(request: NextRequest) {
       .filter((r) => !r.dns && !r.dsq)
       .sort((a, b) => a.position - b.position);
 
-    // 3. Get pole position from the starting grid of the race session
+    // 3. Get the qualifying top 3 (+ Q4 boundary) from the qualifying session.
     const qualyName = sessionType === "race" ? "Qualifying" : "Sprint Qualifying";
     const qualyRes = await fetch(
       `https://api.openf1.org/v1/sessions?meeting_key=${meetingKey}&session_name=${qualyName}`
     );
     let poleDriverNumber: number | null = null;
+    // Ordered qualifying driver numbers (Q1, Q2, Q3, Q4, ...) — index 0 is pole.
+    let qualyOrder: number[] = [];
     let qualySessions: OpenF1Session[] = [];
     if (qualyRes.ok) {
       qualySessions = await qualyRes.json();
       if (qualySessions && qualySessions.length > 0) {
-        const gridRes = await fetch(
-          `https://api.openf1.org/v1/starting_grid?session_key=${qualySessions[0].session_key}&position=1`
+        // Prefer session_result (full ordered standings) for the top-3 + Q4.
+        const qualyResultRes = await fetch(
+          `https://api.openf1.org/v1/session_result?session_key=${qualySessions[0].session_key}`
         );
-        if (gridRes.ok) {
-          const grid: OpenF1StartingGrid[] = await gridRes.json();
-          if (grid && grid.length > 0) {
-            poleDriverNumber = grid[0].driver_number;
+        if (qualyResultRes.ok) {
+          const qualyResults: OpenF1SessionResult[] = await qualyResultRes.json();
+          if (qualyResults && qualyResults.length > 0) {
+            qualyOrder = qualyResults
+              .filter((r) => !r.dns && !r.dsq && r.position != null)
+              .sort((a, b) => a.position - b.position)
+              .map((r) => r.driver_number);
+          }
+        }
+
+        // Fallback for pole: starting_grid position 1.
+        if (qualyOrder.length === 0) {
+          const gridRes = await fetch(
+            `https://api.openf1.org/v1/starting_grid?session_key=${qualySessions[0].session_key}&position=1`
+          );
+          if (gridRes.ok) {
+            const grid: OpenF1StartingGrid[] = await gridRes.json();
+            if (grid && grid.length > 0) {
+              qualyOrder = [grid[0].driver_number];
+            }
           }
         }
       }
     }
 
-    // Fallback: if starting_grid didn't work, use session_result from qualifying
-    if (poleDriverNumber === null && qualySessions.length > 0) {
-      const qualyResultRes = await fetch(
-        `https://api.openf1.org/v1/session_result?session_key=${qualySessions[0].session_key}&position=1`
-      );
-      if (qualyResultRes.ok) {
-        const qualyResults: OpenF1SessionResult[] = await qualyResultRes.json();
-        if (qualyResults && qualyResults.length > 0) {
-          poleDriverNumber = qualyResults[0].driver_number;
-        }
-      }
-    }
+    poleDriverNumber = qualyOrder[0] ?? null;
+    const qualyTop3Numbers = qualyOrder.slice(0, 3);
+    const qualyP4Number = qualyOrder[3] ?? null;
 
     // 4. Get fastest lap
     const lapsRes = await fetch(
@@ -211,9 +221,15 @@ export async function POST(request: NextRequest) {
       return driverNumberToId.get(driverNumber) ?? null;
     }
 
+    // Qualifying top-3 (+ Q4 boundary) mapped to DB driver IDs — shared by race & sprint.
+    const qualifyingTop3Ids = qualyTop3Numbers.map((num) => mapDriverId(num));
+    const qualifyingP4Id = mapDriverId(qualyP4Number);
+
     if (sessionType === "race") {
       const topN = classified.slice(0, 10);
       const top10Ids = topN.map((entry) => mapDriverId(entry.driver_number));
+      // P11 boundary slot enables ±1 proximity scoring for the P10 prediction.
+      const p11Id = mapDriverId(classified[10]?.driver_number ?? null);
 
       // 6. Get fastest pit stop (race only) — prefer stop_duration (stationary time)
       const pitsRes = await fetch(
@@ -234,8 +250,12 @@ export async function POST(request: NextRequest) {
 
       const resultData = {
         race_id: race.id,
-        pole_position_driver_id: mapDriverId(poleDriverNumber),
+        qualifying_top_3: qualifyingTop3Ids,
+        qualifying_p4_driver_id: qualifyingP4Id,
+        // Keep the legacy NOT NULL pole column populated = Q1.
+        pole_position_driver_id: qualifyingTop3Ids[0] ?? mapDriverId(poleDriverNumber),
         top_10: top10Ids,
+        p11_driver_id: p11Id,
         fastest_lap_driver_id: mapDriverId(fastestLapDriver),
         fastest_pit_stop_driver_id: mapDriverId(fastestPitDriver),
         source: "openf1" as const,
@@ -258,11 +278,17 @@ export async function POST(request: NextRequest) {
     } else {
       const topN = classified.slice(0, 8);
       const top8Ids = topN.map((entry) => mapDriverId(entry.driver_number));
+      // P9 boundary slot enables ±1 proximity scoring for the P8 prediction.
+      const p9Id = mapDriverId(classified[8]?.driver_number ?? null);
 
       const resultData = {
         race_id: race.id,
-        sprint_pole_driver_id: mapDriverId(poleDriverNumber),
+        qualifying_top_3: qualifyingTop3Ids,
+        qualifying_p4_driver_id: qualifyingP4Id,
+        // Keep the legacy sprint pole column populated = Q1.
+        sprint_pole_driver_id: qualifyingTop3Ids[0] ?? mapDriverId(poleDriverNumber),
         top_8: top8Ids,
+        p9_driver_id: p9Id,
         fastest_lap_driver_id: mapDriverId(fastestLapDriver),
         source: "openf1" as const,
       };

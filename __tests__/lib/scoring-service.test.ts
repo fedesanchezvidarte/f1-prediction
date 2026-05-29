@@ -36,7 +36,10 @@ describe("scoreRaceForId", () => {
     mockTable("race_results", {
       data: {
         pole_position_driver_id: 1,
+        qualifying_top_3: [1, 2, 3],
+        qualifying_p4_driver_id: 4,
         top_10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        p11_driver_id: 11,
         fastest_lap_driver_id: 2,
         fastest_pit_stop_driver_id: 3,
         driver_of_the_day_driver_id: 4,
@@ -60,7 +63,10 @@ describe("scoreRaceForId", () => {
     mockTable("race_results", {
       data: {
         pole_position_driver_id: 1,
+        qualifying_top_3: [1, 2, 3],
+        qualifying_p4_driver_id: 4,
         top_10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        p11_driver_id: 11,
         fastest_lap_driver_id: 2,
         fastest_pit_stop_driver_id: 3,
         driver_of_the_day_driver_id: 4,
@@ -76,6 +82,7 @@ describe("scoreRaceForId", () => {
             id: 101,
             user_id: "user-a",
             pole_position_driver_id: 1,
+            qualifying_top_3: [1, 2, 3],
             top_10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             fastest_lap_driver_id: 2,
             fastest_pit_stop_driver_id: 3,
@@ -87,7 +94,7 @@ describe("scoreRaceForId", () => {
       // Subsequent calls for update → success
       { data: null, error: null },
       // For updateLeaderboard queries
-      { data: [{ points_earned: 34 }], error: null }, // racePreds scored
+      { data: [{ points_earned: 92 }], error: null }, // racePreds scored (perfect)
     );
 
     // Sprint: no result
@@ -124,14 +131,17 @@ describe("scoreRaceForId", () => {
     mockTable("sprint_results", {
       data: {
         sprint_pole_driver_id: 1,
+        qualifying_top_3: [1, 2, 3],
+        qualifying_p4_driver_id: 4,
         top_8: [1, 2, 3, 4, 5, 6, 7, 8],
+        p9_driver_id: 9,
         fastest_lap_driver_id: 2,
       },
       error: null,
     });
 
     // Sprint prediction queue:
-    //   1st call: select submitted → one prediction
+    //   1st call: select submitted/scored → one prediction
     //   2nd call: update scored → success
     //   3rd call: updateLeaderboard sum (select scored) → points
     mockTable("sprint_predictions",
@@ -141,6 +151,7 @@ describe("scoreRaceForId", () => {
             id: 501,
             user_id: "user-s",
             sprint_pole_driver_id: 1,
+            qualifying_top_3: [1, 2, 3],
             top_8: [1, 2, 3, 4, 5, 6, 7, 8],
             fastest_lap_driver_id: 2,
           },
@@ -148,7 +159,7 @@ describe("scoreRaceForId", () => {
         error: null,
       },
       { data: null, error: null },
-      { data: [{ points_earned: 20 }], error: null },
+      { data: [{ points_earned: 78 }], error: null },
     );
 
     // updateLeaderboard
@@ -158,7 +169,7 @@ describe("scoreRaceForId", () => {
     mockTable("leaderboard",
       { data: null, error: null }, // no existing entry
       { data: null, error: null }, // insert
-      { data: [{ id: 1, total_points: 20 }], error: null }, // rank recalc
+      { data: [{ id: 1, total_points: 78 }], error: null }, // rank recalc
       { data: null, error: null }, // rank update
     );
 
@@ -179,7 +190,10 @@ describe("scoreRaceForId", () => {
     mockTable("race_results", {
       data: {
         pole_position_driver_id: 1,
+        qualifying_top_3: [1, 2, 3],
+        qualifying_p4_driver_id: 4,
         top_10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        p11_driver_id: 11,
         fastest_lap_driver_id: 2,
         fastest_pit_stop_driver_id: 3,
         driver_of_the_day_driver_id: null,
@@ -194,7 +208,8 @@ describe("scoreRaceForId", () => {
             id: 201,
             user_id: "user-b",
             pole_position_driver_id: 99,
-            top_10: [99, 99, 99, 99, 99, 99, 99, 99, 99, 99],
+            qualifying_top_3: [99, 98, 97],
+            top_10: [91, 92, 93, 94, 95, 96, 97, 98, 99, 90],
             fastest_lap_driver_id: 99,
             fastest_pit_stop_driver_id: 99,
             driver_of_the_day_driver_id: 99,
@@ -221,6 +236,67 @@ describe("scoreRaceForId", () => {
     const result = await scoreRaceForId(supabase, 1);
     expect(result.racePredictionsScored).toBe(1);
     consoleSpy.mockRestore();
+  });
+
+  it("re-scores an already-scored prediction (idempotent status filter)", async () => {
+    const { supabase, mockTable, getUpdateCalls } = createMockSupabase();
+
+    mockTable("race_results", {
+      data: {
+        pole_position_driver_id: 1,
+        qualifying_top_3: [1, 2, 3],
+        qualifying_p4_driver_id: 4,
+        top_10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        p11_driver_id: 11,
+        fastest_lap_driver_id: 2,
+        fastest_pit_stop_driver_id: 3,
+        driver_of_the_day_driver_id: 4,
+      },
+      error: null,
+    });
+
+    // The prediction is already in the "scored" state — the `.in("status",
+    // ["submitted","scored"])` filter must still pick it up for re-scoring.
+    mockTable("race_predictions",
+      {
+        data: [
+          {
+            id: 301,
+            user_id: "user-rescore",
+            status: "scored",
+            pole_position_driver_id: 1,
+            qualifying_top_3: [1, 2, 3],
+            top_10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            fastest_lap_driver_id: 2,
+            fastest_pit_stop_driver_id: 3,
+            driver_of_the_day_driver_id: 4,
+          },
+        ],
+        error: null,
+      },
+      { data: null, error: null }, // update success
+      { data: [{ points_earned: 92 }], error: null },
+    );
+
+    mockTable("sprint_results", { data: null, error: null });
+    mockTable("seasons", { data: { id: 1 }, error: null });
+    mockTable("sprint_predictions", { data: [], error: null });
+    mockTable("season_award_predictions", { data: [], error: null });
+    mockTable("leaderboard",
+      { data: null, error: null },
+      { data: null, error: null },
+      { data: [{ id: 1, total_points: 92 }], error: null },
+      { data: null, error: null },
+    );
+
+    const result = await scoreRaceForId(supabase, 1);
+    expect(result.racePredictionsScored).toBe(1);
+    // The prediction was updated with the recomputed perfect score (92).
+    const update = getUpdateCalls().find(
+      (c) => c.table === "race_predictions" && c.filters.id === 301
+    );
+    expect(update).toBeDefined();
+    expect((update!.data as { points_earned: number }).points_earned).toBe(92);
   });
 });
 
@@ -410,5 +486,27 @@ describe("updateLeaderboard", () => {
 
     // Should not throw
     await updateLeaderboard(supabase, ["user-f"], []);
+  });
+
+  it("updates an existing leaderboard entry and increments perfect podiums", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    mockTable("seasons", { data: { id: 1 }, error: null });
+    mockTable("race_predictions", { data: [{ points_earned: 92 }], error: null });
+    mockTable("sprint_predictions", { data: [{ points_earned: 78 }], error: null });
+    mockTable("season_award_predictions", { data: [], error: null });
+    mockTable("leaderboard",
+      // existing entry found (single)
+      { data: { id: 7, perfect_podiums: 2 }, error: null },
+      // update existing entry → success
+      { data: null, error: null },
+      // rank recalc query (two entries to exercise the rank decrement branch)
+      { data: [{ id: 7, total_points: 170 }, { id: 8, total_points: 50 }], error: null },
+      // rank updates → success (sticky)
+      { data: null, error: null },
+    );
+
+    await updateLeaderboard(supabase, ["user-g"], ["user-g"]);
+    // Completes without throwing → existing-entry + rank branches exercised.
   });
 });

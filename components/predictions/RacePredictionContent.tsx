@@ -49,7 +49,7 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 type TabMode = "race" | "sprint" | "champion";
 
 interface RaceMatchStatuses {
-  polePosition: MatchStatus;
+  qualifyingTop3: MatchStatus[];
   raceWinner: MatchStatus;
   restOfTop10: MatchStatus[];
   fastestLap: MatchStatus;
@@ -58,10 +58,40 @@ interface RaceMatchStatuses {
 }
 
 interface SprintMatchStatuses {
-  sprintPole: MatchStatus;
+  qualifyingTop3: MatchStatus[];
   sprintWinner: MatchStatus;
   restOfTop8: MatchStatus[];
   fastestLap: MatchStatus;
+}
+
+/**
+ * Driver-based ±1 proximity status, matching the 3/1/0 scoring in lib/scoring.ts.
+ * Builds a Map<driverNumber, position> from the ordered result array (positions
+ * 0..count-1) plus an optional boundary driver at index `count`, then returns the
+ * status for the predicted driver at slot `slotIndex`:
+ *   exact → same position; close → off by ±1; miss → otherwise.
+ */
+function proximityStatus(
+  predicted: Driver | null,
+  resultDrivers: Driver[],
+  boundaryDriver: Driver | null,
+  count: number,
+  slotIndex: number
+): MatchStatus {
+  if (!predicted) return null;
+  const driverToPos = new Map<number, number>();
+  for (let i = 0; i < count; i++) {
+    const d = resultDrivers[i];
+    if (d && !driverToPos.has(d.driverNumber)) driverToPos.set(d.driverNumber, i);
+  }
+  if (boundaryDriver && !driverToPos.has(boundaryDriver.driverNumber)) {
+    driverToPos.set(boundaryDriver.driverNumber, count);
+  }
+  if (!driverToPos.has(predicted.driverNumber)) return "miss";
+  const delta = Math.abs(driverToPos.get(predicted.driverNumber)! - slotIndex);
+  if (delta === 0) return "exact";
+  if (delta === 1) return "close";
+  return "miss";
 }
 
 interface RacePredictionContentProps {
@@ -217,10 +247,10 @@ export function RacePredictionContent({
         || teamBestDriverPreds.some((p) => p.driverNumber !== null);
     }
     if (tab === "sprint" && currentSprintPred) {
-      return currentSprintPred.sprintPole !== null || currentSprintPred.sprintWinner !== null || currentSprintPred.restOfTop8.some((d) => d !== null);
+      return currentSprintPred.qualifyingTop3.some((d) => d !== null) || currentSprintPred.sprintWinner !== null || currentSprintPred.restOfTop8.some((d) => d !== null);
     }
     if (currentPrediction) {
-      return currentPrediction.polePosition !== null || currentPrediction.raceWinner !== null || currentPrediction.restOfTop10.some((d) => d !== null);
+      return currentPrediction.qualifyingTop3.some((d) => d !== null) || currentPrediction.raceWinner !== null || currentPrediction.restOfTop10.some((d) => d !== null);
     }
     return false;
   }, [isChampionTab, tab, champPred, currentSprintPred, currentPrediction, teamBestDriverPreds]);
@@ -347,7 +377,7 @@ export function RacePredictionContent({
         setTeamBestDriverPreds((prev) => prev.map((p) => ({ ...p, driverId: null, driverNumber: null, status: "pending" as const })));
       } else if (tab === "sprint") {
         updateSprintPrediction({
-          sprintPole: null,
+          qualifyingTop3: [null, null, null],
           sprintWinner: null,
           restOfTop8: [null, null, null, null, null, null, null],
           fastestLap: null,
@@ -355,7 +385,7 @@ export function RacePredictionContent({
         });
       } else {
         updateRacePrediction({
-          polePosition: null,
+          qualifyingTop3: [null, null, null],
           raceWinner: null,
           restOfTop10: [null, null, null, null, null, null, null, null, null],
           fastestLap: null,
@@ -394,7 +424,7 @@ export function RacePredictionContent({
         payload = {
           type: "sprint",
           raceId: currentRace.meetingKey,
-          sprintPoleDriverNumber: currentSprintPred.sprintPole?.driverNumber ?? null,
+          qualifyingTop3: currentSprintPred.qualifyingTop3.map((d) => d?.driverNumber ?? null),
           top8: [
             currentSprintPred.sprintWinner?.driverNumber ?? null,
             ...currentSprintPred.restOfTop8.map((d) => d?.driverNumber ?? null),
@@ -405,7 +435,7 @@ export function RacePredictionContent({
         payload = {
           type: "race",
           raceId: currentRace.meetingKey,
-          polePositionDriverNumber: currentPrediction.polePosition?.driverNumber ?? null,
+          qualifyingTop3: currentPrediction.qualifyingTop3.map((d) => d?.driverNumber ?? null),
           top10: [
             currentPrediction.raceWinner?.driverNumber ?? null,
             ...currentPrediction.restOfTop10.map((d) => d?.driverNumber ?? null),
@@ -498,7 +528,6 @@ export function RacePredictionContent({
 
   const raceMatchStatuses = useMemo((): RaceMatchStatuses | null => {
     if (!currentResult || !currentPrediction) return null;
-    const resultTop10Numbers = currentResult.top10.map((d) => d.driverNumber);
 
     function fieldStatus(predicted: Driver | null, actual: Driver): MatchStatus {
       if (!predicted) return null;
@@ -506,20 +535,22 @@ export function RacePredictionContent({
       return null;
     }
 
-    function positionStatus(predicted: Driver | null, actualAtPos: Driver): MatchStatus {
-      if (!predicted) return null;
-      if (predicted.driverNumber === actualAtPos.driverNumber) return "exact";
-      if (resultTop10Numbers.includes(predicted.driverNumber)) return "close";
-      return "miss";
-    }
+    // Top-10 (P1 winner + P2..P10): driver-based ±1 proximity, P11 boundary.
+    const top10Status = (predicted: Driver | null, slotIndex: number): MatchStatus =>
+      proximityStatus(predicted, currentResult.top10, currentResult.p11 ?? null, 10, slotIndex);
 
     const restStatuses: MatchStatus[] = currentPrediction.restOfTop10.map((predicted, i) =>
-      positionStatus(predicted, currentResult.top10[i + 1])
+      top10Status(predicted, i + 1)
+    );
+
+    // Qualifying top-3 (Q1..Q3): driver-based ±1 proximity, Q4 boundary.
+    const qualifyingStatuses: MatchStatus[] = currentPrediction.qualifyingTop3.map((predicted, i) =>
+      proximityStatus(predicted, currentResult.qualifyingTop3, currentResult.qualifyingP4 ?? null, 3, i)
     );
 
     return {
-      polePosition: fieldStatus(currentPrediction.polePosition, currentResult.polePosition),
-      raceWinner: positionStatus(currentPrediction.raceWinner, currentResult.top10[0]),
+      qualifyingTop3: qualifyingStatuses,
+      raceWinner: top10Status(currentPrediction.raceWinner, 0),
       restOfTop10: restStatuses,
       fastestLap: fieldStatus(currentPrediction.fastestLap, currentResult.fastestLap),
       fastestPitStop: currentResult.fastestPitStop
@@ -542,12 +573,14 @@ export function RacePredictionContent({
     const resultTop10: number[] = currentResult.top10.map((d) => d.driverNumber);
     return computeRaceFieldPoints({
       predTop10,
-      predPole: currentPrediction.polePosition?.driverNumber ?? null,
+      predQualifyingTop3: currentPrediction.qualifyingTop3.map((d) => d?.driverNumber ?? null),
       predFastestLap: currentPrediction.fastestLap?.driverNumber ?? null,
       predFastestPitStop: currentPrediction.fastestPitStop?.driverNumber ?? null,
       predDriverOfTheDay: currentPrediction.driverOfTheDay?.driverNumber ?? null,
       resultTop10,
-      resultPole: currentResult.polePosition.driverNumber,
+      resultP11: currentResult.p11?.driverNumber ?? null,
+      resultQualifyingTop3: currentResult.qualifyingTop3.map((d) => d.driverNumber),
+      resultQualifyingP4: currentResult.qualifyingP4?.driverNumber ?? null,
       resultFastestLap: currentResult.fastestLap.driverNumber,
       resultFastestPitStop: currentResult.fastestPitStop?.driverNumber ?? -1,
       resultDriverOfTheDay: currentResult.driverOfTheDay?.driverNumber ?? null,
@@ -556,7 +589,6 @@ export function RacePredictionContent({
 
   const sprintMatchStatuses = useMemo((): SprintMatchStatuses | null => {
     if (!currentSprintResult || !currentSprintPred) return null;
-    const resultTop8Numbers = currentSprintResult.top8.map((d) => d.driverNumber);
 
     function fieldStatus(predicted: Driver | null, actual: Driver): MatchStatus {
       if (!predicted) return null;
@@ -564,20 +596,22 @@ export function RacePredictionContent({
       return null;
     }
 
-    function positionStatus(predicted: Driver | null, actualAtPos: Driver): MatchStatus {
-      if (!predicted) return null;
-      if (predicted.driverNumber === actualAtPos.driverNumber) return "exact";
-      if (resultTop8Numbers.includes(predicted.driverNumber)) return "close";
-      return "miss";
-    }
+    // Top-8 (P1 winner + P2..P8): driver-based ±1 proximity, P9 boundary.
+    const top8Status = (predicted: Driver | null, slotIndex: number): MatchStatus =>
+      proximityStatus(predicted, currentSprintResult.top8, currentSprintResult.p9 ?? null, 8, slotIndex);
 
     const restStatuses: MatchStatus[] = currentSprintPred.restOfTop8.map((predicted, i) =>
-      positionStatus(predicted, currentSprintResult.top8[i + 1])
+      top8Status(predicted, i + 1)
+    );
+
+    // Sprint qualifying top-3 (Q1..Q3): driver-based ±1 proximity, Q4 boundary.
+    const qualifyingStatuses: MatchStatus[] = currentSprintPred.qualifyingTop3.map((predicted, i) =>
+      proximityStatus(predicted, currentSprintResult.qualifyingTop3, currentSprintResult.qualifyingP4 ?? null, 3, i)
     );
 
     return {
-      sprintPole: fieldStatus(currentSprintPred.sprintPole, currentSprintResult.sprintPole),
-      sprintWinner: positionStatus(currentSprintPred.sprintWinner, currentSprintResult.top8[0]),
+      qualifyingTop3: qualifyingStatuses,
+      sprintWinner: top8Status(currentSprintPred.sprintWinner, 0),
       restOfTop8: restStatuses,
       fastestLap: fieldStatus(currentSprintPred.fastestLap, currentSprintResult.fastestLap),
     };
@@ -594,10 +628,12 @@ export function RacePredictionContent({
     const resultTop8: number[] = currentSprintResult.top8.map((d) => d.driverNumber);
     return computeSprintFieldPoints({
       predTop8,
-      predSprintPole: currentSprintPred.sprintPole?.driverNumber ?? null,
+      predQualifyingTop3: currentSprintPred.qualifyingTop3.map((d) => d?.driverNumber ?? null),
       predFastestLap: currentSprintPred.fastestLap?.driverNumber ?? null,
       resultTop8,
-      resultSprintPole: currentSprintResult.sprintPole.driverNumber,
+      resultP9: currentSprintResult.p9?.driverNumber ?? null,
+      resultQualifyingTop3: currentSprintResult.qualifyingTop3.map((d) => d.driverNumber),
+      resultQualifyingP4: currentSprintResult.qualifyingP4?.driverNumber ?? null,
       resultFastestLap: currentSprintResult.fastestLap.driverNumber,
     });
   }, [currentSprintResult, currentSprintPred]);
@@ -1621,17 +1657,16 @@ function RaceForm({
   const { t } = useLanguage();
   return (
     <div className="space-y-4">
+      <QualifyingTop3Section
+        qualifyingTop3={prediction.qualifyingTop3}
+        drivers={drivers}
+        isEditable={isEditable}
+        onChange={(updated) => onChange({ qualifyingTop3: updated })}
+        matchStatuses={matchStatuses?.qualifyingTop3}
+        fieldPoints={fieldPoints?.qualifyingTop3}
+      />
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <DriverSelect
-          label={t.predictionsPage.polePosition}
-          value={prediction.polePosition}
-          drivers={drivers}
-          disabledDrivers={[]}
-          onChange={(d) => onChange({ polePosition: d })}
-          disabled={!isEditable}
-          matchStatus={matchStatuses?.polePosition}
-          pointsAwarded={fieldPoints?.polePosition ?? null}
-        />
         <DriverSelect
           label={t.predictionsPage.raceWinner}
           value={prediction.raceWinner}
@@ -1649,7 +1684,6 @@ function RaceForm({
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
             {t.predictionsPage.restOfTop10}
           </span>
-          <span className="text-[9px] text-muted/50">{t.predictionsPage.restOfTop10Sub}</span>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {prediction.restOfTop10.map((driver, i) => (
@@ -1719,9 +1753,66 @@ function RaceForm({
               : fieldPoints.matchTop10Bonus > 0
                 ? { label: t.predictionsPage.matchTop10Bonus, points: fieldPoints.matchTop10Bonus, tone: "amber" as const }
                 : null,
+            fieldPoints.perfectQualifyingBonus > 0
+              ? { label: t.predictionsPage.perfectQualifyingBonus, points: fieldPoints.perfectQualifyingBonus, tone: "green" as const }
+              : fieldPoints.matchQualifyingBonus > 0
+                ? { label: t.predictionsPage.matchQualifyingBonus, points: fieldPoints.matchQualifyingBonus, tone: "amber" as const }
+                : null,
           ].filter((b): b is { label: string; points: number; tone: "green" | "amber" } => b !== null)}
         />
       )}
+    </div>
+  );
+}
+
+/* ---------- Qualifying Top-3 Section (shared by race & sprint forms) ---------- */
+
+function QualifyingTop3Section({
+  qualifyingTop3,
+  drivers,
+  isEditable,
+  onChange,
+  matchStatuses,
+  fieldPoints,
+}: {
+  qualifyingTop3: (Driver | null)[];
+  drivers: Driver[];
+  isEditable: boolean;
+  onChange: (updated: (Driver | null)[]) => void;
+  matchStatuses?: MatchStatus[];
+  fieldPoints?: number[];
+}) {
+  const { t } = useLanguage();
+  // Disallow selecting the same driver in more than one qualifying slot.
+  const disabledFor = (slotIndex: number): Driver[] =>
+    qualifyingTop3.filter((d, i): d is Driver => d !== null && i !== slotIndex);
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+          {t.predictionsPage.qualifyingTop3}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {qualifyingTop3.map((driver, i) => (
+          <DriverSelect
+            key={i}
+            label={`Q${i + 1}`}
+            value={driver}
+            drivers={drivers}
+            disabledDrivers={disabledFor(i)}
+            onChange={(d) => {
+              const updated = [...qualifyingTop3];
+              updated[i] = d;
+              onChange(updated);
+            }}
+            disabled={!isEditable}
+            matchStatus={matchStatuses?.[i]}
+            pointsAwarded={fieldPoints?.[i] ?? null}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -1750,17 +1841,16 @@ function SprintForm({
   const { t } = useLanguage();
   return (
     <div className="space-y-4">
+      <QualifyingTop3Section
+        qualifyingTop3={prediction.qualifyingTop3}
+        drivers={drivers}
+        isEditable={isEditable}
+        onChange={(updated) => onChange({ qualifyingTop3: updated })}
+        matchStatuses={matchStatuses?.qualifyingTop3}
+        fieldPoints={fieldPoints?.qualifyingTop3}
+      />
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <DriverSelect
-          label={t.predictionsPage.sprintPolePosition}
-          value={prediction.sprintPole}
-          drivers={drivers}
-          disabledDrivers={[]}
-          onChange={(d) => onChange({ sprintPole: d })}
-          disabled={!isEditable}
-          matchStatus={matchStatuses?.sprintPole}
-          pointsAwarded={fieldPoints?.sprintPole ?? null}
-        />
         <DriverSelect
           label={t.predictionsPage.sprintWinnerP1}
           value={prediction.sprintWinner}
@@ -1778,7 +1868,6 @@ function SprintForm({
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
             {t.predictionsPage.restOfTop8}
           </span>
-          <span className="text-[9px] text-muted/50">{t.predictionsPage.restOfTop8Sub}</span>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {prediction.restOfTop8.map((driver, i) => (
@@ -1827,6 +1916,11 @@ function SprintForm({
               ? { label: t.predictionsPage.perfectTop8Bonus, points: fieldPoints.perfectTop8Bonus, tone: "green" as const }
               : fieldPoints.matchTop8Bonus > 0
                 ? { label: t.predictionsPage.matchTop8Bonus, points: fieldPoints.matchTop8Bonus, tone: "amber" as const }
+                : null,
+            fieldPoints.perfectQualifyingBonus > 0
+              ? { label: t.predictionsPage.perfectQualifyingBonus, points: fieldPoints.perfectQualifyingBonus, tone: "green" as const }
+              : fieldPoints.matchQualifyingBonus > 0
+                ? { label: t.predictionsPage.matchQualifyingBonus, points: fieldPoints.matchQualifyingBonus, tone: "amber" as const }
                 : null,
           ].filter((b): b is { label: string; points: number; tone: "green" | "amber" } => b !== null)}
         />
@@ -2139,7 +2233,9 @@ function ResultsDisplay({
         {t.predictionsPage.raceResults}
       </h3>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-4">
-        <ResultItem label={t.predictionsPage.pole} driver={result.polePosition} />
+        {result.qualifyingTop3[0] && (
+          <ResultItem label={t.predictionsPage.pole} driver={result.qualifyingTop3[0]} />
+        )}
         <ResultItem label={t.predictionsPage.winner} driver={result.raceWinner} />
         <ResultItem label={t.predictionsPage.fastestLap} driver={result.fastestLap} />
         {result.fastestPitStop && (
@@ -2149,6 +2245,28 @@ function ResultsDisplay({
           <ResultItem label={t.predictionsPage.driverOfTheDay} driver={result.driverOfTheDay} />
         )}
       </div>
+      {result.qualifyingTop3.length > 0 && (
+        <div className="mt-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+            {t.predictionsPage.qualifyingTop3}
+          </span>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {result.qualifyingTop3.map((driver, i) => (
+              <span
+                key={driver.driverNumber}
+                className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-0.5 text-[10px]"
+              >
+                <span className="tabular-nums text-muted">Q{i + 1}</span>
+                <span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: `#${driver.teamColor}` }}
+                />
+                <span className="font-medium text-foreground">{driver.nameAcronym}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="mt-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
           {t.predictionsPage.top10}
@@ -2183,10 +2301,34 @@ function SprintResultsDisplay({ result }: { result: SprintResult }) {
         {t.predictionsPage.sprintResults}
       </h3>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-3">
-        <ResultItem label={t.predictionsPage.sprintPole} driver={result.sprintPole} />
+        {result.qualifyingTop3[0] && (
+          <ResultItem label={t.predictionsPage.sprintPole} driver={result.qualifyingTop3[0]} />
+        )}
         <ResultItem label={t.predictionsPage.sprintWinner} driver={result.sprintWinner} />
         <ResultItem label={t.predictionsPage.fastestLap} driver={result.fastestLap} />
       </div>
+      {result.qualifyingTop3.length > 0 && (
+        <div className="mt-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+            {t.predictionsPage.qualifyingTop3}
+          </span>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {result.qualifyingTop3.map((driver, i) => (
+              <span
+                key={driver.driverNumber}
+                className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-0.5 text-[10px]"
+              >
+                <span className="tabular-nums text-muted">Q{i + 1}</span>
+                <span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: `#${driver.teamColor}` }}
+                />
+                <span className="font-medium text-foreground">{driver.nameAcronym}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="mt-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
           {t.predictionsPage.top8}

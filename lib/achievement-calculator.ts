@@ -17,6 +17,19 @@ type SupabaseClient = Awaited<
   ReturnType<typeof import("@/lib/supabase/server").createClient>
 >;
 
+/**
+ * Resolve the authoritative qualifying top-3 array for a prediction or result
+ * row, falling back to the legacy single pole column when the new
+ * qualifying_top_3 column has not been backfilled yet.
+ */
+function resolveQualifyingTop3(
+  qualifyingTop3: (number | null)[] | null | undefined,
+  legacyPoleId: number | null | undefined
+): (number | null)[] {
+  if (qualifyingTop3 && qualifyingTop3.length > 0) return qualifyingTop3;
+  return legacyPoleId != null ? [legacyPoleId] : [];
+}
+
 interface AchievementRow {
   id: number;
   slug: string;
@@ -172,12 +185,12 @@ async function evaluateAllAchievements(
   ] = await Promise.all([
     supabase
       .from("race_predictions")
-      .select("race_id, user_id, status, points_earned, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id")
+      .select("race_id, user_id, status, points_earned, pole_position_driver_id, qualifying_top_3, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id")
       .eq("user_id", userId)
       .in("status", ["submitted", "scored"]),
     supabase
       .from("sprint_predictions")
-      .select("race_id, user_id, status, points_earned, sprint_pole_driver_id, top_8, fastest_lap_driver_id")
+      .select("race_id, user_id, status, points_earned, sprint_pole_driver_id, qualifying_top_3, top_8, fastest_lap_driver_id")
       .eq("user_id", userId)
       .in("status", ["submitted", "scored"]),
     supabase
@@ -185,8 +198,8 @@ async function evaluateAllAchievements(
       .select("id, status, points_earned, award_type_id, season_award_types(slug, scope_team_id)")
       .eq("user_id", userId)
       .in("status", ["submitted", "scored"]),
-    supabase.from("race_results").select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id"),
-    supabase.from("sprint_results").select("race_id, sprint_pole_driver_id, top_8, fastest_lap_driver_id"),
+    supabase.from("race_results").select("race_id, pole_position_driver_id, qualifying_top_3, qualifying_p4_driver_id, top_10, p11_driver_id, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id"),
+    supabase.from("sprint_results").select("race_id, sprint_pole_driver_id, qualifying_top_3, qualifying_p4_driver_id, top_8, p9_driver_id, fastest_lap_driver_id"),
     supabase.from("seasons").select("id").eq("is_current", true).single(),
   ]);
 
@@ -238,19 +251,21 @@ async function evaluateAllAchievements(
 
     const breakdown = scoreRacePrediction({
       predTop10,
-      predPole: pred.pole_position_driver_id,
+      predQualifyingTop3: resolveQualifyingTop3(pred.qualifying_top_3, pred.pole_position_driver_id),
       predFastestLap: pred.fastest_lap_driver_id,
       predFastestPitStop: pred.fastest_pit_stop_driver_id,
       predDriverOfTheDay: pred.driver_of_the_day_driver_id,
       resultTop10,
-      resultPole: result.pole_position_driver_id ?? 0,
+      resultP11: result.p11_driver_id ?? null,
+      resultQualifyingTop3: resolveQualifyingTop3(result.qualifying_top_3, result.pole_position_driver_id) as number[],
+      resultQualifyingP4: result.qualifying_p4_driver_id ?? null,
       resultFastestLap: result.fastest_lap_driver_id ?? 0,
       resultFastestPitStop: result.fastest_pit_stop_driver_id ?? 0,
       resultDriverOfTheDay: result.driver_of_the_day_driver_id ?? null,
     });
 
     totalCorrectPredictions += breakdown.positionMatches;
-    if (breakdown.poleMatch)           totalCorrectPredictions++;
+    totalCorrectPredictions += breakdown.qualifyingPositionMatches;
     if (breakdown.fastestLapMatch)     totalCorrectPredictions++;
     if (breakdown.fastestPitStopMatch) totalCorrectPredictions++;
     if (breakdown.driverOfTheDayMatch) totalCorrectPredictions++;
@@ -291,15 +306,17 @@ async function evaluateAllAchievements(
 
     const breakdown = scoreSprintPrediction({
       predTop8,
-      predSprintPole: pred.sprint_pole_driver_id,
+      predQualifyingTop3: resolveQualifyingTop3(pred.qualifying_top_3, pred.sprint_pole_driver_id),
       predFastestLap: pred.fastest_lap_driver_id,
       resultTop8,
-      resultSprintPole: result.sprint_pole_driver_id ?? 0,
+      resultP9: result.p9_driver_id ?? null,
+      resultQualifyingTop3: resolveQualifyingTop3(result.qualifying_top_3, result.sprint_pole_driver_id) as number[],
+      resultQualifyingP4: result.qualifying_p4_driver_id ?? null,
       resultFastestLap: result.fastest_lap_driver_id ?? 0,
     });
 
     totalCorrectPredictions += breakdown.positionMatches;
-    if (breakdown.poleMatch)       totalCorrectPredictions++;
+    totalCorrectPredictions += breakdown.qualifyingPositionMatches;
     if (breakdown.fastestLapMatch) totalCorrectPredictions++;
 
     if (predTop8[0] != null && predTop8[0] === resultTop8[0])
@@ -624,12 +641,12 @@ export async function fetchUserProgressData(
   ] = await Promise.all([
     supabase
       .from("race_predictions")
-      .select("race_id, user_id, status, points_earned, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id")
+      .select("race_id, user_id, status, points_earned, pole_position_driver_id, qualifying_top_3, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id")
       .eq("user_id", userId)
       .in("status", ["submitted", "scored"]),
     supabase
       .from("sprint_predictions")
-      .select("race_id, user_id, status, points_earned, sprint_pole_driver_id, top_8, fastest_lap_driver_id")
+      .select("race_id, user_id, status, points_earned, sprint_pole_driver_id, qualifying_top_3, top_8, fastest_lap_driver_id")
       .eq("user_id", userId)
       .in("status", ["submitted", "scored"]),
     supabase
@@ -639,10 +656,10 @@ export async function fetchUserProgressData(
       .in("status", ["submitted", "scored"]),
     supabase
       .from("race_results")
-      .select("race_id, pole_position_driver_id, top_10, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id"),
+      .select("race_id, pole_position_driver_id, qualifying_top_3, qualifying_p4_driver_id, top_10, p11_driver_id, fastest_lap_driver_id, fastest_pit_stop_driver_id, driver_of_the_day_driver_id"),
     supabase
       .from("sprint_results")
-      .select("race_id, sprint_pole_driver_id, top_8, fastest_lap_driver_id"),
+      .select("race_id, sprint_pole_driver_id, qualifying_top_3, qualifying_p4_driver_id, top_8, p9_driver_id, fastest_lap_driver_id"),
     supabase.from("seasons").select("id").eq("is_current", true).single(),
     supabase
       .from("race_predictions")
@@ -689,18 +706,20 @@ export async function fetchUserProgressData(
     const resultTop10: number[] = result.top_10 ?? [];
     const breakdown = scoreRacePrediction({
       predTop10,
-      predPole: pred.pole_position_driver_id,
+      predQualifyingTop3: resolveQualifyingTop3(pred.qualifying_top_3, pred.pole_position_driver_id),
       predFastestLap: pred.fastest_lap_driver_id,
       predFastestPitStop: pred.fastest_pit_stop_driver_id,
       predDriverOfTheDay: pred.driver_of_the_day_driver_id,
       resultTop10,
-      resultPole: result.pole_position_driver_id ?? 0,
+      resultP11: result.p11_driver_id ?? null,
+      resultQualifyingTop3: resolveQualifyingTop3(result.qualifying_top_3, result.pole_position_driver_id) as number[],
+      resultQualifyingP4: result.qualifying_p4_driver_id ?? null,
       resultFastestLap: result.fastest_lap_driver_id ?? 0,
       resultFastestPitStop: result.fastest_pit_stop_driver_id ?? 0,
       resultDriverOfTheDay: result.driver_of_the_day_driver_id ?? null,
     });
     totalCorrectPredictions += breakdown.positionMatches;
-    if (breakdown.poleMatch)           totalCorrectPredictions++;
+    totalCorrectPredictions += breakdown.qualifyingPositionMatches;
     if (breakdown.fastestLapMatch)     totalCorrectPredictions++;
     if (breakdown.fastestPitStopMatch) totalCorrectPredictions++;
     if (breakdown.driverOfTheDayMatch) totalCorrectPredictions++;
@@ -713,14 +732,16 @@ export async function fetchUserProgressData(
     const resultTop8: number[] = result.top_8 ?? [];
     const breakdown = scoreSprintPrediction({
       predTop8,
-      predSprintPole: pred.sprint_pole_driver_id,
+      predQualifyingTop3: resolveQualifyingTop3(pred.qualifying_top_3, pred.sprint_pole_driver_id),
       predFastestLap: pred.fastest_lap_driver_id,
       resultTop8,
-      resultSprintPole: result.sprint_pole_driver_id ?? 0,
+      resultP9: result.p9_driver_id ?? null,
+      resultQualifyingTop3: resolveQualifyingTop3(result.qualifying_top_3, result.sprint_pole_driver_id) as number[],
+      resultQualifyingP4: result.qualifying_p4_driver_id ?? null,
       resultFastestLap: result.fastest_lap_driver_id ?? 0,
     });
     totalCorrectPredictions += breakdown.positionMatches;
-    if (breakdown.poleMatch)       totalCorrectPredictions++;
+    totalCorrectPredictions += breakdown.qualifyingPositionMatches;
     if (breakdown.fastestLapMatch) totalCorrectPredictions++;
   }
 

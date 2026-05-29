@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import {
   LeaderboardCard,
+  NewPointsSystemBanner,
   NextRaceCountdown,
   NoUpcomingRaces,
   PlaceholderCard,
@@ -196,6 +197,9 @@ export default async function Home() {
 
       <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-5xl">
+          {/* New Points System announcement */}
+          <NewPointsSystemBanner />
+
           {/* Bento Grid */}
           <div className="overflow-hidden rounded-2xl border border-border bg-background">
             <div className="grid grid-cols-1 sm:grid-cols-6">

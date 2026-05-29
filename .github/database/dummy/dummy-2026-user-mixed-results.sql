@@ -171,7 +171,7 @@ pred_data(rnd, pole, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, fl, fps, dotd, pts
   (24, 'NOR','VER','NOR','PIA','RUS','LEC','HAM','ANT','ALB','SAI','GAS','NOR','PIA','NOR', 21)
 )
 INSERT INTO race_predictions
-  (user_id, race_id, pole_position_driver_id, top_10,
+  (user_id, race_id, pole_position_driver_id, qualifying_top_3, top_10,
    fastest_lap_driver_id, fastest_pit_stop_driver_id,
    driver_of_the_day_driver_id,
    status, points_earned, submitted_at)
@@ -179,13 +179,14 @@ SELECT
   '3e6ef1a7-2ab5-4412-87db-02715a7bda0a'::uuid,
   r.id,
   dpole.id,
+  jsonb_build_array(dpole.id, d2.id, d3.id),  -- qualifying top-3 = pole + P2 + P3
   jsonb_build_array(d1.id, d2.id, d3.id, d4.id, d5.id,
                     d6.id, d7.id, d8.id, d9.id, d10.id),
   dfl.id,
   dfps.id,
   ddotd.id,
   'scored',
-  pd.pts,
+  pd.pts,                                  -- legacy points; overwritten on re-score
   r.date_start - interval '1 day'
 FROM pred_data pd
 JOIN races r    ON r.round = pd.rnd AND r.season_id = (SELECT id FROM s)
@@ -205,6 +206,7 @@ JOIN d dfps     ON dfps.a  = pd.fps
 JOIN d ddotd    ON ddotd.a = pd.dotd
 ON CONFLICT (user_id, race_id) DO UPDATE SET
   pole_position_driver_id     = EXCLUDED.pole_position_driver_id,
+  qualifying_top_3            = EXCLUDED.qualifying_top_3,
   top_10                      = EXCLUDED.top_10,
   fastest_lap_driver_id       = EXCLUDED.fastest_lap_driver_id,
   fastest_pit_stop_driver_id  = EXCLUDED.fastest_pit_stop_driver_id,
@@ -258,17 +260,18 @@ sprint_pred(rnd, pole, p1, p2, p3, p4, p5, p6, p7, p8, fl, pts) AS (VALUES
   (23,     'NOR',      'NOR',      'VER',      'HAM',      'PIA',      'LEC',      'RUS',      'ANT',      'SAI',      'NOR',       10)
 )
 INSERT INTO sprint_predictions
-  (user_id, race_id, sprint_pole_driver_id, top_8,
+  (user_id, race_id, sprint_pole_driver_id, qualifying_top_3, top_8,
    fastest_lap_driver_id,
    status, points_earned, submitted_at)
 SELECT
   '3e6ef1a7-2ab5-4412-87db-02715a7bda0a'::uuid,
   r.id,
   dpole.id,
+  jsonb_build_array(dpole.id, d2.id, d3.id),  -- sprint qualifying top-3 = pole + P2 + P3
   jsonb_build_array(d1.id, d2.id, d3.id, d4.id, d5.id, d6.id, d7.id, d8.id),
   dfl.id,
   'scored',
-  sp.pts,
+  sp.pts,                                  -- legacy points; overwritten on re-score
   r.date_start - interval '1 day'
 FROM sprint_pred sp
 JOIN races r    ON r.round = sp.rnd AND r.season_id = (SELECT id FROM s)
@@ -284,6 +287,7 @@ JOIN d d8       ON d8.a    = sp.p8
 JOIN d dfl      ON dfl.a   = sp.fl
 ON CONFLICT (user_id, race_id) DO UPDATE SET
   sprint_pole_driver_id = EXCLUDED.sprint_pole_driver_id,
+  qualifying_top_3      = EXCLUDED.qualifying_top_3,
   top_8                 = EXCLUDED.top_8,
   fastest_lap_driver_id = EXCLUDED.fastest_lap_driver_id,
   status                = EXCLUDED.status,

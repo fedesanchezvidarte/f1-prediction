@@ -1257,6 +1257,60 @@ describe("calculateAchievementsForUsers", () => {
     expect(result.achievementsAwarded).toBe(1);
   });
 
+  it("keys predict_pole on the qualifying_top_3[0] (Q1) when the array is present", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+
+    setupBaseTablesForUser(mockTable, {
+      achievements: {
+        data: [{ id: 1, slug: "predict_pole", threshold: null }],
+        error: null,
+      },
+      racePredictions: [
+        { data: [{ race_id: 1, user_id: "user-a", points_earned: 3 }], error: null },
+        {
+          data: [
+            {
+              race_id: 1,
+              user_id: "user-a",
+              status: "scored",
+              points_earned: 3,
+              pole_position_driver_id: null, // legacy column intentionally null
+              qualifying_top_3: [44, 16, 1], // Q1 = 44 drives predict_pole
+              top_10: [99, 99, 99, 99, 99, 99, 99, 99, 99, 99],
+              fastest_lap_driver_id: 99,
+              fastest_pit_stop_driver_id: 99,
+              driver_of_the_day_driver_id: null,
+            },
+          ],
+          error: null,
+        },
+      ],
+      raceResults: {
+        data: [
+          {
+            race_id: 1,
+            pole_position_driver_id: 44,
+            qualifying_top_3: [44, 2, 3], // Q1 matches → poleMatch
+            qualifying_p4_driver_id: 4,
+            top_10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            p11_driver_id: 11,
+            fastest_lap_driver_id: 1,
+            fastest_pit_stop_driver_id: 1,
+            driver_of_the_day_driver_id: null,
+          },
+        ],
+        error: null,
+      },
+      userAchievements: [
+        { data: [], error: null },
+        { data: null, error: null },
+      ],
+    });
+
+    const result = await calculateAchievementsForUsers(supabase, ["user-a"]);
+    expect(result.achievementsAwarded).toBe(1);
+  });
+
   it("awards 1_correct when a season award prediction has points_earned > 0", async () => {
     const { supabase, mockTable } = createMockSupabase();
 
