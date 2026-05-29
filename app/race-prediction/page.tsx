@@ -35,7 +35,11 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const viewingUserId = params.user ?? user.id;
   const roundParam = params.round ? parseInt(params.round, 10) : null;
-  const tabParam = params.tab === "champion" ? "champion" as const : undefined;
+  type TabMode = "race" | "sprint" | "champion";
+  const tabParam: TabMode | undefined =
+    params.tab === "champion" || params.tab === "sprint" || params.tab === "race"
+      ? params.tab
+      : undefined;
   const isOwner = viewingUserId === user.id;
 
   const fallbackName =

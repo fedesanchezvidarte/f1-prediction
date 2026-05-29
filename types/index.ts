@@ -207,3 +207,42 @@ export interface UserAchievement {
   earnedAt: string;
   achievement: Achievement;
 }
+
+export interface DriverStanding {
+  rank: number;
+  driverId: number;
+  driver: Driver;
+  points: number;
+  wins: number;
+  podiums: number;
+  /** Per-position finish counts for race results, used for countback tie-breaking. Index 0 = P1 count, index 1 = P2 count, etc. */
+  raceFinishCounts: number[];
+}
+
+export interface ConstructorStanding {
+  rank: number;
+  teamId: number;
+  teamName: string;
+  teamColor: string;
+  points: number;
+  wins: number;
+  podiums: number;
+  /** Per-position finish counts summed across both team drivers (race results only). Used for F1 countback tie-breaking. */
+  raceFinishCounts: number[];
+}
+
+export interface StatLeader {
+  driverId: number;
+  driver: Driver;
+  count: number;
+}
+
+export interface ChampionshipStandings {
+  wdc: DriverStanding[];
+  wcc: ConstructorStanding[];
+  stats: {
+    mostWins: StatLeader | null;
+    mostPodiums: StatLeader | null;
+    mostDnfs: StatLeader | null;
+  };
+}

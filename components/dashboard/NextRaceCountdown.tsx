@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock, Radio, MapPin } from "lucide-react";
+import Link from "next/link";
+import { Clock, Radio, MapPin, ChevronRight } from "lucide-react";
 import type { Race } from "@/types";
 import { getRaceStatus } from "@/lib/race-utils";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -46,6 +47,25 @@ function getActiveDeadline(race: Race): string {
   return sprintDeadline && sprintDeadline > now
     ? race.sprintDateEnd!
     : race.dateEnd;
+}
+
+/**
+ * Returns the appropriate prediction-page tab for the CTA, or null if both deadlines have passed.
+ * Sprint deep-link only when the sprint deadline is still upcoming AND it lands before the race deadline.
+ */
+function getCtaTab(race: Race): "sprint" | "race" | null {
+  const now = Date.now();
+  const raceDeadline = new Date(race.dateEnd).getTime();
+  const sprintDeadline = race.sprintDateEnd ? new Date(race.sprintDateEnd).getTime() : null;
+
+  const raceUpcoming = raceDeadline > now;
+  const sprintUpcoming = sprintDeadline !== null && sprintDeadline > now;
+
+  if (sprintUpcoming && (raceDeadline === null || sprintDeadline! < raceDeadline)) {
+    return "sprint";
+  }
+  if (raceUpcoming) return "race";
+  return null;
 }
 
 export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
@@ -115,7 +135,7 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
             <span className="self-start pt-1 text-lg text-muted">:</span>
             <TimeUnit value={timeLeft.seconds} label={t.nextRace.sec} />
           </div>
-          <p className="mt-2 text-center text-[10px] text-f1-blue">
+          <p className="mb-2 text-center text-[10px]">
             {t.nextRace.predictionDeadline}
           </p>
         </div>
@@ -128,6 +148,37 @@ export function NextRaceCountdown({ race }: NextRaceCountdownProps) {
           </p>
         </div>
       )}
+
+      <PredictionCta race={race} />
     </div>
+  );
+}
+
+function PredictionCta({ race }: { race: Race }) {
+  const { t } = useLanguage();
+  const [ctaTab, setCtaTab] = useState<"sprint" | "race" | null>(() => getCtaTab(race));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCtaTab(getCtaTab(race));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [race]);
+
+  if (ctaTab === null) return null;
+
+  const href =
+    ctaTab === "sprint"
+      ? `/race-prediction?round=${race.round}&tab=sprint`
+      : `/race-prediction?round=${race.round}`;
+
+  return (
+    <Link
+      href={href}
+      className="mt-3 flex items-center justify-center gap-1 rounded-md bg-f1-red py-2 text-xs font-semibold text-white shadow-sm shadow-f1-red/30 transition-colors hover:bg-f1-red-hover"
+    >
+      {t.nextRace.makePrediction}
+      <ChevronRight size={14} />
+    </Link>
   );
 }

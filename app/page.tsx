@@ -9,13 +9,14 @@ import {
   NoUpcomingRaces,
   PlaceholderCard,
   PointSystemCard,
-  PredictionsCard,
   RaceCalendarCard,
+  StandingsCard,
   UserSummaryCard,
 } from "@/components/dashboard";
-import { fetchRacesFromDb, getNextRace, getPredictionCardRaces } from "@/lib/races";
+import { fetchRacesFromDb, getNextRace } from "@/lib/races";
 import { getRaceCalendarEntries } from "@/lib/race-utils";
 import { fetchAchievementsData } from "@/lib/achievements";
+import { fetchChampionshipStandings } from "@/lib/championship-standings";
 import type { UserStats, LeaderboardEntry, RacePrediction, PredictionStatus } from "@/types";
 
 export default async function Home() {
@@ -178,35 +179,9 @@ export default async function Home() {
 
   const { achievements, earnedIds: earnedAchievementIds } = await fetchAchievementsData(supabase, user.id);
 
-  // Fetch champion prediction status from unified season_award_predictions,
-  // scoped to the 5 top-level championship slugs (team best drivers excluded).
-  const CHAMPION_SLUGS = ["wdc", "wcc", "most_dnfs", "most_podiums", "most_wins"];
-  const { data: championRows } = await supabase
-    .from("season_award_predictions")
-    .select("status, points_earned, is_half_points, season_award_types!inner(slug)")
-    .eq("user_id", user.id)
-    .eq("season_id", currentSeason?.id ?? -1)
-    .in("season_award_types.slug", CHAMPION_SLUGS);
-
-  const champRowsList = championRows ?? [];
-  const championStatus: PredictionStatus = champRowsList.some((r) => r.status === "scored")
-    ? "scored"
-    : champRowsList.some((r) => r.status === "submitted")
-      ? "submitted"
-      : "pending";
-  const championPointsEarned = champRowsList.some((r) => r.status === "scored")
-    ? champRowsList.reduce((sum, r) => sum + (r.points_earned ?? 0), 0)
-    : null;
-  const championIsHalfPoints = champRowsList.some((r) => r.is_half_points);
-
-  const championPredictionSummary = {
-    status: championStatus,
-    pointsEarned: championPointsEarned,
-    isHalfPoints: championIsHalfPoints,
-  };
+  const championshipStandings = await fetchChampionshipStandings(supabase);
 
   const nextRace = getNextRace(races);
-  const predictionCardRaces = getPredictionCardRaces(races);
 
   // Build prediction status map for the calendar
   const predictionStatusByMeetingKey = new Map<number, PredictionStatus>();
@@ -244,13 +219,9 @@ export default async function Home() {
               </div>
 
               {/* Row 2 */}
-              {/* Predictions - spans 2 cols */}
+              {/* Championship Standings - spans 2 cols */}
               <div className="border-b border-border sm:col-span-2 sm:border-r">
-                <PredictionsCard
-                  predictions={predictions}
-                  races={predictionCardRaces}
-                  championPrediction={championPredictionSummary}
-                />
+                <StandingsCard standings={championshipStandings} />
               </div>
               {/* Leaderboard - spans 4 cols */}
               <div className="border-b border-border sm:col-span-4">
