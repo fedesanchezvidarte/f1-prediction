@@ -135,7 +135,7 @@ const es: Messages = {
   },
 
   standingsCard: {
-    title: "Clasificación",
+    title: "Campeonato",
     viewAll: "Ver todo",
     pts: "pts",
     noData: "La clasificación aparecerá tras la primera carrera.",

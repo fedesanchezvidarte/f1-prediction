@@ -133,7 +133,7 @@ const en = {
   },
 
   standingsCard: {
-    title: "Championship Standings",
+    title: "Championship",
     viewAll: "View all",
     pts: "pts",
     noData: "Standings will appear after the first race.",
