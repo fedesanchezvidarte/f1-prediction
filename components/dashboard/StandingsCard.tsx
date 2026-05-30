@@ -61,7 +61,7 @@ export function StandingsCard({ standings }: StandingsCardProps) {
             onClick={() => setIsModalOpen(true)}
             aria-haspopup="dialog"
             aria-expanded={isModalOpen}
-            className="flex items-center gap-0.5 text-[10px] font-medium text-muted transition-colors hover:text-f1-white"
+            className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-[10px] font-medium text-muted transition-colors hover:text-f1-white"
           >
             {t.standingsCard.viewAll}
             <ChevronRight size={12} />

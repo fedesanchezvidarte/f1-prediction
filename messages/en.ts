@@ -271,7 +271,7 @@ const en = {
     driverOfTheDay: "Driver of the Day",
     sprintPole: "Sprint Pole",
     sprintWinner: "Sprint Winner",
-    ptsEarned: "pts earned",
+    ptsEarned: "points",
     reset: "Reset",
     saving: "Saving...",
     dismiss: "Dismiss",
@@ -282,8 +282,8 @@ const en = {
     submitted: "Submitted",
     scored: "Scored",
     // Submit button labels
-    submitPrediction: "Submit Prediction",
-    updatePrediction: "Update Prediction",
+    submitPrediction: "Submit",
+    updatePrediction: "Update",
     // Race form labels
     polePosition: "Pole Position",
     raceWinner: "Race Winner (P1)",
@@ -323,7 +323,7 @@ const en = {
     live: "LIVE",
     completed: "Completed",
     deadlineCountdown: "Prediction deadline",
-    deadlinePassed: "Predictions closed",
+    deadlinePassed: "Closed",
     // Reset modal
     resetPrediction: "Reset prediction?",
     resetBody: "This will clear all your selections for this prediction and set it back to",

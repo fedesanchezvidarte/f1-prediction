@@ -39,7 +39,7 @@ export function PointSystemModal({ sections, onClose }: PointSystemModalProps) {
         className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-f1-purple/30 bg-card shadow-2xl shadow-f1-purple/10"
       >
         {/* Fancier header with a purple gradient accent */}
-        <div className="sticky top-0 z-10 border-b border-border bg-gradient-to-r from-f1-purple/20 via-card to-card px-6 py-4">
+        <div className="sticky top-0 z-10 border-b border-border bg-card bg-gradient-to-r from-f1-purple/20 to-card px-6 py-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-f1-purple/15">

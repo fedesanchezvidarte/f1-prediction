@@ -481,15 +481,15 @@ export function RacePredictionContent({
   const racePts = currentPrediction?.pointsEarned ?? null;
   const sprintPts = currentSprintPred?.pointsEarned ?? null;
 
-  const pointsEarned = isChampionTab
-    ? champPred.pointsEarned
-    : tab === "sprint"
-      ? sprintPts
-      : currentRace.hasSprint
-        ? racePts !== null || sprintPts !== null
-          ? (racePts ?? 0) + (sprintPts ?? 0)
-          : null
-        : racePts;
+  // Show the combined weekend total (race + sprint) on every tab, so the points
+  // earned never differ between the Race and Sprint tabs of the same round.
+  const weekendPts = currentRace.hasSprint
+    ? racePts !== null || sprintPts !== null
+      ? (racePts ?? 0) + (sprintPts ?? 0)
+      : null
+    : racePts;
+
+  const pointsEarned = isChampionTab ? champPred.pointsEarned : weekendPts;
 
   const changedChampionFields = useMemo((): string[] => {
     if (!isChampionTab || champPred.status !== "submitted") return [];
