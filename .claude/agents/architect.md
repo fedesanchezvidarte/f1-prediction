@@ -19,7 +19,7 @@ Use the `architecture` skill (`.claude/skills/architecture/SKILL.md`) for C4 mod
 - **App structure:** `app/` for routes/layouts/API handlers, `components/` for UI, `lib/` for business logic, `types/index.ts` for shared types.
 - **Architecture docs:** `docs/architecture/` for C4 modeling and `.likec4` diagram files.
 - **LikeC4 reference:** [https://likec4.dev/dsl/](https://likec4.dev/dsl/) for DSL syntax.
-- **Database migrations:** `.github/database/migrations/` with descriptive SQL filenames.
+- **Database migrations:** `supabase/migrations/` with descriptive SQL filenames.
 - **Existing containers:** Next.js webapp, Supabase (PostgreSQL + Auth), OpenF1 API (external).
 
 ## Core Principles
@@ -45,7 +45,7 @@ Use the `architecture` skill (`.claude/skills/architecture/SKILL.md`) for C4 mod
 
 3. DESIGN DATABASE SCHEMA
    - Design new tables/columns following project conventions.
-   - Create migration SQL in .github/database/migrations/.
+   - Create migration SQL in supabase/migrations/.
    - Define RLS policies for new tables.
 
 4. DEFINE TYPESCRIPT TYPES

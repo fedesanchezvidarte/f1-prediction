@@ -53,7 +53,7 @@ The C4 model decomposes systems into four levels of detail:
 - Leaderboard and achievements are publicly readable
 
 ### Migration Files
-- Store in `.github/database/migrations/`
+- Store in `supabase/migrations/`
 - Naming: `YYYYMMDD_description.sql`
 - Include `UP` section; `DOWN` section recommended but optional
 - Always wrap in a transaction (`BEGIN; ... COMMIT;`)

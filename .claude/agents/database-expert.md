@@ -19,7 +19,7 @@ Load files from each skill's `references/` directory when needed for deeper guid
 ## Project Context
 
 - **Database:** Supabase (PostgreSQL) with RLS enabled on all public tables.
-- **Migration files:** `.github/database/migrations/` — descriptive filenames with SQL.
+- **Migration files:** `supabase/migrations/` — descriptive filenames with SQL.
 - **Shared types:** `types/index.ts` — TypeScript interfaces mapping to DB tables.
 - **Service layer:** `lib/` functions receive `SupabaseClient` as first parameter, never create their own client.
 - **Auth:** Supabase Auth with `supabase.auth.getUser()` in API routes. Admin check via `lib/admin.ts`.
@@ -96,7 +96,7 @@ Load files from each skill's `references/` directory when needed for deeper guid
    - Use IF NOT EXISTS for idempotency.
 
 3. CREATE MIGRATION FILE
-   - Write to .github/database/migrations/{description}.sql
+   - Write to supabase/migrations/{description}.sql
    - Include comments explaining the change and referencing the issue.
 
 4. APPLY MIGRATION

@@ -24,7 +24,6 @@ When invoked by the **Feature Orchestrator**, receive test scope from the orches
 - **Supabase mock factory:** `__tests__/helpers/mockSupabase.ts` — a chainable mock (`from().select().eq().single()`) used for all DB-touching service tests.
 - **API mock helper:** `__tests__/helpers/mockApiRoute.ts` — wraps `NextRequest` construction and `NextResponse` assertions.
 - **E2E tests:** Playwright. Explore the live app before writing any test; derive locators from actual page snapshots.
-- **Testing plan:** `.github/prompts/plan-unitTestingFoundation.prompt.md` is the authoritative phase-by-phase guide. Always consult it when scoping new test work.
 - **Coverage target:** >80% line coverage for all `lib/` files (`npx jest --coverage`).
 
 ## Core Principles

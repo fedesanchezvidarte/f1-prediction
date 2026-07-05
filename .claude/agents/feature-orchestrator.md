@@ -60,7 +60,7 @@ User confirms the requirements summary. Only then proceed to Phase 1.
 ### Phase 2: Database Schema & Types
 **Agent:** Architect (design) → Database Expert (apply migration & verify)
 **Input:** Approved Feature Brief
-**Output:** Migration SQL in `.github/database/migrations/`, applied via Supabase MCP, updated `types/index.ts`
+**Output:** Migration SQL in `supabase/migrations/`, applied via Supabase MCP, updated `types/index.ts`
 **Gate:** Migration applied successfully, types compile (`npx tsc --noEmit`)
 
 ### Phase 3: Business Logic
