@@ -40,14 +40,18 @@ jobs:
       # ── Tests ────────────────────────────────────────────────────────
       - name: Run tests with coverage
         working-directory: apps/web
+        # Jest resolves --coverageDirectory against rootDir (repo root) but
+        # --outputFile against the cwd, and creates neither parent dir —
+        # so create the dir and pass absolute paths to keep both in apps/web.
         run: |
+          mkdir -p reports
           npx jest \
             --ci \
             --forceExit \
             --coverage \
-            --json --outputFile=reports/jest-results.json \
+            --json --outputFile="$(pwd)/reports/jest-results.json" \
             --coverageReporters=json-summary \
-            --coverageDirectory=reports/coverage
+            --coverageDirectory="$(pwd)/reports/coverage"
 
       # ── Summary ──────────────────────────────────────────────────────
       - name: Write job summary
