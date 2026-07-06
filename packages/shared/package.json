@@ -1,0 +1,13 @@
+{
+  "name": "@f1/shared",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./types": "./types/index.ts",
+    "./lib/*": "./lib/*.ts",
+    "./messages/*": "./messages/*.ts"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.97.0"
+  }
+}
