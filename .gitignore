@@ -52,3 +52,21 @@ docs/architecture/dist/
 
 # Playwright MCP
 .playwright-mcp/
+
+# Installed general-purpose skills (managed via skills-lock.json, not project-specific).
+# The 7 project-domain skills under .claude/skills/ remain tracked.
+/.agents/
+/skills-lock.json
+/.claude/skills/codebase-design/
+/.claude/skills/diagnosing-bugs/
+/.claude/skills/domain-modeling/
+/.claude/skills/grill-me/
+/.claude/skills/grill-with-docs/
+/.claude/skills/grilling/
+/.claude/skills/handoff/
+/.claude/skills/improve-codebase-architecture/
+/.claude/skills/prototype/
+/.claude/skills/research/
+/.claude/skills/tdd/
+/.claude/skills/teach/
+/.claude/skills/writing-great-skills/

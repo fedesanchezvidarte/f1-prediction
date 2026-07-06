@@ -56,7 +56,7 @@ Translations (messages/) — en.ts (source of truth + Messages type) and es.ts
 
 ### Database
 - RLS enabled on every table in `public`.
-- Migrations go in `.github/database/migrations/` with descriptive SQL filenames.
+- Migrations go in `supabase/migrations/` with descriptive SQL filenames.
 - Use `IF NOT EXISTS` / `IF EXISTS` for idempotent migrations.
 - JSONB arrays for ordered position data (e.g. `top_10`, `top_8`).
 - After any schema change, update `types/index.ts`.
@@ -90,7 +90,7 @@ Specialized subagents live in `.claude/agents/`. Invoke them via the `Agent` too
 | `qa` | Unit tests, API tests, Playwright E2E tests |
 | `a11y` | WCAG 2.1 AA audits, ARIA, keyboard navigation |
 
-Domain-knowledge skills live in `.claude/skills/` (Claude Code auto-discovery) and are mirrored in `.github/skills/` for GitHub Copilot. Each agent's system prompt points to the relevant `SKILL.md` under `.claude/skills/`.
+Domain-knowledge skills live in `.claude/skills/` (Claude Code auto-discovery). Each agent's system prompt points to the relevant `SKILL.md` under `.claude/skills/`.
 
 | Skill | Used by |
 |---|---|
