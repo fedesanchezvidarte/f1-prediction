@@ -34,7 +34,33 @@ F1 Prediction is a hobby project that turns every Grand Prix weekend into a frie
 | Hosting | [Vercel](https://vercel.com) |
 | Icons | [Lucide React](https://lucide.dev) |
 
-The codebase follows a strict layered architecture: pages and API routes delegate to a `lib/` layer split between pure functions (scoring, utilities) and service functions (Supabase I/O), with all UI text routed through a bilingual i18n system.
+The codebase is an npm-workspaces **monorepo**: the Next.js app lives in `apps/web`, and all framework-agnostic business logic (scoring, achievements, types, translations) lives in `packages/shared` so it can be reused by the upcoming React Native mobile app. It follows a strict layered architecture: pages and API routes delegate to shared pure functions (scoring, utilities) and service functions (Supabase I/O), with all UI text routed through a bilingual i18n system.
+
+## Getting Started
+
+```bash
+git clone https://github.com/fedesanchezvidarte/f1-prediction.git
+cd f1-prediction
+npm install
+```
+
+Create `apps/web/.env.local` (copy from `apps/web/.env.example`) with your Supabase project's publishable values:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+```
+
+Both values are in your [Supabase dashboard](https://supabase.com/dashboard) under **Settings → API**. They are publishable (safe for the browser); data access is protected by Row Level Security.
+
+Then run from the repo root:
+
+```bash
+npm run dev              # dev server at http://localhost:3000
+npm test                 # Jest test suite
+npm run lint             # ESLint
+npm run typecheck        # TypeScript
+```
 
 ## Documentation
 
