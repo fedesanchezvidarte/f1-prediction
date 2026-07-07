@@ -5,33 +5,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev              # Start dev server at http://localhost:3000
+npm run dev              # Start dev server at http://localhost:3000 (proxies to apps/web)
 npm run build            # Production build
 npm test                 # Run Jest once
 npm run test:watch       # Jest in watch mode
 npm run test:coverage    # Jest with coverage report
 npm run lint             # ESLint
-npx tsc --noEmit         # Type-check without emitting
+npm run typecheck        # Type-check without emitting (or: npx tsc --noEmit inside apps/web)
 ```
 
-Run a single test file: `npm test -- --testPathPattern="scoring"`
+All root scripts proxy to the `apps/web` workspace. Run a single test file: `npm test -- --testPathPattern="scoring"`
 
 ## Architecture
 
-The project follows a strict **layered architecture**:
+**npm-workspaces monorepo** (`apps/*`, `packages/*`) with a strict **layered architecture**:
 
 ```
-Pages/API routes (app/)
-    └── Business logic (lib/)
-            ├── Pure functions (no I/O) — scoring.ts, race-utils.ts, point-system.ts, admin.ts, achievements.ts, drivers.ts, teams.ts
-            └── Service functions (Supabase I/O) — scoring-service.ts, achievement-calculator.ts
-                    └── Supabase clients (lib/supabase/) — server.ts, client.ts, admin.ts
-Components (components/) fetch no data — they receive props from Server Component pages
-Types (types/index.ts) — all shared interfaces
-Translations (messages/) — en.ts (source of truth + Messages type) and es.ts
+apps/web/                       — Next.js app (web-only, includes the admin panel)
+    app/                        — Pages + the 13 API routes (shared backend for the future mobile app)
+    components/                 — React DOM components; fetch no data, receive props from Server Component pages
+    lib/supabase/               — Supabase clients (server.ts, client.ts, admin.ts) — SSR/cookies, web-only
+    lib/                        — Web glue: wrappers (drivers.ts, teams.ts, races.ts) that inject the server
+                                  Supabase client into shared fetchers; achievements.ts adds the lucide-react
+                                  icon map and re-exports the shared achievements module
+packages/shared/  (@f1/shared)  — framework-agnostic code, shared with the future mobile app
+    lib/                        — Pure functions (scoring.ts, race-utils.ts, point-system.ts, admin.ts,
+                                  championship-standings.ts, driver-stats.ts, achievements.ts) and service
+                                  functions (scoring-service.ts, achievement-calculator.ts, drivers.ts,
+                                  teams.ts, races.ts) taking an injected SupabaseClient
+    types/index.ts              — all shared interfaces
+    messages/                   — en.ts (source of truth + Messages type) and es.ts
 ```
 
-**Two-tier lib/ rule:** Pure functions have zero I/O. Service functions receive `SupabaseClient` as their first parameter and never call `createClient()` themselves — the caller injects it.
+Import shared code as `@f1/shared/lib/*`, `@f1/shared/types`, `@f1/shared/messages/*`. Nothing in `packages/shared` may import Next.js, React DOM, or `apps/web` code.
+
+**Two-tier lib rule:** Pure functions have zero I/O. Service functions receive `SupabaseClient` as their first parameter and never call `createClient()` themselves — the caller injects it (web: the `apps/web/lib` wrappers; mobile later: an AsyncStorage-backed client).
 
 **API route rule (thin handlers):** Auth → Validate → Delegate to `lib/` → Respond. No business logic inside route handlers.
 
@@ -41,12 +49,12 @@ Translations (messages/) — en.ts (source of truth + Messages type) and es.ts
 
 ### Authentication
 - Always use `supabase.auth.getUser()` — never `getSession()` — for server-side auth.
-- Admin check via `isAdminUser()` from `@/lib/admin` which reads `app_metadata.role`.
+- Admin check via `isAdminUser()` from `@f1/shared/lib/admin` which reads `app_metadata.role`.
 
 ### Translations (i18n)
 - Every user-visible string must use `t('key')` from `useLanguage()`.
 - Keys follow `domain.action.detail` pattern (e.g. `navbar.season`, `login.email`).
-- Add keys to both `messages/en.ts` and `messages/es.ts` simultaneously.
+- Add keys to both `packages/shared/messages/en.ts` and `es.ts` simultaneously.
 
 ### Styling
 - Tailwind CSS only — no inline styles, no CSS modules.
@@ -59,18 +67,18 @@ Translations (messages/) — en.ts (source of truth + Messages type) and es.ts
 - Migrations go in `supabase/migrations/` with descriptive SQL filenames.
 - Use `IF NOT EXISTS` / `IF EXISTS` for idempotent migrations.
 - JSONB arrays for ordered position data (e.g. `top_10`, `top_8`).
-- After any schema change, update `types/index.ts`.
+- After any schema change, update `packages/shared/types/index.ts`.
 
 ### Testing
 - Pure functions: test directly, no mocks needed.
-- Service functions: use `createMockSupabase()` from `__tests__/helpers/mockSupabase.ts`.
-- API routes: use `createMockRequest()` from `__tests__/helpers/mockApiRoute.ts`; always cover 401, 400, 200 flows; admin routes also need 403.
-- Coverage targets: >85% lines for `lib/`, >65% for `app/api/`.
+- Service functions: use `createMockSupabase()` from `apps/web/__tests__/helpers/mockSupabase.ts`.
+- API routes: use `createMockRequest()` from `apps/web/__tests__/helpers/mockApiRoute.ts`; always cover 401, 400, 200 flows; admin routes also need 403.
+- Coverage targets: >85% lines for `packages/shared/lib/`, >65% for `apps/web/app/api/`.
 
 ## Quality Gates
 
 Every change should pass:
-1. `npx tsc --noEmit` — zero type errors
+1. `npm run typecheck` — zero type errors
 2. `npm test` — all tests pass
 3. `npm run lint` — zero errors
 4. Translation parity: matching key counts in both locale files

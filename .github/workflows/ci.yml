@@ -32,20 +32,26 @@ jobs:
       # ── Static analysis ─────────────────────────────────────────────
       - name: Type check
         run: npx tsc --noEmit
+        working-directory: apps/web
 
       - name: Lint
         run: npm run lint
 
       # ── Tests ────────────────────────────────────────────────────────
       - name: Run tests with coverage
+        working-directory: apps/web
+        # Jest resolves --coverageDirectory against rootDir (repo root) but
+        # --outputFile against the cwd, and creates neither parent dir —
+        # so create the dir and pass absolute paths to keep both in apps/web.
         run: |
+          mkdir -p reports
           npx jest \
             --ci \
             --forceExit \
             --coverage \
-            --json --outputFile=reports/jest-results.json \
+            --json --outputFile="$(pwd)/reports/jest-results.json" \
             --coverageReporters=json-summary \
-            --coverageDirectory=reports/coverage
+            --coverageDirectory="$(pwd)/reports/coverage"
 
       # ── Summary ──────────────────────────────────────────────────────
       - name: Write job summary
@@ -56,12 +62,12 @@ jobs:
 
           let results, coverage;
           try {
-            results = JSON.parse(fs.readFileSync('reports/jest-results.json', 'utf8'));
+            results = JSON.parse(fs.readFileSync('apps/web/reports/jest-results.json', 'utf8'));
           } catch {
             process.exit(0);
           }
           try {
-            coverage = JSON.parse(fs.readFileSync('reports/coverage/coverage-summary.json', 'utf8'));
+            coverage = JSON.parse(fs.readFileSync('apps/web/reports/coverage/coverage-summary.json', 'utf8'));
           } catch {
             coverage = null;
           }
@@ -134,5 +140,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: reports/coverage/
+          path: apps/web/reports/coverage/
           retention-days: 7

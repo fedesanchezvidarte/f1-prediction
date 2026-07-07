@@ -1,0 +1,280 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { scoreRaceForId } from "@f1/shared/lib/scoring-service";
+import { isAdminUser } from "@f1/shared/lib/admin";
+
+/**
+ * Allows an admin to manually enter or override race/sprint results.
+ * After saving, it triggers the scoring endpoint automatically.
+ *
+ * Body for race:
+ * {
+ *   raceId: number,
+ *   sessionType: "race",
+ *   qualifyingTop3: number[],  // ordered [Q1, Q2, Q3] driver IDs (Q1 = pole)
+ *   qualifyingP4DriverId: number, // Q4 — boundary for ±1 quali proximity
+ *   top10: number[],           // ordered [P1, ..., P10] driver IDs
+ *   p11DriverId: number,       // P11 — boundary for ±1 top-10 proximity
+ *   fastestLapDriverId: number,
+ *   fastestPitStopDriverId: number,
+ * }
+ *
+ * Body for sprint:
+ * {
+ *   raceId: number,
+ *   sessionType: "sprint",
+ *   qualifyingTop3: number[],  // ordered [Q1, Q2, Q3] driver IDs (Q1 = sprint pole)
+ *   qualifyingP4DriverId: number, // Q4 — boundary for ±1 quali proximity
+ *   top8: number[],            // ordered [P1, ..., P8] driver IDs
+ *   p9DriverId: number,        // P9 — boundary for ±1 top-8 proximity
+ *   fastestLapDriverId: number,
+ * }
+ */
+
+interface RaceResultBody {
+  raceId: number;
+  sessionType: "race";
+  qualifyingTop3: number[];
+  qualifyingP4DriverId?: number | null;
+  top10: number[];
+  p11DriverId?: number | null;
+  fastestLapDriverId: number;
+  fastestPitStopDriverId: number;
+  driverOfTheDayDriverId?: number | null;
+  dnfDriverIds?: number[] | null;
+}
+
+interface SprintResultBody {
+  raceId: number;
+  sessionType: "sprint";
+  qualifyingTop3: number[];
+  qualifyingP4DriverId?: number | null;
+  top8: number[];
+  p9DriverId?: number | null;
+  fastestLapDriverId: number;
+}
+
+type RequestBody = RaceResultBody | SprintResultBody;
+
+export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isAdminUser(user)) {
+    return NextResponse.json(
+      { error: "Forbidden: admin access required" },
+      { status: 403 }
+    );
+  }
+
+  let body: RequestBody;
+  try {
+    body = (await request.json()) as RequestBody;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { raceId, sessionType } = body;
+
+  if (!raceId || !sessionType) {
+    return NextResponse.json(
+      { error: "raceId and sessionType are required" },
+      { status: 400 }
+    );
+  }
+
+  // Verify the race exists
+  const { data: race } = await supabase
+    .from("races")
+    .select("id, has_sprint")
+    .eq("id", raceId)
+    .single();
+
+  if (!race) {
+    return NextResponse.json({ error: "Race not found" }, { status: 404 });
+  }
+
+  if (sessionType === "sprint" && !race.has_sprint) {
+    return NextResponse.json(
+      { error: "This race does not have a sprint session" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    if (sessionType === "race") {
+      const {
+        qualifyingTop3,
+        qualifyingP4DriverId,
+        top10,
+        p11DriverId,
+        fastestLapDriverId,
+        fastestPitStopDriverId,
+        driverOfTheDayDriverId,
+        dnfDriverIds,
+      } = body as RaceResultBody;
+
+      if (
+        !Array.isArray(qualifyingTop3) ||
+        qualifyingTop3.length !== 3 ||
+        !top10 ||
+        top10.length !== 10 ||
+        !fastestLapDriverId ||
+        !fastestPitStopDriverId
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Race results require: qualifyingTop3 (3 driver IDs), top10 (10 driver IDs), fastestLapDriverId, fastestPitStopDriverId",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Validate all top10 entries are valid positive numbers
+      if (top10.some((id) => typeof id !== "number" || id <= 0 || !Number.isFinite(id))) {
+        return NextResponse.json(
+          { error: "All top10 entries must be valid positive driver IDs" },
+          { status: 400 }
+        );
+      }
+
+      // Validate all qualifyingTop3 entries are valid positive numbers
+      if (qualifyingTop3.some((id) => typeof id !== "number" || id <= 0 || !Number.isFinite(id))) {
+        return NextResponse.json(
+          { error: "All qualifyingTop3 entries must be valid positive driver IDs" },
+          { status: 400 }
+        );
+      }
+
+      // Validate dnfDriverIds if provided
+      if (dnfDriverIds != null) {
+        if (!Array.isArray(dnfDriverIds) || dnfDriverIds.some((id) => typeof id !== "number" || !Number.isInteger(id) || id <= 0)) {
+          return NextResponse.json(
+            { error: "dnfDriverIds must be an array of valid positive integer driver IDs" },
+            { status: 400 }
+          );
+        }
+      }
+
+      const resultData = {
+        race_id: raceId,
+        qualifying_top_3: qualifyingTop3,
+        qualifying_p4_driver_id: qualifyingP4DriverId ?? null,
+        // Keep the legacy NOT NULL pole column populated = Q1.
+        pole_position_driver_id: qualifyingTop3[0],
+        top_10: top10,
+        p11_driver_id: p11DriverId ?? null,
+        fastest_lap_driver_id: fastestLapDriverId,
+        fastest_pit_stop_driver_id: fastestPitStopDriverId,
+        driver_of_the_day_driver_id: driverOfTheDayDriverId ?? null,
+        ...(dnfDriverIds !== undefined && { dnf_driver_ids: dnfDriverIds ? [...new Set(dnfDriverIds)] : null }),
+        source: "manual" as const,
+      };
+
+      const { data: existingResult } = await supabase
+        .from("race_results")
+        .select("id")
+        .eq("race_id", raceId)
+        .single();
+
+      if (existingResult) {
+        const { error } = await supabase
+          .from("race_results")
+          .update(resultData)
+          .eq("id", existingResult.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("race_results").insert(resultData);
+        if (error) throw error;
+      }
+    } else {
+      const { qualifyingTop3, qualifyingP4DriverId, top8, p9DriverId, fastestLapDriverId } =
+        body as SprintResultBody;
+
+      if (
+        !Array.isArray(qualifyingTop3) ||
+        qualifyingTop3.length !== 3 ||
+        !top8 ||
+        top8.length !== 8 ||
+        !fastestLapDriverId
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Sprint results require: qualifyingTop3 (3 driver IDs), top8 (8 driver IDs), fastestLapDriverId",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Validate all top8 entries are valid positive numbers
+      if (top8.some((id) => typeof id !== "number" || id <= 0 || !Number.isFinite(id))) {
+        return NextResponse.json(
+          { error: "All top8 entries must be valid positive driver IDs" },
+          { status: 400 }
+        );
+      }
+
+      // Validate all qualifyingTop3 entries are valid positive numbers
+      if (qualifyingTop3.some((id) => typeof id !== "number" || id <= 0 || !Number.isFinite(id))) {
+        return NextResponse.json(
+          { error: "All qualifyingTop3 entries must be valid positive driver IDs" },
+          { status: 400 }
+        );
+      }
+
+      const resultData = {
+        race_id: raceId,
+        qualifying_top_3: qualifyingTop3,
+        qualifying_p4_driver_id: qualifyingP4DriverId ?? null,
+        // Keep the legacy sprint pole column populated = Q1.
+        sprint_pole_driver_id: qualifyingTop3[0],
+        top_8: top8,
+        p9_driver_id: p9DriverId ?? null,
+        fastest_lap_driver_id: fastestLapDriverId,
+        source: "manual" as const,
+      };
+
+      const { data: existingResult } = await supabase
+        .from("sprint_results")
+        .select("id")
+        .eq("race_id", raceId)
+        .single();
+
+      if (existingResult) {
+        const { error } = await supabase
+          .from("sprint_results")
+          .update(resultData)
+          .eq("id", existingResult.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("sprint_results")
+          .insert(resultData);
+        if (error) throw error;
+      }
+    }
+
+    // Trigger scoring directly (no internal HTTP call)
+    const scoreResult = await scoreRaceForId(supabase, raceId);
+
+    return NextResponse.json({
+      success: true,
+      source: "manual",
+      scoring: scoreResult,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { error: `Failed to save results: ${message}` },
+      { status: 500 }
+    );
+  }
+}
