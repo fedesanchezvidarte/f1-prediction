@@ -16,6 +16,14 @@ npm run typecheck        # Type-check without emitting (or: npx tsc --noEmit ins
 
 All root scripts proxy to the `apps/web` workspace. Run a single test file: `npm test -- --testPathPattern="scoring"`
 
+Mobile app (run inside `apps/mobile`):
+
+```bash
+npx expo start            # Metro dev server (scan QR with Expo Go)
+npm run typecheck         # Type-check the mobile app
+npx expo export --platform android   # Verify the app bundles end-to-end
+```
+
 ## Architecture
 
 **npm-workspaces monorepo** (`apps/*`, `packages/*`) with a strict **layered architecture**:
@@ -28,7 +36,13 @@ apps/web/                       — Next.js app (web-only, includes the admin pa
     lib/                        — Web glue: wrappers (drivers.ts, teams.ts, races.ts) that inject the server
                                   Supabase client into shared fetchers; achievements.ts adds the lucide-react
                                   icon map and re-exports the shared achievements module
-packages/shared/  (@f1/shared)  — framework-agnostic code, shared with the future mobile app
+apps/mobile/                    — Expo app (React Native, player-only; no admin panel)
+    src/app/                    — Expo Router screens (file-based, mirrors Next.js app/ model)
+    src/lib/supabase.ts         — supabase-js client on AsyncStorage (mobile-only)
+    src/providers/              — LanguageProvider (same useLanguage() API as web, backed by
+                                  expo-localization + AsyncStorage), TanStack Query provider
+    tailwind.config.js          — NativeWind config with the same f1-* palette names as web
+packages/shared/  (@f1/shared)  — framework-agnostic code, shared by both apps
     lib/                        — Pure functions (scoring.ts, race-utils.ts, point-system.ts, admin.ts,
                                   championship-standings.ts, driver-stats.ts, achievements.ts) and service
                                   functions (scoring-service.ts, achievement-calculator.ts, drivers.ts,
