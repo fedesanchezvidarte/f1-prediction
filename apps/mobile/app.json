@@ -7,8 +7,9 @@
     "icon": "./assets/images/icon.png",
     "scheme": "f1prediction",
     "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "ios": {
-      "icon": "./assets/expo.icon",
+      "supportsTablet": true,
       "bundleIdentifier": "com.fedesanchezvidarte.f1prediction"
     },
     "android": {
@@ -19,6 +20,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -30,9 +32,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#2A2B2A",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#2A2B2A",
+          "dark": {
+            "backgroundColor": "#2A2B2A"
+          }
         }
       ],
       "expo-localization"
