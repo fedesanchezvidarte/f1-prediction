@@ -42,6 +42,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .vscode/settings.json
+# Stray tsconfig auto-generated at the repo root by Expo/tsc tooling —
+# the real configs live in apps/web/tsconfig.json and apps/mobile/tsconfig.json
+/tsconfig.json
+
+# Expo local dev-session cache (device pairing, project settings)
+.expo/
 
 # LikeC4 build output
 docs/architecture/dist/
