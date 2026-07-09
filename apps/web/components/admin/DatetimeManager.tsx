@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import {
   Calendar,
   Clock,
-  Download,
   Loader2,
   Save,
   CheckCircle2,
@@ -18,7 +17,7 @@ interface DatetimeManagerProps {
   dateEnd: string;
   sprintDateEnd?: string | null;
   hasSprint?: boolean;
-  /** Called with the updated datetimes after a successful save or restore */
+  /** Called with the updated datetimes after a successful save */
   onUpdate?: (dateStart: string, dateEnd: string, sprintDateEnd?: string | null) => void;
 }
 
@@ -82,7 +81,7 @@ export function DatetimeManager({
   const { t } = useLanguage();
   const dt = t.admin.datetimeManager;
 
-  // "Saved" datetimes — updated after a successful save or restore
+  // "Saved" datetimes — updated after a successful save
   const [savedStart, setSavedStart] = useState(initialDateStart);
   const [savedEnd, setSavedEnd] = useState(initialDateEnd);
   const [savedSprintEnd, setSavedSprintEnd] = useState(initialSprintDateEnd ?? "");
@@ -96,8 +95,6 @@ export function DatetimeManager({
 
   const [saveState, setSaveState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [saveMsg, setSaveMsg] = useState("");
-  const [restoreState, setRestoreState] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [restoreMsg, setRestoreMsg] = useState("");
 
   // Countdown — race qualifying deadline
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft(savedEnd));
@@ -191,43 +188,6 @@ export function DatetimeManager({
     } catch {
       setSaveState("error");
       setSaveMsg(dt.saveError);
-    }
-  }
-
-  async function handleRestoreFromOpenF1() {
-    setRestoreState("loading");
-    setRestoreMsg("");
-
-    try {
-      const res = await fetch("/api/races/fetch-openf1-datetime", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raceId }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        setRestoreState("success");
-        setRestoreMsg(dt.restoreSuccess);
-        setSavedStart(data.dateStart);
-        setSavedEnd(data.dateEnd);
-        setInputStart(toDatetimeLocalValue(data.dateStart));
-        setInputEnd(toDatetimeLocalValue(data.dateEnd));
-        if (hasSprint) {
-          setSavedSprintEnd(data.sprintDateEnd ?? "");
-          setInputSprintEnd(
-            data.sprintDateEnd ? toDatetimeLocalValue(data.sprintDateEnd) : ""
-          );
-        }
-        onUpdate?.(data.dateStart, data.dateEnd, data.sprintDateEnd ?? null);
-      } else {
-        setRestoreState("error");
-        setRestoreMsg(data.error || dt.restoreError);
-      }
-    } catch {
-      setRestoreState("error");
-      setRestoreMsg(dt.restoreError);
     }
   }
 
@@ -382,20 +342,6 @@ export function DatetimeManager({
           )}
           {saveState === "loading" ? dt.saving : dt.save}
         </button>
-
-        {/* Restore from OpenF1 */}
-        <button
-          onClick={handleRestoreFromOpenF1}
-          disabled={restoreState === "loading"}
-          className="flex items-center gap-1.5 rounded-lg bg-muted/10 px-3 py-2 text-xs font-medium text-muted transition-colors hover:bg-muted/20 hover:text-f1-white disabled:opacity-50"
-        >
-          {restoreState === "loading" ? (
-            <Loader2 size={13} className="animate-spin" />
-          ) : (
-            <Download size={13} />
-          )}
-          {restoreState === "loading" ? dt.restoring : dt.restoreOpenF1}
-        </button>
       </div>
 
       {/* Save feedback */}
@@ -413,24 +359,6 @@ export function DatetimeManager({
             <AlertCircle size={12} />
           )}
           {saveMsg}
-        </div>
-      )}
-
-      {/* Restore feedback */}
-      {restoreMsg && (
-        <div
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs ${
-            restoreState === "success"
-              ? "bg-f1-green/10 text-f1-green"
-              : "bg-f1-red/10 text-f1-red"
-          }`}
-        >
-          {restoreState === "success" ? (
-            <CheckCircle2 size={12} />
-          ) : (
-            <AlertCircle size={12} />
-          )}
-          {restoreMsg}
         </div>
       )}
     </div>

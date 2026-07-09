@@ -49,7 +49,7 @@ export default async function AdminPage() {
   // Get all races for the current season
   const { data: races } = await supabase
     .from("races")
-    .select("id, meeting_key, race_name, circuit_short_name, round, has_sprint, date_start, date_end, sprint_date_end")
+    .select("id, race_name, circuit_short_name, round, has_sprint, date_start, date_end, sprint_date_end")
     .eq("season_id", season.id)
     .order("round", { ascending: true });
 
@@ -172,7 +172,6 @@ export default async function AdminPage() {
         <AdminPanel
           races={(races ?? []).map((r) => ({
             id: r.id,
-            meetingKey: r.meeting_key,
             raceName: r.race_name,
             circuitShortName: r.circuit_short_name,
             round: r.round,

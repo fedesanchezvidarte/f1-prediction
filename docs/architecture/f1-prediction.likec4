@@ -124,7 +124,7 @@ model {
     }
 
     resultsApi = apiRoute 'Race Results API' {
-      description 'POST /api/results/fetch-openf1 — import race/sprint results from OpenF1 and trigger scoring\nPOST /api/results/manual — enter results manually and trigger scoring\nPOST /api/results/score — score submitted predictions for a race\nPOST /api/results/score-all — score all unscored races in the season\nPOST /api/results/reset — clear results for a race'
+      description 'POST /api/results/manual — enter race/sprint results manually and trigger scoring\nPOST /api/results/score — score submitted predictions for a race\nPOST /api/results/score-all — score all unscored races in the season\nPOST /api/results/reset — clear results for a race'
       technology 'Next.js Route Handler · app/api/results/'
     }
 
@@ -134,7 +134,7 @@ model {
     }
 
     racesApi = apiRoute 'Races API' {
-      description 'POST /api/races/fetch-openf1-datetime — sync Practice 1 start and Qualifying datetimes from OpenF1\nPOST /api/races/update-datetime — manually update race datetimes'
+      description 'POST /api/races/update-datetime — manually update race datetimes (Practice 1 start and Qualifying deadline)'
       technology 'Next.js Route Handler · app/api/races/'
     }
 
@@ -166,7 +166,7 @@ model {
     }
 
     adminPage = uiPage 'Admin Panel' {
-      description 'Admin-only page: enter/sync race results, update race datetimes, trigger scoring for a single race or full season, recalculate achievements'
+      description 'Admin-only page: enter race results manually, update race datetimes, trigger scoring for a single race or full season, recalculate achievements'
       technology 'React Server Component · app/admin/'
     }
 
@@ -243,9 +243,9 @@ model {
 
     // Admin Panel
     adminPage -> supabaseClient 'admin queries: races, drivers, teams, results'
-    adminPage -> resultsApi 'POST to fetch / enter / score results'
+    adminPage -> resultsApi 'POST to enter / score results'
     adminPage -> championApi 'POST to manage champion results'
-    adminPage -> racesApi 'POST to sync / update datetimes'
+    adminPage -> racesApi 'POST to update datetimes'
     adminPage -> achievementsApi 'POST to recalculate achievements'
 
     // Profile
@@ -260,8 +260,6 @@ model {
 
   // Component-level access to external systems (outside extend to use FQN)
   f1prediction.webapp.supabaseClient -> f1prediction.supabase 'authenticated queries enforced by Row Level Security'
-  f1prediction.webapp.resultsApi -> openf1 'GET /v1/session_result · /v1/starting_grid · /v1/laps · /v1/pit'
-  f1prediction.webapp.racesApi -> openf1 'GET /v1/sessions (circuit + year filter for datetime sync)'
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -277,12 +275,8 @@ views {
     title 'Web Application — Full Component Overview'
     include *
     include f1prediction.supabase
-    include openf1
 
     style f1prediction.supabase {
-      color muted
-    }
-    style openf1 {
       color muted
     }
   }
@@ -328,12 +322,8 @@ views {
     include f1prediction.webapp.raceUtils
     include f1prediction.webapp.adminUtils
     include f1prediction.webapp.supabaseClient
-    include openf1
     include f1prediction.supabase
 
-    style openf1 {
-      color muted
-    }
     style f1prediction.supabase {
       color muted
     }
@@ -403,12 +393,8 @@ views {
     include f1prediction.webapp.achievementCalculator
     include f1prediction.webapp.adminUtils
     include f1prediction.webapp.supabaseClient
-    include openf1
     include f1prediction.supabase
 
-    style openf1 {
-      color muted
-    }
     style f1prediction.supabase {
       color muted
     }

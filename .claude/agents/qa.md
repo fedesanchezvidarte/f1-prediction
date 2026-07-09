@@ -19,7 +19,7 @@ When invoked by the **Feature Orchestrator**, receive test scope from the orches
 
 ## Project Context
 
-- **Stack:** Next.js App Router, TypeScript, Tailwind CSS, Supabase, OpenF1 API.
+- **Stack:** Next.js App Router, TypeScript, Tailwind CSS, Supabase.
 - **Unit / service tests:** Jest + ts-jest. All tests live under `__tests__/`, mirroring `lib/` and `app/api/`.
 - **Supabase mock factory:** `__tests__/helpers/mockSupabase.ts` — a chainable mock (`from().select().eq().single()`) used for all DB-touching service tests.
 - **API mock helper:** `__tests__/helpers/mockApiRoute.ts` — wraps `NextRequest` construction and `NextResponse` assertions.
@@ -88,7 +88,7 @@ When invoked by the **Feature Orchestrator**, receive test scope from the orches
 
 ## Test Quality Standards
 
-- **Deterministic:** No sleep-based waits, no reliance on real Supabase/OpenF1, no order-dependent execution.
+- **Deterministic:** No sleep-based waits, no reliance on a real Supabase instance, no order-dependent execution.
 - **Fast:** Unit tests run in milliseconds. E2E tests go in a separate suite tagged `e2e`.
 - **Readable:** A failing test name must describe the scenario and expected outcome without reading the implementation.
 - **Isolated:** Each test owns its setup and teardown. No shared mutable state between tests.

@@ -21,7 +21,6 @@ There will be two types of users:
 - Next.js (for the web application)
 - Tailwind CSS (for the styling)
 - TypeScript (for the programming language)
-- OpenF1 API (for the data)
 - Vercel (for the hosting)
 - Supabase (for the database and storage)
 - Supabase (for the authentication), so we need to setup the providers here, email and Google.
@@ -57,7 +56,7 @@ There will be two types of users:
 
 ### Data Sources
 
-- The application will use the OpenF1 API to get the data for the results,drivers, constructors, etc.
+- Race results are entered manually by an admin through the Admin Panel. The `meeting_key` and `source` columns are retained on the results tables as a hook so a future results provider can be wired in without a schema change.
 
 ### Security
 

@@ -20,7 +20,7 @@ F1 Prediction is a hobby project that turns every Grand Prix weekend into a frie
 - **Achievements** — Unlockable milestones based on prediction performance.
 - **Dashboard** — A bento-grid home page with points, upcoming race countdown, recent predictions, leaderboard snapshot, and achievements.
 - **Bilingual UI** — English and Spanish, switchable at runtime.
-- **Admin Panel** — Manage race results (auto-fetch from OpenF1 or manual entry), trigger scoring, and recalculate achievements.
+- **Admin Panel** — Enter race results manually, trigger scoring, and recalculate achievements.
 
 ## Tech Stack
 
@@ -30,7 +30,7 @@ F1 Prediction is a hobby project that turns every Grand Prix weekend into a frie
 | Language | TypeScript |
 | Styling | Tailwind CSS |
 | Auth & Database | [Supabase](https://supabase.com) (Postgres with RLS) |
-| Data Source | [OpenF1 API](https://openf1.org) for official race results |
+| Race Results | Entered manually by an admin (the `meeting_key` and `source` columns are retained as a hook for a future results provider) |
 | Hosting | [Vercel](https://vercel.com) |
 | Icons | [Lucide React](https://lucide.dev) |
 

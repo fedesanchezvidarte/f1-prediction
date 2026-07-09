@@ -8,8 +8,6 @@
 [User] → [F1 Prediction System]
                 ↓
          [Supabase] (auth + database)
-                ↓
-         [OpenF1 API] (external race data)
 ```
 
 ### Container Level
@@ -18,7 +16,6 @@
 |---|---|---|
 | Web Application | App Router with SSR/CSR | Next.js, TypeScript, Tailwind |
 | Supabase | Auth, PostgreSQL, RLS | Supabase Cloud |
-| OpenF1 API | Live race data provider | External REST API |
 
 ### Component Level (Web Application)
 
