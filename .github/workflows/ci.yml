@@ -30,9 +30,13 @@ jobs:
         run: npm ci
 
       # ── Static analysis ─────────────────────────────────────────────
-      - name: Type check
+      - name: Type check (web)
         run: npx tsc --noEmit
         working-directory: apps/web
+
+      - name: Type check (mobile)
+        run: npx tsc --noEmit
+        working-directory: apps/mobile
 
       - name: Lint
         run: npm run lint

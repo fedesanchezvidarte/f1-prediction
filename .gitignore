@@ -42,6 +42,28 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .vscode/settings.json
+# Stray tsconfig auto-generated at the repo root by Expo/tsc tooling —
+# the real configs live in apps/web/tsconfig.json and apps/mobile/tsconfig.json
+/tsconfig.json
+
+# Expo local dev-session cache (device pairing, project settings)
+.expo/
+
+# Expo/React Native (apps/mobile)
+dist/
+web-build/
+expo-env.d.ts
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.metro-health-check*
+# generated native folders (EAS/prebuild)
+/ios
+/android
 
 # LikeC4 build output
 docs/architecture/dist/
