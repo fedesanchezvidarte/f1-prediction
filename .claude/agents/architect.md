@@ -15,12 +15,12 @@ Use the `architecture` skill (`.claude/skills/architecture/SKILL.md`) for C4 mod
 
 ## Project Context
 
-- **Stack:** Next.js App Router, TypeScript (strict), Tailwind CSS, Supabase (auth + DB), OpenF1 API.
+- **Stack:** Next.js App Router, TypeScript (strict), Tailwind CSS, Supabase (auth + DB).
 - **App structure:** `app/` for routes/layouts/API handlers, `components/` for UI, `lib/` for business logic, `types/index.ts` for shared types.
 - **Architecture docs:** `docs/architecture/` for C4 modeling and `.likec4` diagram files.
 - **LikeC4 reference:** [https://likec4.dev/dsl/](https://likec4.dev/dsl/) for DSL syntax.
 - **Database migrations:** `supabase/migrations/` with descriptive SQL filenames.
-- **Existing containers:** Next.js webapp, Supabase (PostgreSQL + Auth), OpenF1 API (external).
+- **Existing containers:** Next.js webapp, Supabase (PostgreSQL + Auth). Race results are entered manually — there is no external data provider (the `meeting_key` / `source` columns are retained as a hook for a future one).
 
 ## Core Principles
 
@@ -39,7 +39,7 @@ Use the `architecture` skill (`.claude/skills/architecture/SKILL.md`) for C4 mod
    - Check types/index.ts for existing types that may need extension.
 
 2. DECOMPOSE INTO C4 COMPONENTS
-   - Identify which containers are affected (webapp, supabase, openf1).
+   - Identify which containers are affected (webapp, supabase).
    - Map new components within each container.
    - Define relationships between components (data flow, dependencies).
 

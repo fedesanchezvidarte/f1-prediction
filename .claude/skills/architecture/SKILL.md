@@ -11,8 +11,8 @@ The C4 model decomposes systems into four levels of detail:
 
 | Level | What it shows | F1 Prediction example |
 |---|---|---|
-| **System Context** | The system as a whole + external actors | F1 Prediction ↔ Users, OpenF1 API, Supabase |
-| **Container** | Deployable units inside the system | Next.js webapp, Supabase (auth + DB), OpenF1 API |
+| **System Context** | The system as a whole + external actors | F1 Prediction ↔ Users, Supabase |
+| **Container** | Deployable units inside the system | Next.js webapp, Supabase (auth + DB) |
 | **Component** | Logical modules within a container | Scoring engine, Achievement calculator, Prediction service |
 | **Code** | Classes/functions within a component | `scoreRacePrediction()`, `calculateAchievementsForUsers()` |
 
@@ -24,12 +24,12 @@ The C4 model decomposes systems into four levels of detail:
 |---|---|---|
 | `webapp` | Next.js App Router | Server/Client Components, API routes, UI |
 | `supabase` | Supabase (PostgreSQL + Auth) | Database, authentication, RLS policies |
-| `openf1` | OpenF1 API (external) | Live race data, results, session info |
+
+Race results are entered manually by an admin — there is no live external data provider. The `meeting_key` and `source` columns on the results tables are retained as a hook so a future results provider can be added without a schema change.
 
 ### Container Boundaries
 
 - **webapp → supabase**: All DB access via Supabase client (`@supabase/ssr`). Never raw SQL from the app.
-- **webapp → openf1**: Server-side fetch only (API routes or Server Components). Never expose to client.
 - **supabase → webapp**: Auth callbacks (`/auth/callback`), realtime subscriptions (future).
 
 ## When to Load Reference Files

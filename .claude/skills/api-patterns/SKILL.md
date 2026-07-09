@@ -109,10 +109,8 @@ app/api/
     score/route.ts         → POST /api/results/score
     score-all/route.ts     → POST /api/results/score-all
     reset/route.ts         → POST /api/results/reset
-    fetch-openf1/route.ts  → POST /api/results/fetch-openf1
   races/
     update-datetime/route.ts      → POST /api/races/update-datetime
-    fetch-openf1-datetime/route.ts → POST /api/races/fetch-openf1-datetime
   achievements/
     calculate/route.ts     → POST /api/achievements/calculate
 ```

@@ -4,7 +4,7 @@ The start of the qualifying session decide the end of the period to submit predi
 
 This datetime defines the countdown for the predictions in the home page and admin panel.
 
-This datetime is retrieved from the OpenF1 API and stored in the database. Or overridden by the admin in case of a delay or update.
+This datetime is set manually by the admin and stored in the database, and can be updated in case of a delay or change.
 
 ### Currently qualifying datetime
 

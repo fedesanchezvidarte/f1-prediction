@@ -17,7 +17,7 @@ Use the `api-patterns` skill (`.claude/skills/api-patterns/SKILL.md`) for the th
 - **Auth:** `createClient()` from `@/lib/supabase/server` → `supabase.auth.getUser()` → 401 if no user.
 - **Admin:** `isAdminUser()` from `@/lib/admin` → 403 if not admin.
 - **Service layer:** `lib/scoring-service.ts`, `lib/achievement-calculator.ts` — called by route handlers.
-- **Existing routes:** `predictions/submit`, `predictions/reset`, `results/manual`, `results/score`, `results/score-all`, `results/reset`, `results/fetch-openf1`, `races/update-datetime`, `races/fetch-openf1-datetime`, `achievements/calculate`.
+- **Existing routes:** `predictions/submit`, `predictions/reset`, `results/manual`, `results/score`, `results/score-all`, `results/reset`, `results/champion/manual`, `results/champion/score`, `results/champion/reset`, `races/update-datetime`, `achievements/calculate`.
 
 ## Core Principles
 

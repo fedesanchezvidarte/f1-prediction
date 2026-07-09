@@ -82,15 +82,9 @@ model {
     }
   }
 
-  openf1 = external 'OpenF1 API' {
-    description 'External API providing live F1 race data'
-    technology 'REST API'
-  }
-
   // System Context relationships
   user -[sync]-> f1prediction.webapp 'makes predictions, views leaderboard'
   f1prediction.webapp -[sync]-> f1prediction.supabase 'reads/writes data, authenticates'
-  f1prediction.webapp -[sync]-> openf1 'fetches race results and schedules'
 
   // TODO: Add feature-specific relationships here
   // Example:
@@ -103,14 +97,12 @@ views {
     title 'F1 Prediction - System Context'
     include *
     include user
-    include openf1
   }
 
   view containers of f1prediction {
     title 'F1 Prediction - Containers'
     include f1prediction.*
     include user
-    include openf1
   }
 
   // TODO: Add feature-specific component view

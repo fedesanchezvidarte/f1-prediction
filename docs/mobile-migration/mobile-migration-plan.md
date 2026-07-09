@@ -42,8 +42,8 @@ leaderboards, standings — one source of truth).
 
 ### Reused as-is (no move)
 - **Supabase backend** — same project, DB schema, RLS policies, auth, users.
-- The **13 Next.js API routes** in `app/api/` become the shared backend (privileged writes:
-  scoring, OpenF1 fetch, admin ops, prediction submit/reset).
+- The **11 Next.js API routes** in `app/api/` become the shared backend (privileged writes:
+  scoring, manual result entry, admin ops, prediction submit/reset).
 
 ### Rewritten fresh in `apps/mobile`
 - **All UI** — RN primitives (`<View>`, `<Pressable>`, `<Text>`), no DOM. The web *design*
@@ -57,7 +57,7 @@ leaderboards, standings — one source of truth).
   (web fetches in Server Components; mobile has none).
 
 ### Stays web-only, forever
-- `app/` pages + all 13 API routes (Next.js)
+- `app/` pages + all 11 API routes (Next.js)
 - `components/` (React DOM + Tailwind)
 - Admin panel (`components/admin/*`, `app/admin`)
 - `lib/supabase/server.ts` + `lib/supabase/client.ts` (SSR/cookies)

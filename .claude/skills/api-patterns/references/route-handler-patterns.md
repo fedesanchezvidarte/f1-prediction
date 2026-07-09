@@ -208,5 +208,4 @@ export async function POST(request: NextRequest) {
 | Submit prediction | Auth + validate + upsert | `app/api/predictions/submit/route.ts` |
 | Manual result | Admin + validate + upsert | `app/api/results/manual/route.ts` |
 | Score race | Admin + validate + service delegation | `app/api/results/score/route.ts` |
-| Fetch OpenF1 | Admin + external API fetch | `app/api/results/fetch-openf1/route.ts` |
 | Calculate achievements | Admin + service delegation | `app/api/achievements/calculate/route.ts` |

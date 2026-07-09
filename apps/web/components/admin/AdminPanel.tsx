@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Shield,
-  Download,
   PenLine,
   CheckCircle2,
   AlertCircle,
@@ -81,7 +80,6 @@ interface AdminTeamBestDriverResult {
 
 interface AdminRace {
   id: number;
-  meetingKey: number;
   raceName: string;
   circuitShortName: string;
   round: number;
@@ -116,8 +114,6 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
   const admin = t.admin;
   const [expandedRace, setExpandedRace] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Record<number, SessionType>>({});
-  const [fetchingState, setFetchingState] = useState<Record<string, "loading" | "success" | "error">>({});
-  const [fetchMessages, setFetchMessages] = useState<Record<string, string>>({});
   const [showManualForm, setShowManualForm] = useState<Record<string, boolean>>({});
   const [rescoringState, setRescoringState] = useState<Record<number, "loading" | "success" | "error">>({});
   const [achievementState, setAchievementState] = useState<Record<number, "loading" | "success" | "error">>({});
@@ -156,43 +152,6 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
   function getTeamName(teamId: number): string {
     const team = teams.find((t) => t.id === teamId);
     return team ? team.name : `ID ${teamId}`;
-  }
-
-  async function handleFetchOpenF1(raceId: number, meetingKey: number, sessionType: SessionType) {
-    const key = `${raceId}-${sessionType}`;
-    setFetchingState((prev) => ({ ...prev, [key]: "loading" }));
-    setFetchMessages((prev) => ({ ...prev, [key]: "" }));
-
-    try {
-      const res = await fetch("/api/results/fetch-openf1", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ meetingKey, sessionType }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        setFetchingState((prev) => ({ ...prev, [key]: "success" }));
-        setFetchMessages((prev) => ({
-          ...prev,
-          [key]: `${admin.fetchSuccess} (${data.driversFound} drivers, ${data.scoring?.racePredictionsScored ?? 0} race + ${data.scoring?.sprintPredictionsScored ?? 0} sprint predictions scored)`,
-        }));
-        router.refresh();
-      } else {
-        setFetchingState((prev) => ({ ...prev, [key]: "error" }));
-        setFetchMessages((prev) => ({
-          ...prev,
-          [key]: data.error || admin.fetchError,
-        }));
-      }
-    } catch {
-      setFetchingState((prev) => ({ ...prev, [key]: "error" }));
-      setFetchMessages((prev) => ({
-        ...prev,
-        [key]: admin.fetchError,
-      }));
-    }
   }
 
   async function handleRescore(raceId: number) {
@@ -714,7 +673,6 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
           const status = getRaceStatus(race);
           const isExpanded = expandedRace === race.id;
           const sessionType = getSessionTab(race.id);
-          const fetchKey = `${race.id}-${sessionType}`;
           const manualKey = `${race.id}-${sessionType}`;
 
           return (
@@ -915,22 +873,6 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
 
                   {/* Action buttons */}
                   <div className="flex flex-wrap gap-2">
-                    {/* Fetch from OpenF1 */}
-                    <button
-                      onClick={() => handleFetchOpenF1(race.id, race.meetingKey, sessionType)}
-                      disabled={fetchingState[fetchKey] === "loading"}
-                      className="flex items-center gap-1.5 rounded-lg bg-f1-blue/15 px-3 py-2 text-xs font-medium text-f1-blue transition-colors hover:bg-f1-blue/25 disabled:opacity-50"
-                    >
-                      {fetchingState[fetchKey] === "loading" ? (
-                        <Loader2 size={13} className="animate-spin" />
-                      ) : (
-                        <Download size={13} />
-                      )}
-                      {fetchingState[fetchKey] === "loading"
-                        ? admin.fetching
-                        : admin.fetchOpenF1}
-                    </button>
-
                     {/* Manual entry */}
                     <button
                       onClick={() =>
@@ -1007,21 +949,6 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
                       </button>
                     )}
                   </div>
-
-                  {/* Fetch status message */}
-                  {fetchMessages[fetchKey] && (
-                    <div
-                      className={`rounded-lg px-3 py-2 text-xs ${
-                        fetchingState[fetchKey] === "success"
-                          ? "bg-f1-green/10 text-f1-green"
-                          : fetchingState[fetchKey] === "error"
-                            ? "bg-f1-red/10 text-f1-red"
-                            : ""
-                      }`}
-                    >
-                      {fetchMessages[fetchKey]}
-                    </div>
-                  )}
 
                   {/* Re-score status */}
                   {rescoringState[race.id] === "success" && (

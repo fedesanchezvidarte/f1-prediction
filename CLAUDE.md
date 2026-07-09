@@ -30,7 +30,7 @@ npx expo export --platform android   # Verify the app bundles end-to-end
 
 ```
 apps/web/                       — Next.js app (web-only, includes the admin panel)
-    app/                        — Pages + the 13 API routes (shared backend for the future mobile app)
+    app/                        — Pages + the 11 API routes (shared backend for the future mobile app)
     components/                 — React DOM components; fetch no data, receive props from Server Component pages
     lib/supabase/               — Supabase clients (server.ts, client.ts, admin.ts) — SSR/cookies, web-only
     lib/                        — Web glue: wrappers (drivers.ts, teams.ts, races.ts) that inject the server
