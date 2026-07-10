@@ -353,6 +353,13 @@ const es: Messages = {
     championPrediction: "Predicción de campeonato",
     predictionDeadline: "Plazo de predicción",
     predictionsClosed: "Predicciones cerradas",
+    // Selector de pilotos móvil y estados de datos
+    clearSelection: "Quitar selección",
+    alreadySelected: "Ya seleccionado",
+    loadError: "Algo salió mal al cargar.",
+    retry: "Reintentar",
+    submitError: "No se pudo enviar la predicción. Inténtalo de nuevo.",
+    resetError: "No se pudo reiniciar la predicción. Inténtalo de nuevo.",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────

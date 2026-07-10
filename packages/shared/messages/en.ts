@@ -360,6 +360,13 @@ const en = {
     championPrediction: "Championship prediction",
     predictionDeadline: "Prediction deadline",
     predictionsClosed: "Predictions closed",
+    // Mobile driver picker & data states
+    clearSelection: "Clear selection",
+    alreadySelected: "Already selected",
+    loadError: "Something went wrong while loading.",
+    retry: "Retry",
+    submitError: "Failed to submit prediction. Please try again.",
+    resetError: "Failed to reset prediction. Please try again.",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────

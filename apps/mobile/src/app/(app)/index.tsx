@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { fetchRaces } from "@f1/shared/lib/races";
@@ -40,6 +41,22 @@ export default function HomeScreen() {
         <Text className="text-3xl font-bold text-f1-white">F1 Prediction</Text>
         <Text className="text-f1-red font-semibold">{t.navbar.season}</Text>
       </View>
+
+      <Link href="/race-prediction" asChild>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.nav.predictions}
+          className="flex-row items-center justify-between rounded-2xl bg-f1-red p-5 active:bg-f1-red-hover"
+        >
+          <View className="gap-0.5">
+            <Text className="text-lg font-bold text-white">{t.nav.predictions}</Text>
+            {nextRace ? (
+              <Text className="text-xs text-white/80">{nextRace.raceName}</Text>
+            ) : null}
+          </View>
+          <Text className="text-2xl text-white">›</Text>
+        </Pressable>
+      </Link>
 
       <View className="rounded-2xl bg-f1-white/5 border border-f1-white/10 p-4 gap-2">
         <Text className="text-f1-purple font-semibold">{t.navbar.signedInAs}</Text>
