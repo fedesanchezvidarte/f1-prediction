@@ -8,7 +8,7 @@
 > | 0 — Monorepo restructure | ✅ Done (PR #81, 2026-07-08) |
 > | 1 — Mobile scaffold | ✅ Done (PR #82, 2026-07-08 — Expo SDK 54) |
 > | 2 — Auth | ✅ Done (PR #84, 2026-07-10 — email/password + Google; **Apple sign-in deferred**, see decisions.md) |
-> | 3 — Core loop | 🔄 Race prediction screen done (PR #85, 2026-07-11 — incl. Bearer-token API auth). **Next:** leaderboard + standings; sprint/champion tabs + results-comparison display also pending |
+> | 3 — Core loop | 🔄 Race prediction screen done (PR #85, 2026-07-11 — incl. Bearer-token API auth). Leaderboard + standings screens done (2026-07-11 — incl. bottom tab navigator + shared `fetchDetailedLeaderboard` extraction). **Next:** sprint/champion tabs + results-comparison display |
 > | 4 — Full dashboard parity | ⬜ Not started |
 > | 5 — Ship (EAS Submit) | ⬜ Not started |
 > **Stack:** React Native + Expo (developer is on Windows, learning RN/Expo via a course

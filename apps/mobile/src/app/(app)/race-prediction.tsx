@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -98,7 +97,7 @@ export default function RacePredictionScreen() {
 
   if (loadError) {
     return (
-      <ScreenShell title={t.nav.predictions}>
+      <ScreenShell>
         <View className="flex-1 items-center justify-center gap-4 p-6">
           <Text className="text-center text-sm text-f1-white/70">
             {t.predictionsPage.loadError}
@@ -122,7 +121,7 @@ export default function RacePredictionScreen() {
 
   if (isPending || races.length === 0) {
     return (
-      <ScreenShell title={t.nav.predictions}>
+      <ScreenShell>
         <View className="flex-1 items-center justify-center p-6">
           {isPending ? (
             <ActivityIndicator color="#CF2637" />
@@ -354,7 +353,7 @@ export default function RacePredictionScreen() {
     pickerTarget && currentPrediction ? getSlotValue(currentPrediction, pickerTarget) : null;
 
   return (
-    <ScreenShell title={t.nav.predictions}>
+    <ScreenShell>
       <ScrollView
         className="flex-1"
         contentContainerClassName="p-4 gap-4 pb-8"
@@ -650,12 +649,8 @@ export default function RacePredictionScreen() {
   );
 }
 
-/** Shared wrapper: sets the native header title and the dark background. */
-function ScreenShell({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View className="flex-1 bg-f1-black">
-      <Stack.Screen options={{ title }} />
-      {children}
-    </View>
-  );
+/** Shared wrapper: dark background behind every screen state. The header
+ * title comes from the tab navigator config in `(app)/_layout.tsx`. */
+function ScreenShell({ children }: { children: React.ReactNode }) {
+  return <View className="flex-1 bg-f1-black">{children}</View>;
 }

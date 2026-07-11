@@ -2,6 +2,30 @@
 
 Running record of decisions made after the initial plan. Newest first.
 
+## 2026-07-11 — Leaderboard + Standings screens with a bottom tab navigator (Phase 3)
+
+**Decision:** `apps/mobile/src/app/(app)/_layout.tsx` switched from a Stack to an Expo Router
+**bottom tab navigator** (Home / Predictions / Leaderboard / Standings, F1 dark theme with
+Crimson active tint). Screen titles now live in the tab config, so the race-prediction
+`ScreenShell` no longer sets them inline. Both new screens are **direct-Supabase reads**
+via TanStack Query (locked decision #3) with pull-to-refresh.
+
+**Shared extraction:** the leaderboard assembly inlined in `apps/web/app/leaderboard/page.tsx`
+moved to `packages/shared/lib/leaderboard.ts` — pure helpers `buildRacePointsMap`,
+`buildLeaderboardEntries`, `rankLeaderboardEntries` plus the service function
+`fetchDetailedLeaderboard(supabase, races)` (caller passes the already-fetched `Race[]` so
+races aren't fetched twice). The web page now consumes it; behavior is unchanged and covered
+by unit tests. Standings reuse `fetchChampionshipStandings` as-is.
+
+**Mobile leaderboard scope:** simple ranked list only (rank badge, player, points, "you"
+highlight) with an all-races/per-race bottom-sheet filter — the web's detailed per-race table
+was deliberately skipped as phone-hostile; revisit if players ask for it.
+
+**Also fixed in passing:** `packages/shared/lib/driver-stats.ts` still typed its client via the
+web-only `@/lib/supabase/server` alias (Phase 0 leftover); it now uses
+`SupabaseClient` from `@supabase/supabase-js` like every other shared service module —
+importing it from mobile would otherwise fail to typecheck.
+
 ## 2026-07-10 — Bearer-token auth for mobile → Next.js API (Phase 3)
 
 **Decision:** The web API's `createClient()` (`apps/web/lib/supabase/server.ts`) now accepts
