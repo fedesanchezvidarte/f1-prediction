@@ -25,6 +25,9 @@ build/
 .DS_Store
 *.pem
 
+# JetBrains / Android Studio project files
+.idea/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

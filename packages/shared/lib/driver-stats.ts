@@ -1,6 +1,4 @@
-type SupabaseClient = Awaited<
-  ReturnType<typeof import("@/lib/supabase/server").createClient>
->;
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface DriverStats {
   driverId: number;
