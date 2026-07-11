@@ -1,6 +1,16 @@
 # Mobile Migration Plan — F1 Prediction (iOS + Android)
 
-> **Status:** Planned, not started. Produced in a grilling/design session on 2026-07-05.
+> **Status:** In progress. Plan produced in a grilling/design session on 2026-07-05.
+> Post-plan decisions live in `decisions.md` (same folder).
+>
+> | Phase | Status |
+> |---|---|
+> | 0 — Monorepo restructure | ✅ Done (PR #81, 2026-07-08) |
+> | 1 — Mobile scaffold | ✅ Done (PR #82, 2026-07-08 — Expo SDK 54) |
+> | 2 — Auth | ✅ Done (PR #84, 2026-07-10 — email/password + Google; **Apple sign-in deferred**, see decisions.md) |
+> | 3 — Core loop | 🔄 Race prediction screen done (PR #85, 2026-07-11 — incl. Bearer-token API auth). **Next:** leaderboard + standings; sprint/champion tabs + results-comparison display also pending |
+> | 4 — Full dashboard parity | ⬜ Not started |
+> | 5 — Ship (EAS Submit) | ⬜ Not started |
 > **Stack:** React Native + Expo (developer is on Windows, learning RN/Expo via a course
 > that covers Expo Router, NativeWind, TanStack Query, EAS Build + Publish).
 > **Guiding principle:** The web app has run in production for a year without issues.
