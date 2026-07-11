@@ -61,7 +61,11 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
+  // /api is excluded: route handlers guard themselves (getUser -> 401 JSON).
+  // Redirecting API requests to the /login page breaks non-cookie clients —
+  // the mobile app authenticates with an Authorization: Bearer header and
+  // its fetch would silently follow the redirect into HTML.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

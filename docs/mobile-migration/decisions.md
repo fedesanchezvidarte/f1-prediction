@@ -2,6 +2,34 @@
 
 Running record of decisions made after the initial plan. Newest first.
 
+## 2026-07-10 — Bearer-token auth for mobile → Next.js API (Phase 3)
+
+**Decision:** The web API's `createClient()` (`apps/web/lib/supabase/server.ts`) now accepts
+`Authorization: Bearer <supabase access token>` in addition to SSR cookies. Mobile sends its
+AsyncStorage session token via `apps/mobile/src/lib/api.ts` (`apiFetch`, base URL from
+`EXPO_PUBLIC_API_URL`); web keeps cookies unchanged.
+
+**Why:** Locked decision #3 routes privileged writes through the Next.js API, but those routes
+authenticated only via `@supabase/ssr` cookies — a mobile app has no cookie jar, so every
+mobile submit would 401. Bearer support is a small backwards-compatible change that keeps all
+validation/driver-mapping logic in one place; the alternative (direct RLS writes from mobile)
+would duplicate it. On the bearer path the client forwards the JWT to PostgREST (RLS runs as
+the caller) and `auth.getUser()` is wrapped to validate the token, so route handlers stay
+unchanged.
+
+**Also this iteration:** Phase 3 split — race-tab prediction screen only first (validates the
+risky touch UI); sprint tab, champion tab, results-comparison display, leaderboard and
+standings follow in later iterations. Shared extractions: `fetchUserRacePredictions`
+(`packages/shared/lib/predictions.ts`) and `proximityStatus`/`MatchStatus`
+(`packages/shared/lib/prediction-status.ts`), both now consumed by web too (component level).
+
+## 2026-07-10 — Sign in with Apple deferred out of Phase 2
+
+**Decision:** Phase 2 shipped email/password + Google OAuth only (PR #84). Sign in with Apple
+waits until the paid Apple Developer account is purchased (tail of Phase 2 per the plan's
+cost-free path, at latest before Phase 5 submission — Apple Guideline 4.8 makes it mandatory
+once Google login ships on iOS).
+
 ## 2026-07-08 — Expo SDK 54, not 57 (Phase 1)
 
 **Decision:** `apps/mobile` targets **Expo SDK 54** (RN 0.81, React 19.1) instead of SDK 57.

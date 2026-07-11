@@ -4,8 +4,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronDown, X } from "lucide-react";
 import type { Driver } from "@f1/shared/types";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import type { MatchStatus } from "@f1/shared/lib/prediction-status";
 
-export type MatchStatus = "exact" | "close" | "miss" | null;
+export type { MatchStatus };
 
 interface DriverSelectProps {
   label: string;
