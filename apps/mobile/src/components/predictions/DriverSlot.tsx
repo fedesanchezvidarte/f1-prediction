@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View } from "react-native";
+import type { MatchStatus } from "@f1/shared/lib/prediction-status";
 import type { Driver } from "@f1/shared/types";
 
 import { useLanguage } from "@/providers/LanguageProvider";
@@ -11,6 +12,14 @@ interface DriverSlotProps {
   position?: number;
   value: Driver | null;
   disabled?: boolean;
+  /**
+   * Result-comparison status once the round has results: colors the slot
+   * green (exact) or amber (close ±1). Only rendered while disabled, matching
+   * the web DriverSelect.
+   */
+  matchStatus?: MatchStatus;
+  /** Points earned by this field once scored. When > 0, renders a `+N` badge. */
+  pointsAwarded?: number | null;
   onPress: () => void;
 }
 
@@ -18,11 +27,35 @@ interface DriverSlotProps {
  * A single tappable prediction slot. Tapping opens the DriverPickerModal;
  * this component only renders the current selection.
  */
-export function DriverSlot({ label, position, value, disabled = false, onPress }: DriverSlotProps) {
+export function DriverSlot({
+  label,
+  position,
+  value,
+  disabled = false,
+  matchStatus = null,
+  pointsAwarded = null,
+  onPress,
+}: DriverSlotProps) {
   const { t } = useLanguage();
   const placeholder = t.predictionsPage.selectDriverPlaceholder;
   const valueLabel = value ? `${value.firstName} ${value.lastName}` : placeholder;
   const fullLabel = position !== undefined ? `P${position} ${label}`.trim() : label;
+  const showPoints = pointsAwarded !== null && pointsAwarded > 0;
+
+  const matchLabel =
+    disabled && matchStatus === "exact"
+      ? t.predictionsPage.exactMatch
+      : disabled && matchStatus === "close"
+        ? t.predictionsPage.closeMatch
+        : null;
+
+  const boxClassName = disabled
+    ? matchStatus === "exact"
+      ? "border-f1-green/60 bg-f1-green/5"
+      : matchStatus === "close"
+        ? "border-f1-amber/60 bg-f1-amber/5"
+        : "border-f1-white/5 bg-f1-white/5 opacity-60"
+    : "border-f1-white/10 bg-f1-white/5 active:bg-f1-white/10";
 
   return (
     <View className="gap-1">
@@ -37,18 +70,23 @@ export function DriverSlot({ label, position, value, disabled = false, onPress }
             {label}
           </Text>
         )}
+        {showPoints && (
+          <View className="ml-auto rounded-full bg-f1-green/15 px-1.5 py-0.5">
+            <Text className="text-[9px] font-bold tabular-nums text-f1-green">
+              +{pointsAwarded}
+            </Text>
+          </View>
+        )}
       </View>
       <Pressable
         onPress={onPress}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityLabel={`${fullLabel}: ${valueLabel}`}
-        accessibilityState={{ disabled }}
-        className={`min-h-12 flex-row items-center gap-2 rounded-xl border px-3 py-2.5 ${
-          disabled
-            ? "border-f1-white/5 bg-f1-white/5 opacity-60"
-            : "border-f1-white/10 bg-f1-white/5 active:bg-f1-white/10"
+        accessibilityLabel={`${fullLabel}: ${valueLabel}${matchLabel ? `, ${matchLabel}` : ""}${
+          showPoints ? `, +${pointsAwarded}` : ""
         }`}
+        accessibilityState={{ disabled }}
+        className={`min-h-12 flex-row items-center gap-2 rounded-xl border px-3 py-2.5 ${boxClassName}`}
       >
         {value ? (
           <>
