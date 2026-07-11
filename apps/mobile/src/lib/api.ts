@@ -21,7 +21,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
     data: { session },
   } = await supabase.auth.getSession();
 
-  return fetch(`${baseUrl.replace(/\/+$/, "")}${path}`, {
+  const res = await fetch(`${baseUrl.replace(/\/+$/, "")}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -29,4 +29,13 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
       ...init.headers,
     },
   });
+
+  // The API always answers JSON. Anything else means the request never
+  // reached the route handler (e.g. a redirect to an HTML page) — surface
+  // that as an error instead of letting an HTML 200 pass as success.
+  if (res.ok && !res.headers.get("content-type")?.includes("application/json")) {
+    throw new Error(`Unexpected non-JSON response from ${path} (status ${res.status})`);
+  }
+
+  return res;
 }
