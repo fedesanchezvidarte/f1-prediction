@@ -5,8 +5,8 @@ import { useLanguage } from "@/providers/LanguageProvider";
 
 /**
  * Bottom tab navigator for the signed-in app: Home, Predictions,
- * Leaderboard and Standings. Uses the same F1 dark theme as the previous
- * stack header (Graphite backgrounds, Crimson active tint).
+ * Leaderboard, Standings and Achievements. Uses the same F1 dark theme as
+ * the previous stack header (Graphite backgrounds, Crimson active tint).
  */
 export default function AppLayout() {
   const { t } = useLanguage();
@@ -48,6 +48,13 @@ export default function AppLayout() {
         options={{
           title: t.nav.standings,
           tabBarIcon: ({ color, size }) => <Ionicons name="trophy" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="achievements"
+        options={{
+          title: t.nav.achievements,
+          tabBarIcon: ({ color, size }) => <Ionicons name="ribbon" size={size} color={color} />,
         }}
       />
     </Tabs>

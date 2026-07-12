@@ -381,6 +381,10 @@ const en = {
     of: "of",
     all: "All",
     noAchievements: "No achievements in this category",
+    categoryPredictions: "Predictions",
+    categoryAccuracy: "Accuracy",
+    categoryMilestones: "Milestones",
+    categorySpecial: "Special",
   },
 
   // ── Profile page ────────────────────────────────────────────────────────

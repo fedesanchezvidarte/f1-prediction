@@ -374,6 +374,10 @@ const es: Messages = {
     of: "de",
     all: "Todos",
     noAchievements: "No hay logros en esta categoría",
+    categoryPredictions: "Predicciones",
+    categoryAccuracy: "Precisión",
+    categoryMilestones: "Hitos",
+    categorySpecial: "Especiales",
   },
 
   // ── Profile page ────────────────────────────────────────────────────────
