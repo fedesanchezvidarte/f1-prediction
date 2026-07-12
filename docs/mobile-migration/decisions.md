@@ -2,6 +2,34 @@
 
 Running record of decisions made after the initial plan. Newest first.
 
+## 2026-07-12 — Achievements screen as a 5th tab; Phase 4c reshaped around a header avatar (Phase 4b)
+
+**Navigation decision:** the bottom bar grows to **five tabs** — Home / Predictions / Leaderboard /
+Standings / **Achievements** (Ionicons `ribbon`; `trophy` was taken by Standings). Profile does
+**not** become a 6th tab: Phase 4c will instead put an **avatar button in the top bar** opening a
+profile/settings surface (display name, language toggle, sign out, password change, account
+deletion). A theme toggle was floated but both apps are dark-only today, so it's v2 polish, not
+4c parity scope.
+
+**Screen:** ports the web `AchievementsContent` — header card with overall progress bar, category
+filter chips (All + 4 categories with count badges, horizontal scroll), earned vs locked cards,
+category badge pills, and per-achievement progress bars on locked cards. The web grid's "Still
+cooking" placeholder cell is not ported (consistent with 4a's banner/placeholder decision). The
+achievements query reuses the Home screen's `["achievements", userId]` key so the cache is shared.
+
+**Shared extraction:** `buildProgressMap(achievements, progress)` (+`AchievementProgressMap`)
+moved verbatim from `apps/web/app/achievements/page.tsx` into
+`packages/shared/lib/achievement-calculator.ts` next to `fetchUserProgressData`; the web page now
+imports it. Covered by unit tests (100% on the function), which also pin two quirks: a known slug
+with a null/zero threshold silently gets no progress entry, and `current` is not clamped to `max`
+(both UIs clamp at render).
+
+**Mobile-only mappings:** the lucide icon map stays web-only per the plan; mobile adds
+`achievement-icons.ts` (33 slugs → Ionicons, trophy fallback, typed against `Ionicons.glyphMap`)
+and `achievement-styles.ts` (category → f1-palette classes + hex, because shared `CATEGORY_COLORS`
+Tailwind strings aren't scanned by the mobile NativeWind config). Category labels use four new
+`achievementsPage.category*` keys in both locales; web keeps its `CATEGORY_LABELS` untouched.
+
 ## 2026-07-12 — Home dashboard screen (Phase 4a)
 
 **Decision:** The mobile Home tab replaces the Phase-1 smoke screen with the real dashboard as a
