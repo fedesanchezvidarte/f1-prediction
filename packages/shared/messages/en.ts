@@ -369,6 +369,9 @@ const en = {
     retry: "Retry",
     submitError: "Failed to submit prediction. Please try again.",
     resetError: "Failed to reset prediction. Please try again.",
+    // Results comparison (a11y labels for green/amber slot highlights)
+    exactMatch: "Exact match",
+    closeMatch: "Close (±1)",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────

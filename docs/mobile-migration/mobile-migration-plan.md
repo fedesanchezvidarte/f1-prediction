@@ -8,8 +8,10 @@
 > | 0 — Monorepo restructure | ✅ Done (PR #81, 2026-07-08) |
 > | 1 — Mobile scaffold | ✅ Done (PR #82, 2026-07-08 — Expo SDK 54) |
 > | 2 — Auth | ✅ Done (PR #84, 2026-07-10 — email/password + Google; **Apple sign-in deferred**, see decisions.md) |
-> | 3 — Core loop | 🔄 Race prediction screen done (PR #85, 2026-07-11 — incl. Bearer-token API auth). Leaderboard + standings screens done (PR #86, 2026-07-11 — incl. bottom tab navigator + shared `fetchDetailedLeaderboard` extraction). **Next:** sprint/champion tabs + results-comparison display |
-> | 4 — Full dashboard parity | ⬜ Not started |
+> | 3 — Core loop | ✅ Code complete (pending device verification). Race prediction screen (PR #85, 2026-07-11 — incl. Bearer-token API auth). Leaderboard + standings screens (PR #86, 2026-07-11 — incl. bottom tab navigator + shared `fetchDetailedLeaderboard` extraction). Sprint + champion tabs and the results-comparison display (2026-07-11 — incl. shared sprint/champion/results fetcher extractions, see decisions.md). **Next:** verify the new tabs in Expo Go on-device, then Phase 4 |
+> | 4a — Home dashboard screen | ⬜ Not started |
+> | 4b — Achievements screen | ⬜ Not started |
+> | 4c — Profile & account settings | ⬜ Not started |
 > | 5 — Ship (EAS Submit) | ⬜ Not started |
 > **Stack:** React Native + Expo (developer is on Windows, learning RN/Expo via a course
 > that covers Expo Router, NativeWind, TanStack Query, EAS Build + Publish).
@@ -116,8 +118,45 @@ leaderboards, standings — one source of truth).
 - Leaderboard + Standings (direct-Supabase reads, low effort, high daily value).
 
 ### Phase 4 — Full dashboard parity
-- All 12 dashboard cards + modals (PointSystem, RaceCalendar, Standings).
-- Achievements + Profile.
+
+Split into three shippable iterations, highest daily value first, with the trickiest native
+integration (avatar upload) landing last. Each iteration is its own branch + PR, follows the
+established shared-extraction pattern (a service function in `packages/shared/lib/` that both
+apps consume — as with `predictions.ts`/`leaderboard.ts`), and must clear every quality gate
+plus on-device Expo Go verification before the next begins. Leaderboard and Standings already
+ship as their own tabs (Phase 3), so on the dashboard their cards are summaries that deep-link
+into those existing screens rather than re-implementations.
+
+#### Phase 4a — Home dashboard screen
+Replace the placeholder Home tab with the real dashboard (web `app/page.tsx` bento grid):
+- **UserSummaryCard** — total points, rank/total users, achievements-earned progress.
+- **NextRaceCountdown** / **NoUpcomingRaces** — next race + live countdown.
+- **StandingsCard** + **LeaderboardCard** — compact summaries that navigate to the existing
+  Standings / Leaderboard tabs.
+- **PointSystemCard** → **PointSystemModal** as a bottom sheet / detail screen.
+- **RaceCalendarCard** → **RaceCalendarModal** as a bottom sheet / detail screen (per-race
+  prediction status, reusing the shared `getRaceCalendarEntries`).
+- **NewPointsSystemBanner** announcement.
+- Extract the dashboard data assembly currently inline in `app/page.tsx` (ranked leaderboard
+  slice, user stats, per-race prediction status, calendar entries) into a shared fetcher and
+  have web consume it — several pieces overlap `fetchDetailedLeaderboard` and the prediction
+  fetchers already extracted.
+
+#### Phase 4b — Achievements screen
+- Category-filtered grid (predictions / accuracy / milestones / special + "all"), earned vs
+  locked states, per-achievement progress bars (web `AchievementsContent`).
+- Reads through the shared achievements module (`fetchAchievementsData` /
+  `achievement-calculator.ts`); the lucide icon map stays web-only, so mobile supplies its own
+  icon mapping over the shared achievement ids/categories.
+
+#### Phase 4c — Profile & account settings
+- Stats header (points, rank, predictions, achievements), display-name inline edit, language
+  toggle, sign out, and the account-sensitive flows: password change and account deletion
+  (confirmation modals; deletion routes through the Next.js API, never a client-side privileged
+  op).
+- **Avatar upload** — the one genuinely new native surface: `expo-image-picker` →
+  Supabase Storage. Landed last on purpose; needs permissions handling and a dev-build check
+  (works in Expo Go, but verify the picker + upload round-trip on-device early in the iteration).
 
 ### Phase 5 — Ship
 - EAS Submit → App Store + Play Store.

@@ -362,6 +362,9 @@ const es: Messages = {
     retry: "Reintentar",
     submitError: "No se pudo enviar la predicción. Inténtalo de nuevo.",
     resetError: "No se pudo reiniciar la predicción. Inténtalo de nuevo.",
+    // Comparación de resultados (etiquetas a11y para los resaltados verde/ámbar)
+    exactMatch: "Acierto exacto",
+    closeMatch: "Cerca (±1)",
   },
 
   // ── Achievements page ───────────────────────────────────────────────────

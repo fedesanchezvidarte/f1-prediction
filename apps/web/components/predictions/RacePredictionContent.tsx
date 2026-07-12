@@ -43,27 +43,17 @@ import {
   type RaceFieldPoints,
   type SprintFieldPoints,
 } from "@f1/shared/lib/scoring";
-import { proximityStatus, type MatchStatus } from "@f1/shared/lib/prediction-status";
+import {
+  computeRaceMatchStatuses,
+  computeSprintMatchStatuses,
+  type MatchStatus,
+  type RaceMatchStatuses,
+  type SprintMatchStatuses,
+} from "@f1/shared/lib/prediction-status";
 import { DriverSelect } from "./DriverSelect";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type TabMode = "race" | "sprint" | "champion";
-
-interface RaceMatchStatuses {
-  qualifyingTop3: MatchStatus[];
-  raceWinner: MatchStatus;
-  restOfTop10: MatchStatus[];
-  fastestLap: MatchStatus;
-  fastestPitStop: MatchStatus;
-  driverOfTheDay: MatchStatus;
-}
-
-interface SprintMatchStatuses {
-  qualifyingTop3: MatchStatus[];
-  sprintWinner: MatchStatus;
-  restOfTop8: MatchStatus[];
-  fastestLap: MatchStatus;
-}
 
 interface RacePredictionContentProps {
   races: Race[];
@@ -499,38 +489,7 @@ export function RacePredictionContent({
 
   const raceMatchStatuses = useMemo((): RaceMatchStatuses | null => {
     if (!currentResult || !currentPrediction) return null;
-
-    function fieldStatus(predicted: Driver | null, actual: Driver): MatchStatus {
-      if (!predicted) return null;
-      if (predicted.driverNumber === actual.driverNumber) return "exact";
-      return null;
-    }
-
-    // Top-10 (P1 winner + P2..P10): driver-based ±1 proximity, P11 boundary.
-    const top10Status = (predicted: Driver | null, slotIndex: number): MatchStatus =>
-      proximityStatus(predicted, currentResult.top10, currentResult.p11 ?? null, 10, slotIndex);
-
-    const restStatuses: MatchStatus[] = currentPrediction.restOfTop10.map((predicted, i) =>
-      top10Status(predicted, i + 1)
-    );
-
-    // Qualifying top-3 (Q1..Q3): driver-based ±1 proximity, Q4 boundary.
-    const qualifyingStatuses: MatchStatus[] = currentPrediction.qualifyingTop3.map((predicted, i) =>
-      proximityStatus(predicted, currentResult.qualifyingTop3, currentResult.qualifyingP4 ?? null, 3, i)
-    );
-
-    return {
-      qualifyingTop3: qualifyingStatuses,
-      raceWinner: top10Status(currentPrediction.raceWinner, 0),
-      restOfTop10: restStatuses,
-      fastestLap: fieldStatus(currentPrediction.fastestLap, currentResult.fastestLap),
-      fastestPitStop: currentResult.fastestPitStop
-        ? fieldStatus(currentPrediction.fastestPitStop, currentResult.fastestPitStop)
-        : null,
-      driverOfTheDay: currentResult.driverOfTheDay
-        ? fieldStatus(currentPrediction.driverOfTheDay, currentResult.driverOfTheDay)
-        : null,
-    };
+    return computeRaceMatchStatuses(currentPrediction, currentResult);
   }, [currentResult, currentPrediction]);
 
   const raceFieldPoints = useMemo((): RaceFieldPoints | null => {
@@ -560,32 +519,7 @@ export function RacePredictionContent({
 
   const sprintMatchStatuses = useMemo((): SprintMatchStatuses | null => {
     if (!currentSprintResult || !currentSprintPred) return null;
-
-    function fieldStatus(predicted: Driver | null, actual: Driver): MatchStatus {
-      if (!predicted) return null;
-      if (predicted.driverNumber === actual.driverNumber) return "exact";
-      return null;
-    }
-
-    // Top-8 (P1 winner + P2..P8): driver-based ±1 proximity, P9 boundary.
-    const top8Status = (predicted: Driver | null, slotIndex: number): MatchStatus =>
-      proximityStatus(predicted, currentSprintResult.top8, currentSprintResult.p9 ?? null, 8, slotIndex);
-
-    const restStatuses: MatchStatus[] = currentSprintPred.restOfTop8.map((predicted, i) =>
-      top8Status(predicted, i + 1)
-    );
-
-    // Sprint qualifying top-3 (Q1..Q3): driver-based ±1 proximity, Q4 boundary.
-    const qualifyingStatuses: MatchStatus[] = currentSprintPred.qualifyingTop3.map((predicted, i) =>
-      proximityStatus(predicted, currentSprintResult.qualifyingTop3, currentSprintResult.qualifyingP4 ?? null, 3, i)
-    );
-
-    return {
-      qualifyingTop3: qualifyingStatuses,
-      sprintWinner: top8Status(currentSprintPred.sprintWinner, 0),
-      restOfTop8: restStatuses,
-      fastestLap: fieldStatus(currentSprintPred.fastestLap, currentSprintResult.fastestLap),
-    };
+    return computeSprintMatchStatuses(currentSprintPred, currentSprintResult);
   }, [currentSprintResult, currentSprintPred]);
 
   const sprintFieldPoints = useMemo((): SprintFieldPoints | null => {

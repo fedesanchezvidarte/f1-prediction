@@ -2,6 +2,37 @@
 
 Running record of decisions made after the initial plan. Newest first.
 
+## 2026-07-11 — Sprint/champion tabs + results comparison (Phase 3, final iteration)
+
+**Decision:** The mobile Predictions screen hosts a **Race / Sprint / Champion segmented
+control** (`PredictionTabs`) instead of the web's fused round-selector-with-championship-option —
+three same-sized segments are more thumb-friendly than the web's chip + pill arrangement, and the
+round selector row simply hides on the Champion tab. The Sprint segment is disabled ("N/A") on
+non-sprint rounds and switching to a round without a sprint falls back to the Race tab, mirroring
+the web. The WCC pick uses a **team bottom sheet** (`TeamPickerModal`) consistent with the driver
+picker rather than the web's inline dropdown.
+
+**Results comparison:** slot highlights (green exact / amber close ±1), per-field `+N` points,
+and bonus badges reuse the shared `computeRaceMatchStatuses`/`computeSprintMatchStatuses`
+(newly extracted into `packages/shared/lib/prediction-status.ts`) and the existing
+`computeRaceFieldPoints`/`computeSprintFieldPoints`; the official result renders in a
+collapsible `ResultsPanel` behind the same Show/Hide Results toggle as the web.
+
+**Shared extraction:** the race-prediction page's inline assembly moved into shared service
+functions — `fetchUserSprintPredictions` (predictions.ts), `fetchChampionPredictionData`
+(champion-predictions.ts), `fetchRaceResults`/`fetchSprintResults` (results.ts) — all accepting
+an optional season-scoped **`PredictionContext`** (`createPredictionContext`) so the web Server
+Component builds the driver/race id mappings once per request while mobile's per-tab TanStack
+queries call the fetchers standalone. `fetchUserRacePredictions` kept its signature (context is
+an optional 4th arg) and the web page now consumes all of them; behavior is unchanged and covered
+by unit tests (100% lines on the new modules).
+
+**Champion semantics on mobile:** same phase machine as web (`getChampionPredictionPhase`):
+full → info banner, half → half-points banner + amber confirm modal listing the changed fields
+(tracked against the last saved state, like the web's refs), closed → red banner + locked actions.
+Champion submits/reset go through the same `/api/predictions/submit` payloads; champion reset is
+not offered (web hides it too).
+
 ## 2026-07-11 — Leaderboard + Standings screens with a bottom tab navigator (Phase 3)
 
 **Decision:** `apps/mobile/src/app/(app)/_layout.tsx` switched from a Stack to an Expo Router

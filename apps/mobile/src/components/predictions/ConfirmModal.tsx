@@ -11,8 +11,8 @@ interface ConfirmModalProps {
   confirmLabel: string;
   /** Label swapped in while the request is in flight. */
   confirmingLabel: string;
-  /** Visual tone of the confirm button. */
-  tone: "red" | "blue";
+  /** Visual tone of the confirm button (amber = champion half-points warning). */
+  tone: "red" | "blue" | "amber";
   isSaving: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -35,7 +35,14 @@ export function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   const { t } = useLanguage();
-  const confirmBg = tone === "red" ? "bg-f1-red active:bg-f1-red-hover" : "bg-f1-blue active:bg-f1-blue/80";
+  const confirmBg =
+    tone === "red"
+      ? "bg-f1-red active:bg-f1-red-hover"
+      : tone === "amber"
+        ? "bg-f1-amber active:bg-f1-amber/80"
+        : "bg-f1-blue active:bg-f1-blue/80";
+  const confirmText = tone === "amber" ? "text-black" : "text-white";
+  const spinnerColor = tone === "amber" ? "#2A2B2A" : "#FFFFFF";
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -69,8 +76,8 @@ export function ConfirmModal({
                 isSaving ? "opacity-70" : ""
               }`}
             >
-              {isSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
-              <Text className="text-sm font-semibold text-white">
+              {isSaving ? <ActivityIndicator size="small" color={spinnerColor} /> : null}
+              <Text className={`text-sm font-semibold ${confirmText}`}>
                 {isSaving ? confirmingLabel : confirmLabel}
               </Text>
             </Pressable>
