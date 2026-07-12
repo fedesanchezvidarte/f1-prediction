@@ -41,7 +41,13 @@
           }
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you choose a profile picture."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

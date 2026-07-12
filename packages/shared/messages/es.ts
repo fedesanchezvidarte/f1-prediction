@@ -395,6 +395,8 @@ const es: Messages = {
     myPredictions: "Mis Predicciones",
     leaderboard: "Clasificación",
     account: "Cuenta",
+    theme: "Tema",
+    themeDark: "Oscuro",
     changePassword: "Cambiar Contraseña",
     signOut: "Cerrar Sesión",
     deleteAccount: "Eliminar Cuenta",
@@ -438,6 +440,9 @@ const es: Messages = {
     invalidImageFile: "Por favor selecciona un archivo de imagen válido.",
     imageTooLarge: "La imagen debe ser menor a 5MB.",
     failedToUploadAvatar: "Error al subir la foto de perfil. Inténtalo de nuevo.",
+    photoPermissionDenied: "Se necesita acceso a tus fotos para cambiar tu foto de perfil.",
+    // Mobile modal
+    close: "Cerrar",
   },
   // ── Admin panel ─────────────────────────────────────────────────────
   admin: {

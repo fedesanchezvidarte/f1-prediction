@@ -2,6 +2,47 @@
 
 Running record of decisions made after the initial plan. Newest first.
 
+## 2026-07-12 — Profile entry is a right-side drawer; full Profile screen behind it (Phase 4c)
+
+**Presentation (revised after an on-device trial):** the avatar button in the header of all five
+tabs opens a **right-side drawer** (`expo-router/drawer`, 300px, F1 dark, edge-swipe enabled):
+compact identity block, 2×2 stats grid, a Profile row that pushes the full `/profile` screen,
+language toggle, a **Theme row (display-only "Dark"** — real theme switching is a future
+iteration; both apps are dark-only today), change password, and sign out. **Account deletion is
+deliberately NOT in the drawer** — it lives only in the full Profile screen, keeping the
+destructive action one deliberate step away. The full `/profile` screen keeps everything the
+drawer can't fit comfortably: avatar upload, inline name edit, full stats, and deletion. (Under
+the drawer navigator it renders as a plain push — drawers don't support `presentation: "modal"`.)
+
+Both variants were built and compared on-device; the modal-only version lost. Cost was lower than
+feared: reanimated/gesture-handler were already in the SDK 54 tree, so the only new dependency is
+`@react-navigation/drawer@7.12.8` (single deduped `react-native@0.81.5` verified — the 2026-07-08
+duplicate-RN pitfall did not recur). `GestureHandlerRootView` now wraps the root layout. The
+temporary sign-out button on Home is gone; sign-out lives in the drawer and the Profile screen.
+
+**Account deletion stays in the app (not web-only):** Apple Guideline 5.1.1(v) and Google Play
+policy require in-app account deletion when the app offers account creation (mobile has
+register.tsx), so deferring it would block Phase 5 submission. Mobile reuses the web's proven
+path: re-auth confirmation (password for email users, type-your-email for Google) then the
+`delete_own_account` Postgres RPC via supabase-js, then sign-out. Note the original plan text
+said deletion "routes through the Next.js API" — in reality the production web app has always
+used the RPC (there is no account API route); mobile mirrors reality.
+
+**Shared extraction:** `fetchProfileData(supabase, userId, fallbacks)` (+`ProfileStats`,
+`ProfileFallbacks`, `ProfileData`) in `packages/shared/lib/profile.ts` — the web profile page's
+three queries (profile row, leaderboard stats, achievements count), parallelized, with the
+auth-metadata fallback chain preserved; web consumes it. 100%-line unit coverage.
+`authProvider` derivation stays in the callers (needs the auth User object).
+
+**Avatar upload (the one new native surface):** `expo-image-picker@~17.0.11` (SDK 54 line) with
+square crop; upload goes to the `avatars` bucket as an **ArrayBuffer** (base64 → decode via
+base64-arraybuffer) with explicit `contentType` — RN's Blob-from-fetch is unreliable for Storage
+uploads. 5MB limit and success/error copy mirror web; mutations invalidate the profile, dashboard
+and leaderboard queries so the header avatar refreshes. The picker → Storage → `avatar_url`
+round-trip still needs its on-device Expo Go check per the plan. Password change reuses
+`auth.updateUser`; the web `PasswordStrengthMeter` was not ported (mismatch + min-8 validation
+match web). New keys: `profilePage.photoPermissionDenied`, `profilePage.close` (en/es parity 500).
+
 ## 2026-07-12 — Achievements screen as a 5th tab; Phase 4c reshaped around a header avatar (Phase 4b)
 
 **Navigation decision:** the bottom bar grows to **five tabs** — Home / Predictions / Leaderboard /

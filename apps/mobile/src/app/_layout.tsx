@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { createSessionFromUrl } from "@/lib/auth";
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
@@ -49,13 +50,16 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <AuthProvider>
-          <StatusBar style="light" />
-          <RootNavigator />
-        </AuthProvider>
-      </LanguageProvider>
-    </QueryClientProvider>
+    // GestureHandlerRootView is required by the profile drawer's gestures.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <LanguageProvider>
+          <AuthProvider>
+            <StatusBar style="light" />
+            <RootNavigator />
+          </AuthProvider>
+        </LanguageProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

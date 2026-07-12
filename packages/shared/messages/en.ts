@@ -402,6 +402,8 @@ const en = {
     myPredictions: "My Predictions",
     leaderboard: "Leaderboard",
     account: "Account",
+    theme: "Theme",
+    themeDark: "Dark",
     changePassword: "Change Password",
     signOut: "Sign Out",
     deleteAccount: "Delete Account",
@@ -449,6 +451,9 @@ const en = {
     invalidImageFile: "Please select a valid image file.",
     imageTooLarge: "Image must be less than 5MB.",
     failedToUploadAvatar: "Failed to upload profile picture. Please try again.",
+    photoPermissionDenied: "Photo library access is needed to change your profile picture.",
+    // Mobile modal
+    close: "Close",
   },
   // ── Admin panel ─────────────────────────────────────────────────────
   admin: {
