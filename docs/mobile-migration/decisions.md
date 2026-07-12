@@ -2,6 +2,33 @@
 
 Running record of decisions made after the initial plan. Newest first.
 
+## 2026-07-12 — Home dashboard screen (Phase 4a)
+
+**Decision:** The mobile Home tab replaces the Phase-1 smoke screen with the real dashboard as a
+vertical card stack (no bento grid on a phone): UserSummaryCard, NextRaceCountdown /
+NoUpcomingRaces (1s-tick countdown to the active deadline, same `getActiveDeadline` semantics as
+web), compact StandingsCard and LeaderboardCard that **navigate to the existing tabs** (per the
+plan — no re-implementation), and PointSystemCard / RaceCalendarCard opening **bottom sheets**
+(same slide-modal pattern as `TeamPickerModal`). **NewPointsSystemBanner and PlaceholderCard are
+not ported** — the banner announced a points-system change to existing web users, meaningless in
+a brand-new app. A temporary sign-out button stays at the bottom of Home until the Profile screen
+(Phase 4c) takes it over.
+
+**Shared extraction:** the ~160-line dashboard assembly inlined in `apps/web/app/page.tsx` moved
+to `packages/shared/lib/dashboard.ts` — pure `buildDashboardPredictions` (per-race combined
+race+sprint status/points keyed by meeting key) plus service `fetchDashboardData(supabase,
+userId, races)` (caller passes already-fetched `Race[]`, like `fetchDetailedLeaderboard`).
+It reuses `buildLeaderboardEntries`/`rankLeaderboardEntries` instead of the page's duplicated
+ranking code, drops the page's redundant single-user leaderboard query, and parallelizes the
+independent queries; web output is unchanged and the module has 100%-line unit coverage.
+Achievements and standings stay on their existing shared fetchers, called directly.
+
+**Mobile-specific deviations:** the UserSummaryCard shows an earned/total progress bar instead of
+the web's lucide icon previews (the icon map is web-only by design); point-system examples are
+tap-to-expand rows instead of hover tooltips; the calendar sheet opens auto-scrolled to the next
+race via `initialScrollIndex`. Zero new translation keys — the web dashboard keys covered
+everything (en/es parity unchanged at 482).
+
 ## 2026-07-11 — Sprint/champion tabs + results comparison (Phase 3, final iteration)
 
 **Decision:** The mobile Predictions screen hosts a **Race / Sprint / Champion segmented
