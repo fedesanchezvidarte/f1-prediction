@@ -8,8 +8,8 @@
 > | 0 — Monorepo restructure | ✅ Done (PR #81, 2026-07-08) |
 > | 1 — Mobile scaffold | ✅ Done (PR #82, 2026-07-08 — Expo SDK 54) |
 > | 2 — Auth | ✅ Done (PR #84, 2026-07-10 — email/password + Google; **Apple sign-in deferred**, see decisions.md) |
-> | 3 — Core loop | ✅ Code complete (pending device verification). Race prediction screen (PR #85, 2026-07-11 — incl. Bearer-token API auth). Leaderboard + standings screens (PR #86, 2026-07-11 — incl. bottom tab navigator + shared `fetchDetailedLeaderboard` extraction). Sprint + champion tabs and the results-comparison display (2026-07-11 — incl. shared sprint/champion/results fetcher extractions, see decisions.md). **Next:** verify the new tabs in Expo Go on-device, then Phase 4 |
-> | 4a — Home dashboard screen | ⬜ Not started |
+> | 3 — Core loop | ✅ Done (verified in Expo Go on-device, 2026-07-12). Race prediction screen (PR #85, 2026-07-11 — incl. Bearer-token API auth). Leaderboard + standings screens (PR #86, 2026-07-11 — incl. bottom tab navigator + shared `fetchDetailedLeaderboard` extraction). Sprint + champion tabs and the results-comparison display (PR #87, 2026-07-11 — incl. shared sprint/champion/results fetcher extractions, see decisions.md) |
+> | 4a — Home dashboard screen | ✅ Code complete (2026-07-12 — incl. shared `fetchDashboardData` extraction, bottom-sheet point system + race calendar, see decisions.md). **Next:** verify in Expo Go on-device, then Phase 4b |
 > | 4b — Achievements screen | ⬜ Not started |
 > | 4c — Profile & account settings | ⬜ Not started |
 > | 5 — Ship (EAS Submit) | ⬜ Not started |
