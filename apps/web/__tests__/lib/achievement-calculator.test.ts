@@ -1,14 +1,18 @@
 /**
  * Tests for lib/achievement-calculator.ts — service layer with mocked Supabase.
  *
- * Covers: calculateAchievementsForUsers, calculateAchievementsForAllUsers
+ * Covers: calculateAchievementsForUsers, calculateAchievementsForAllUsers,
+ * fetchUserProgressData, buildProgressMap (pure)
  */
 import { createMockSupabase } from "../helpers/mockSupabase";
 import {
   calculateAchievementsForUsers,
   calculateAchievementsForAllUsers,
   fetchUserProgressData,
+  buildProgressMap,
+  type UserProgressCounts,
 } from "@f1/shared/lib/achievement-calculator";
+import type { Achievement } from "@f1/shared/types";
 
 /* ── Helpers ─────────────────────────────────────────────────────────── */
 
@@ -1590,5 +1594,213 @@ describe("fetchUserProgressData", () => {
     expect(counts.totalSeasonRounds).toBe(3);
     // completedSeasonRounds: race5 race pred ✓ + race5 sprint pred ✓ = 2; race6 = 0
     expect(counts.completedSeasonRounds).toBe(2);
+  });
+});
+
+/* ── buildProgressMap (pure function — no mocks) ─────────────────────── */
+
+describe("buildProgressMap", () => {
+  /** Achievement fixture factory with sensible defaults. */
+  function makeAchievement(
+    id: number,
+    slug: string,
+    threshold: number | null
+  ): Achievement {
+    return {
+      id,
+      slug,
+      name: slug,
+      description: "",
+      iconUrl: null,
+      category: "predictions",
+      threshold,
+      createdAt: "2026-01-01T00:00:00Z",
+    };
+  }
+
+  /** Progress fixture with distinct values per counter so wrong wiring fails. */
+  function makeProgress(
+    overrides: Partial<UserProgressCounts> = {}
+  ): UserProgressCounts {
+    return {
+      totalPredictions: 7,
+      totalCorrectPredictions: 13,
+      totalPoints: 150,
+      raceFirstCount: 2,
+      raceTop3Count: 4,
+      sprintFirstCount: 1,
+      sprintTop3Count: 3,
+      tbdCorrectCount: 6,
+      completedSeasonRounds: 5,
+      totalSeasonRounds: 29,
+      ...overrides,
+    };
+  }
+
+  it("returns an empty map for an empty achievements list", () => {
+    expect(buildProgressMap([], makeProgress())).toEqual({});
+  });
+
+  it("maps prediction-count slugs to totalPredictions with threshold as max", () => {
+    const achievements = [
+      makeAchievement(1, "first_prediction", 1),
+      makeAchievement(2, "10_predictions", 10),
+      makeAchievement(3, "20_predictions", 20),
+    ];
+    const map = buildProgressMap(achievements, makeProgress());
+    expect(map[1]).toEqual({ current: 7, max: 1 });
+    expect(map[2]).toEqual({ current: 7, max: 10 });
+    expect(map[3]).toEqual({ current: 7, max: 20 });
+  });
+
+  it("maps all_2026_predictions to season-round counts instead of its threshold", () => {
+    const map = buildProgressMap(
+      [makeAchievement(4, "all_2026_predictions", null)],
+      makeProgress({ completedSeasonRounds: 12, totalSeasonRounds: 29 })
+    );
+    expect(map[4]).toEqual({ current: 12, max: 29 });
+  });
+
+  it("maps correct-prediction slugs to totalCorrectPredictions", () => {
+    const achievements = [
+      makeAchievement(5, "1_correct", 1),
+      makeAchievement(6, "10_correct", 10),
+      makeAchievement(7, "50_correct", 50),
+      makeAchievement(8, "100_correct", 100),
+    ];
+    const map = buildProgressMap(achievements, makeProgress());
+    expect(map[5]).toEqual({ current: 13, max: 1 });
+    expect(map[6]).toEqual({ current: 13, max: 10 });
+    expect(map[7]).toEqual({ current: 13, max: 50 });
+    expect(map[8]).toEqual({ current: 13, max: 100 });
+  });
+
+  it("maps points-milestone slugs to totalPoints", () => {
+    const achievements = [
+      makeAchievement(9, "100_points", 100),
+      makeAchievement(10, "200_points", 200),
+      makeAchievement(11, "300_points", 300),
+    ];
+    const map = buildProgressMap(achievements, makeProgress());
+    expect(map[9]).toEqual({ current: 150, max: 100 });
+    expect(map[10]).toEqual({ current: 150, max: 200 });
+    expect(map[11]).toEqual({ current: 150, max: 300 });
+  });
+
+  it("maps race leaderboard winner slugs to raceFirstCount", () => {
+    const achievements = [
+      makeAchievement(12, "race_prediction_winner", 1),
+      makeAchievement(13, "race_prediction_winner_10", 10),
+    ];
+    const map = buildProgressMap(achievements, makeProgress());
+    expect(map[12]).toEqual({ current: 2, max: 1 });
+    expect(map[13]).toEqual({ current: 2, max: 10 });
+  });
+
+  it("maps podium and sprint leaderboard slugs to their own counters", () => {
+    const achievements = [
+      makeAchievement(14, "race_prediction_podium", 1),
+      makeAchievement(15, "sprint_prediction_winner", 1),
+      makeAchievement(16, "sprint_prediction_podium", 1),
+    ];
+    const map = buildProgressMap(achievements, makeProgress());
+    expect(map[14]).toEqual({ current: 4, max: 1 }); // raceTop3Count
+    expect(map[15]).toEqual({ current: 1, max: 1 }); // sprintFirstCount
+    expect(map[16]).toEqual({ current: 3, max: 1 }); // sprintTop3Count
+  });
+
+  it("maps team-best slugs to tbdCorrectCount", () => {
+    const achievements = [
+      makeAchievement(17, "predict_1_team_best", 1),
+      makeAchievement(18, "predict_5_team_best", 5),
+      makeAchievement(19, "predict_10_team_best", 10),
+    ];
+    const map = buildProgressMap(achievements, makeProgress());
+    expect(map[17]).toEqual({ current: 6, max: 1 });
+    expect(map[18]).toEqual({ current: 6, max: 5 });
+    expect(map[19]).toEqual({ current: 6, max: 10 });
+  });
+
+  it("gives binary achievements without a threshold a 0/1 locked entry", () => {
+    const achievements = [
+      makeAchievement(20, "hat_trick", null),
+      makeAchievement(21, "predict_wdc", null),
+      makeAchievement(22, "perfect_podium", null),
+    ];
+    const map = buildProgressMap(achievements, makeProgress());
+    expect(map[20]).toEqual({ current: 0, max: 1 });
+    expect(map[21]).toEqual({ current: 0, max: 1 });
+    expect(map[22]).toEqual({ current: 0, max: 1 });
+  });
+
+  it("excludes unknown slugs that carry a threshold", () => {
+    // current stays undefined but threshold != null → neither branch matches
+    const map = buildProgressMap(
+      [makeAchievement(23, "some_future_achievement", 5)],
+      makeProgress()
+    );
+    expect(map[23]).toBeUndefined();
+    expect(map).toEqual({});
+  });
+
+  it("excludes progress-family achievements whose threshold is null", () => {
+    // e.g. misconfigured row: counted slug but no threshold → max undefined
+    const map = buildProgressMap(
+      [
+        makeAchievement(24, "10_predictions", null),
+        makeAchievement(25, "100_points", null),
+      ],
+      makeProgress()
+    );
+    expect(map).toEqual({});
+  });
+
+  it("excludes entries whose max is zero or negative", () => {
+    const achievements = [
+      makeAchievement(26, "10_predictions", 0),
+      makeAchievement(27, "100_points", -5),
+      makeAchievement(28, "all_2026_predictions", null),
+    ];
+    const map = buildProgressMap(
+      achievements,
+      makeProgress({ completedSeasonRounds: 0, totalSeasonRounds: 0 })
+    );
+    // threshold 0 and -5 → max <= 0; season with 0 rounds → max 0
+    expect(map).toEqual({});
+  });
+
+  it("keeps a zero current when max is positive", () => {
+    const map = buildProgressMap(
+      [makeAchievement(29, "1_correct", 1)],
+      makeProgress({ totalCorrectPredictions: 0 })
+    );
+    expect(map[29]).toEqual({ current: 0, max: 1 });
+  });
+
+  it("does not cap current at max (caller clamps for display)", () => {
+    const map = buildProgressMap(
+      [makeAchievement(30, "100_points", 100)],
+      makeProgress({ totalPoints: 450 })
+    );
+    expect(map[30]).toEqual({ current: 450, max: 100 });
+  });
+
+  it("builds a combined map across all families in one pass", () => {
+    const achievements = [
+      makeAchievement(1, "first_prediction", 1),
+      makeAchievement(2, "all_2026_predictions", null),
+      makeAchievement(3, "50_correct", 50),
+      makeAchievement(4, "200_points", 200),
+      makeAchievement(5, "race_prediction_winner", 1),
+      makeAchievement(6, "predict_5_team_best", 5),
+      makeAchievement(7, "hat_trick", null), // binary
+      makeAchievement(8, "mystery_slug", 3), // unknown + threshold → excluded
+    ];
+    const map = buildProgressMap(achievements, makeProgress());
+    expect(Object.keys(map).map(Number).sort((a, b) => a - b)).toEqual([
+      1, 2, 3, 4, 5, 6, 7,
+    ]);
+    expect(map[2]).toEqual({ current: 5, max: 29 });
+    expect(map[7]).toEqual({ current: 0, max: 1 });
   });
 });
