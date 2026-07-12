@@ -14,6 +14,7 @@ import {
 } from "./scoring";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Achievement } from "../types";
 
 /**
  * Resolve the authoritative qualifying top-3 array for a prediction or result
@@ -826,4 +827,86 @@ export async function fetchUserProgressData(
     completedSeasonRounds,
     totalSeasonRounds,
   };
+}
+
+/** Per-achievement progress entries keyed by achievement id. */
+export type AchievementProgressMap = Record<
+  number,
+  { current: number; max: number }
+>;
+
+/**
+ * Builds the progress map shown on the achievements page: for each
+ * achievement, the user's current count and the target needed to unlock it.
+ * Pure function — no I/O.
+ */
+export function buildProgressMap(
+  achievements: Achievement[],
+  progress: UserProgressCounts
+): AchievementProgressMap {
+  const map: AchievementProgressMap = {};
+
+  for (const ach of achievements) {
+    const threshold = ach.threshold;
+    let current: number | undefined;
+    let max: number | undefined;
+
+    switch (ach.slug) {
+      case "first_prediction":
+      case "10_predictions":
+      case "20_predictions":
+        current = progress.totalPredictions;
+        max = threshold ?? undefined;
+        break;
+      case "all_2026_predictions":
+        current = progress.completedSeasonRounds;
+        max = progress.totalSeasonRounds;
+        break;
+      case "1_correct":
+      case "10_correct":
+      case "50_correct":
+      case "100_correct":
+        current = progress.totalCorrectPredictions;
+        max = threshold ?? undefined;
+        break;
+      case "100_points":
+      case "200_points":
+      case "300_points":
+        current = progress.totalPoints;
+        max = threshold ?? undefined;
+        break;
+      case "race_prediction_winner":
+      case "race_prediction_winner_10":
+        current = progress.raceFirstCount;
+        max = threshold ?? undefined;
+        break;
+      case "race_prediction_podium":
+        current = progress.raceTop3Count;
+        max = threshold ?? undefined;
+        break;
+      case "sprint_prediction_winner":
+        current = progress.sprintFirstCount;
+        max = threshold ?? undefined;
+        break;
+      case "sprint_prediction_podium":
+        current = progress.sprintTop3Count;
+        max = threshold ?? undefined;
+        break;
+      case "predict_1_team_best":
+      case "predict_5_team_best":
+      case "predict_10_team_best":
+        current = progress.tbdCorrectCount;
+        max = threshold ?? undefined;
+        break;
+    }
+
+    if (current !== undefined && max !== undefined && max > 0) {
+      map[ach.id] = { current, max };
+    } else if (current === undefined && ach.threshold == null) {
+      // Binary achievement (no threshold, boolean condition) — show 0 / 1 when locked
+      map[ach.id] = { current: 0, max: 1 };
+    }
+  }
+
+  return map;
 }
