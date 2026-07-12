@@ -1,32 +1,73 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { fetchAchievementsData } from "@f1/shared/lib/achievements";
+import { fetchChampionshipStandings } from "@f1/shared/lib/championship-standings";
+import { fetchDashboardData } from "@f1/shared/lib/dashboard";
 import { fetchRaces } from "@f1/shared/lib/races";
-import { getNextRace } from "@f1/shared/lib/race-utils";
 
+import { LeaderboardCard } from "@/components/dashboard/LeaderboardCard";
+import { NextRaceCountdown } from "@/components/dashboard/NextRaceCountdown";
+import { NoUpcomingRaces } from "@/components/dashboard/NoUpcomingRaces";
+import { PointSystemCard } from "@/components/dashboard/PointSystemCard";
+import { RaceCalendarCard } from "@/components/dashboard/RaceCalendarCard";
+import { StandingsCard } from "@/components/dashboard/StandingsCard";
+import { UserSummaryCard } from "@/components/dashboard/UserSummaryCard";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 
 /**
- * Phase 1 smoke screen, now behind auth — proves every scaffold pillar in
- * one place: NativeWind + F1 palette, shared translations via useLanguage,
- * shared pure + service functions, TanStack Query over the Supabase client,
- * and (Phase 2) the signed-in session + sign out.
- * Replaced by the real screens from Phase 3 onward.
+ * Home dashboard (Phase 4a): ports the web dashboard cards — user summary,
+ * next-race countdown, championship standings, leaderboard top 10, point
+ * system and race calendar. The temporary sign-out button at the bottom moves
+ * to the Profile screen in Phase 4c.
  */
 export default function HomeScreen() {
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
   const { user, signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const { data: races, isPending, error, refetch } = useQuery({
+  const userId = user?.id;
+
+  const racesQuery = useQuery({
     queryKey: ["races"],
     queryFn: () => fetchRaces(supabase),
   });
+  const races = racesQuery.data;
 
-  const nextRace = races ? getNextRace(races) : null;
+  const dashboardQuery = useQuery({
+    queryKey: ["dashboard", userId],
+    queryFn: () => fetchDashboardData(supabase, userId!, races!),
+    enabled: Boolean(userId && races),
+  });
+
+  const achievementsQuery = useQuery({
+    queryKey: ["achievements", userId],
+    queryFn: () => fetchAchievementsData(supabase, userId!),
+    enabled: Boolean(userId),
+  });
+
+  // Same query key as the Standings tab so both screens share the cache.
+  const standingsQuery = useQuery({
+    queryKey: ["championshipStandings"],
+    queryFn: () => fetchChampionshipStandings(supabase),
+  });
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        racesQuery.refetch(),
+        dashboardQuery.refetch(),
+        achievementsQuery.refetch(),
+        standingsQuery.refetch(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -35,82 +76,86 @@ export default function HomeScreen() {
     await signOut().catch(() => setSigningOut(false));
   }
 
+  const loadError =
+    racesQuery.error ?? dashboardQuery.error ?? achievementsQuery.error ?? standingsQuery.error;
+  const isPending =
+    racesQuery.isPending ||
+    (Boolean(userId && races) && dashboardQuery.isPending) ||
+    (Boolean(userId) && achievementsQuery.isPending) ||
+    standingsQuery.isPending;
+
+  if (loadError) {
+    return (
+      <View className="flex-1 items-center justify-center gap-4 bg-f1-black p-6">
+        <Text className="text-center text-sm text-f1-white/70">{t.predictionsPage.loadError}</Text>
+        <Pressable
+          onPress={() => {
+            racesQuery.refetch();
+            dashboardQuery.refetch();
+            achievementsQuery.refetch();
+            standingsQuery.refetch();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t.predictionsPage.retry}
+          className="min-h-11 items-center justify-center rounded-lg bg-f1-red px-6 active:bg-f1-red-hover"
+        >
+          <Text className="font-semibold text-white">{t.predictionsPage.retry}</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const dashboard = dashboardQuery.data;
+  const achievements = achievementsQuery.data;
+  const standings = standingsQuery.data;
+
+  if (isPending || !dashboard || !achievements || !standings) {
+    return (
+      <View className="flex-1 items-center justify-center bg-f1-black p-6">
+        <ActivityIndicator color="#CF2637" />
+      </View>
+    );
+  }
+
   return (
-    <ScrollView className="flex-1 bg-f1-black" contentContainerClassName="p-6 gap-6">
-      <View className="gap-1">
-        <Text className="text-3xl font-bold text-f1-white">F1 Prediction</Text>
-        <Text className="text-f1-red font-semibold">{t.navbar.season}</Text>
+    <ScrollView
+      className="flex-1 bg-f1-black"
+      contentContainerClassName="gap-4 p-4"
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#CF2637" />
+      }
+    >
+      <UserSummaryCard
+        stats={dashboard.userStats}
+        earnedCount={achievements.earnedIds.length}
+        totalAchievements={achievements.achievements.length}
+      />
+
+      {dashboard.nextRace ? <NextRaceCountdown race={dashboard.nextRace} /> : <NoUpcomingRaces />}
+
+      <StandingsCard standings={standings} />
+
+      <LeaderboardCard entries={dashboard.leaderboard} currentUserId={userId} />
+
+      <View className="flex-row gap-4">
+        <PointSystemCard />
+        <RaceCalendarCard entries={dashboard.calendarEntries} />
       </View>
 
-      <Link href="/race-prediction" asChild>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.nav.predictions}
-          className="flex-row items-center justify-between rounded-2xl bg-f1-red p-5 active:bg-f1-red-hover"
-        >
-          <View className="gap-0.5">
-            <Text className="text-lg font-bold text-white">{t.nav.predictions}</Text>
-            {nextRace ? (
-              <Text className="text-xs text-white/80">{nextRace.raceName}</Text>
-            ) : null}
-          </View>
-          <Text className="text-2xl text-white">›</Text>
-        </Pressable>
-      </Link>
-
-      <View className="rounded-2xl bg-f1-white/5 border border-f1-white/10 p-4 gap-2">
-        <Text className="text-f1-purple font-semibold">{t.navbar.signedInAs}</Text>
-        <Text className="text-f1-white">{user?.email}</Text>
-        <Pressable
-          onPress={handleSignOut}
-          disabled={signingOut}
-          accessibilityRole="button"
-          className={`mt-2 self-start rounded-lg border border-f1-white/10 bg-f1-white/5 px-4 py-2 active:bg-f1-white/10 ${
-            signingOut ? "opacity-50" : ""
-          }`}
-        >
-          <Text className="font-semibold text-f1-white">
-            {signingOut ? t.navbar.signingOut : t.navbar.signOut}
-          </Text>
-        </Pressable>
-      </View>
-
-      <View className="rounded-2xl bg-f1-white/5 border border-f1-white/10 p-4 gap-2">
-        <Text className="text-f1-amber font-semibold">Supabase + TanStack Query</Text>
-        {isPending ? (
-          <ActivityIndicator color="#CF2637" />
-        ) : error ? (
-          <Text className="text-f1-red">{String(error)}</Text>
-        ) : (
-          <>
-            <Text className="text-f1-white">
-              {races?.length ?? 0} races loaded from the live database
-            </Text>
-            {nextRace ? (
-              <Text className="text-f1-blue">Next: {nextRace.raceName}</Text>
-            ) : null}
-          </>
-        )}
-        <Pressable
-          onPress={() => refetch()}
-          className="mt-2 self-start rounded-lg bg-f1-red px-4 py-2 active:bg-f1-red-hover"
-        >
-          <Text className="font-semibold text-white">Refetch</Text>
-        </Pressable>
-      </View>
-
-      <View className="rounded-2xl bg-f1-white/5 border border-f1-white/10 p-4 gap-2">
-        <Text className="text-f1-green font-semibold">i18n ({language})</Text>
-        <Text className="text-f1-white">{t.nav.leaderboard}</Text>
-        <Pressable
-          onPress={() => setLanguage(language === "en" ? "es" : "en")}
-          className="mt-2 self-start rounded-lg bg-f1-purple px-4 py-2"
-        >
-          <Text className="font-semibold text-white">
-            {language === "en" ? "Español" : "English"}
-          </Text>
-        </Pressable>
-      </View>
+      {/* Temporary sign-out until the Profile screen ships (Phase 4c). */}
+      <Pressable
+        onPress={handleSignOut}
+        disabled={signingOut}
+        accessibilityRole="button"
+        accessibilityLabel={t.navbar.signOut}
+        className={`min-h-11 items-center justify-center rounded-lg border border-f1-white/10 bg-f1-white/5 active:bg-f1-white/10 ${
+          signingOut ? "opacity-50" : ""
+        }`}
+      >
+        <Text className="text-sm font-semibold text-f1-white/70">
+          {signingOut ? t.navbar.signingOut : t.navbar.signOut}
+        </Text>
+      </Pressable>
     </ScrollView>
   );
 }
