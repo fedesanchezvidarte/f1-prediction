@@ -2,16 +2,23 @@
 
 Running record of decisions made after the initial plan. Newest first.
 
-## 2026-07-12 — Profile as a full-screen modal; deletion via the existing RPC (Phase 4c)
+## 2026-07-12 — Profile entry is a right-side drawer; full Profile screen behind it (Phase 4c)
 
-**Presentation:** the profile/settings surface is an Expo Router **full-screen modal**
-(`presentation: "modal"`) opened from an avatar button in the header of all five tabs. A **side
-drawer** was considered with mockups: it needs `@react-navigation/drawer` + reanimated, a drawer
-navigator wrapped around the tabs, and its ~72% width is too cramped for the password/delete
-forms (they'd need modals anyway). The modal won on zero new nav dependencies and one consistent
-pattern — **revisit the drawer later if desired**; the tabs moved into a `(tabs)` group under a
-stack, so swapping the presentation is contained to the `(app)` layouts. The temporary sign-out
-button on Home is gone; sign-out lives in the profile modal.
+**Presentation (revised after an on-device trial):** the avatar button in the header of all five
+tabs opens a **right-side drawer** (`expo-router/drawer`, 300px, F1 dark, edge-swipe enabled):
+compact identity block, 2×2 stats grid, a Profile row that pushes the full `/profile` screen,
+language toggle, a **Theme row (display-only "Dark"** — real theme switching is a future
+iteration; both apps are dark-only today), change password, and sign out. **Account deletion is
+deliberately NOT in the drawer** — it lives only in the full Profile screen, keeping the
+destructive action one deliberate step away. The full `/profile` screen keeps everything the
+drawer can't fit comfortably: avatar upload, inline name edit, full stats, and deletion. (Under
+the drawer navigator it renders as a plain push — drawers don't support `presentation: "modal"`.)
+
+Both variants were built and compared on-device; the modal-only version lost. Cost was lower than
+feared: reanimated/gesture-handler were already in the SDK 54 tree, so the only new dependency is
+`@react-navigation/drawer@7.12.8` (single deduped `react-native@0.81.5` verified — the 2026-07-08
+duplicate-RN pitfall did not recur). `GestureHandlerRootView` now wraps the root layout. The
+temporary sign-out button on Home is gone; sign-out lives in the drawer and the Profile screen.
 
 **Account deletion stays in the app (not web-only):** Apple Guideline 5.1.1(v) and Google Play
 policy require in-app account deletion when the app offers account creation (mobile has

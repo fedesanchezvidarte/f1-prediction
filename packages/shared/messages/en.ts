@@ -402,6 +402,8 @@ const en = {
     myPredictions: "My Predictions",
     leaderboard: "Leaderboard",
     account: "Account",
+    theme: "Theme",
+    themeDark: "Dark",
     changePassword: "Change Password",
     signOut: "Sign Out",
     deleteAccount: "Delete Account",

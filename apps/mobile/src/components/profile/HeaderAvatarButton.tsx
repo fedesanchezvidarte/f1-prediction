@@ -1,4 +1,5 @@
-import { useRouter } from "expo-router";
+import { DrawerActions } from "@react-navigation/native";
+import { useNavigation } from "expo-router";
 import { Pressable } from "react-native";
 
 import { Avatar } from "@/components/profile/Avatar";
@@ -7,11 +8,11 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 
 /**
- * Avatar button rendered in the header of every tab; opens the Profile
- * modal. Falls back to auth-metadata initials until the profile row loads.
+ * Avatar button rendered in the header of every tab; opens the profile
+ * drawer. Falls back to auth-metadata initials until the profile row loads.
  */
 export function HeaderAvatarButton() {
-  const router = useRouter();
+  const navigation = useNavigation();
   const { t } = useLanguage();
   const { user } = useAuth();
   const profileQuery = useProfileQuery();
@@ -23,7 +24,7 @@ export function HeaderAvatarButton() {
 
   return (
     <Pressable
-      onPress={() => router.push("/profile")}
+      onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
       accessibilityRole="button"
       accessibilityLabel={t.nav.profile}
       hitSlop={8}

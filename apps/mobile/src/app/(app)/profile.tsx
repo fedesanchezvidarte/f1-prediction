@@ -29,10 +29,11 @@ import { useLanguage } from "@/providers/LanguageProvider";
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
 /**
- * Full-screen modal Profile screen (opened from the tab-header avatar
- * button). Ports the web ProfileContent minus the Navigate quick links:
- * avatar upload, inline display-name edit, stats row, language toggle, and
- * the account flows (change password, sign out, delete account).
+ * Full Profile screen (opened from the drawer's Profile row). Ports the
+ * web ProfileContent minus the Navigate quick links: avatar upload, inline
+ * display-name edit, stats row, language toggle, and the account flows
+ * (change password, sign out, delete account — deletion lives only here,
+ * not in the drawer).
  */
 export default function ProfileScreen() {
   const router = useRouter();

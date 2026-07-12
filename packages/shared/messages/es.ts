@@ -395,6 +395,8 @@ const es: Messages = {
     myPredictions: "Mis Predicciones",
     leaderboard: "Clasificación",
     account: "Cuenta",
+    theme: "Tema",
+    themeDark: "Oscuro",
     changePassword: "Cambiar Contraseña",
     signOut: "Cerrar Sesión",
     deleteAccount: "Eliminar Cuenta",

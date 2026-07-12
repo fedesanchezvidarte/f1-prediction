@@ -1,16 +1,32 @@
-import { Stack } from "expo-router";
+import { Drawer } from "expo-router/drawer";
+
+import { ProfileDrawerContent } from "@/components/profile/ProfileDrawerContent";
 
 /**
- * Signed-in stack: the bottom tab navigator plus screens presented above it.
- * The Profile screen opens as a full-screen modal from the avatar button in
- * every tab header. This whole group sits behind the session guard in the
- * root layout, so the modal inherits auth protection.
+ * Signed-in group wrapped in a right-side Drawer whose content is a compact
+ * profile/settings panel (ProfileDrawerContent). The avatar button in the
+ * tab headers opens it. The full-screen /profile route stays a plain drawer
+ * screen so avatar upload, name edit and account deletion remain reachable
+ * from the drawer's "Profile" row. This whole group sits behind the session
+ * guard in the root layout.
  */
 export default function AppLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#2A2B2A" } }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="profile" options={{ presentation: "modal" }} />
-    </Stack>
+    <Drawer
+      drawerContent={(props) => <ProfileDrawerContent {...props} />}
+      screenOptions={{
+        headerShown: false,
+        drawerPosition: "right",
+        drawerType: "front",
+        swipeEnabled: true,
+        swipeEdgeWidth: 60,
+        drawerStyle: { backgroundColor: "#2A2B2A", width: 300 },
+        overlayColor: "rgba(0,0,0,0.6)",
+        sceneStyle: { backgroundColor: "#2A2B2A" },
+      }}
+    >
+      <Drawer.Screen name="(tabs)" />
+      <Drawer.Screen name="profile" options={{ swipeEnabled: false }} />
+    </Drawer>
   );
 }
