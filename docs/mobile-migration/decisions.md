@@ -2,6 +2,40 @@
 
 Running record of decisions made after the initial plan. Newest first.
 
+## 2026-07-12 — Profile as a full-screen modal; deletion via the existing RPC (Phase 4c)
+
+**Presentation:** the profile/settings surface is an Expo Router **full-screen modal**
+(`presentation: "modal"`) opened from an avatar button in the header of all five tabs. A **side
+drawer** was considered with mockups: it needs `@react-navigation/drawer` + reanimated, a drawer
+navigator wrapped around the tabs, and its ~72% width is too cramped for the password/delete
+forms (they'd need modals anyway). The modal won on zero new nav dependencies and one consistent
+pattern — **revisit the drawer later if desired**; the tabs moved into a `(tabs)` group under a
+stack, so swapping the presentation is contained to the `(app)` layouts. The temporary sign-out
+button on Home is gone; sign-out lives in the profile modal.
+
+**Account deletion stays in the app (not web-only):** Apple Guideline 5.1.1(v) and Google Play
+policy require in-app account deletion when the app offers account creation (mobile has
+register.tsx), so deferring it would block Phase 5 submission. Mobile reuses the web's proven
+path: re-auth confirmation (password for email users, type-your-email for Google) then the
+`delete_own_account` Postgres RPC via supabase-js, then sign-out. Note the original plan text
+said deletion "routes through the Next.js API" — in reality the production web app has always
+used the RPC (there is no account API route); mobile mirrors reality.
+
+**Shared extraction:** `fetchProfileData(supabase, userId, fallbacks)` (+`ProfileStats`,
+`ProfileFallbacks`, `ProfileData`) in `packages/shared/lib/profile.ts` — the web profile page's
+three queries (profile row, leaderboard stats, achievements count), parallelized, with the
+auth-metadata fallback chain preserved; web consumes it. 100%-line unit coverage.
+`authProvider` derivation stays in the callers (needs the auth User object).
+
+**Avatar upload (the one new native surface):** `expo-image-picker@~17.0.11` (SDK 54 line) with
+square crop; upload goes to the `avatars` bucket as an **ArrayBuffer** (base64 → decode via
+base64-arraybuffer) with explicit `contentType` — RN's Blob-from-fetch is unreliable for Storage
+uploads. 5MB limit and success/error copy mirror web; mutations invalidate the profile, dashboard
+and leaderboard queries so the header avatar refreshes. The picker → Storage → `avatar_url`
+round-trip still needs its on-device Expo Go check per the plan. Password change reuses
+`auth.updateUser`; the web `PasswordStrengthMeter` was not ported (mismatch + min-8 validation
+match web). New keys: `profilePage.photoPermissionDenied`, `profilePage.close` (en/es parity 500).
+
 ## 2026-07-12 — Achievements screen as a 5th tab; Phase 4c reshaped around a header avatar (Phase 4b)
 
 **Navigation decision:** the bottom bar grows to **five tabs** — Home / Predictions / Leaderboard /
