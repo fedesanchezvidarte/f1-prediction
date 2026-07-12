@@ -20,13 +20,11 @@ import { useLanguage } from "@/providers/LanguageProvider";
 /**
  * Home dashboard (Phase 4a): ports the web dashboard cards — user summary,
  * next-race countdown, championship standings, leaderboard top 10, point
- * system and race calendar. The temporary sign-out button at the bottom moves
- * to the Profile screen in Phase 4c.
+ * system and race calendar. Sign-out lives in the Profile modal (Phase 4c).
  */
 export default function HomeScreen() {
   const { t } = useLanguage();
-  const { user, signOut } = useAuth();
-  const [signingOut, setSigningOut] = useState(false);
+  const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
 
   const userId = user?.id;
@@ -67,13 +65,6 @@ export default function HomeScreen() {
     } finally {
       setRefreshing(false);
     }
-  }
-
-  async function handleSignOut() {
-    setSigningOut(true);
-    // On success onAuthStateChange clears the session and Stack.Protected
-    // swaps back to the (auth) group — no manual navigation needed.
-    await signOut().catch(() => setSigningOut(false));
   }
 
   const loadError =
@@ -141,21 +132,6 @@ export default function HomeScreen() {
         <PointSystemCard />
         <RaceCalendarCard entries={dashboard.calendarEntries} />
       </View>
-
-      {/* Temporary sign-out until the Profile screen ships (Phase 4c). */}
-      <Pressable
-        onPress={handleSignOut}
-        disabled={signingOut}
-        accessibilityRole="button"
-        accessibilityLabel={t.navbar.signOut}
-        className={`min-h-11 items-center justify-center rounded-lg border border-f1-white/10 bg-f1-white/5 active:bg-f1-white/10 ${
-          signingOut ? "opacity-50" : ""
-        }`}
-      >
-        <Text className="text-sm font-semibold text-f1-white/70">
-          {signingOut ? t.navbar.signingOut : t.navbar.signOut}
-        </Text>
-      </Pressable>
     </ScrollView>
   );
 }
