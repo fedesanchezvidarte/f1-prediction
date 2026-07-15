@@ -12,7 +12,7 @@ export function AuthLanguageSwitcher() {
   const { language, setLanguage } = useLanguage();
 
   return (
-    <View className="flex-row items-center gap-0.5 rounded-full border border-f1-white/10 bg-f1-white/5 p-0.5">
+    <View className="flex-row items-center gap-0.5 rounded-full border border-foreground/10 bg-foreground/5 p-0.5">
       {LANGUAGES.map(({ code, label }) => (
         <Pressable
           key={code}
@@ -25,7 +25,7 @@ export function AuthLanguageSwitcher() {
         >
           <Text
             className={`text-xs font-medium ${
-              language === code ? "text-white" : "text-f1-white/50"
+              language === code ? "text-white" : "text-foreground/50"
             }`}
           >
             {label}

@@ -404,6 +404,8 @@ const en = {
     account: "Account",
     theme: "Theme",
     themeDark: "Dark",
+    themeLight: "Light",
+    themeSystem: "System",
     changePassword: "Change Password",
     signOut: "Sign Out",
     deleteAccount: "Delete Account",

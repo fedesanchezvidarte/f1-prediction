@@ -19,6 +19,7 @@ import type { DetailedLeaderboardEntry, Race } from "@f1/shared/types";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 
 type RaceFilter = number | "all";
 
@@ -67,6 +68,7 @@ function RaceFilterModal({
   onClose: () => void;
 }) {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   function renderRow(label: string, value: RaceFilter, flag?: string) {
@@ -102,7 +104,7 @@ function RaceFilterModal({
           accessibilityLabel={t.predictionsPage.dismiss}
         />
         <View
-          className="max-h-[80%] rounded-t-3xl border-t border-f1-white/10 bg-f1-black"
+          className="max-h-[80%] rounded-t-3xl border-t border-f1-white/10 bg-card"
           style={{ paddingBottom: insets.bottom }}
         >
           <View className="flex-row items-center justify-between border-b border-f1-white/10 px-5 py-4">
@@ -115,7 +117,7 @@ function RaceFilterModal({
               accessibilityLabel={t.predictionsPage.dismiss}
               className="h-8 w-8 items-center justify-center rounded-full bg-f1-white/10 active:bg-f1-white/20"
             >
-              <Ionicons name="close" size={16} color="#F7F7F7" />
+              <Ionicons name="close" size={16} color={colors.foreground} />
             </Pressable>
           </View>
 
@@ -139,6 +141,7 @@ function RaceFilterModal({
 
 export default function LeaderboardScreen() {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const { user } = useAuth();
 
   const racesQuery = useQuery({
@@ -198,7 +201,7 @@ export default function LeaderboardScreen() {
 
   if (loadError) {
     return (
-      <View className="flex-1 items-center justify-center gap-4 bg-f1-black p-6">
+      <View className="flex-1 items-center justify-center gap-4 bg-background p-6">
         <Text className="text-center text-sm text-f1-white/70">{t.predictionsPage.loadError}</Text>
         <Pressable
           onPress={() => {
@@ -217,18 +220,18 @@ export default function LeaderboardScreen() {
 
   if (isPending) {
     return (
-      <View className="flex-1 items-center justify-center bg-f1-black p-6">
-        <ActivityIndicator color="#CF2637" />
+      <View className="flex-1 items-center justify-center bg-background p-6">
+        <ActivityIndicator color={colors.red} />
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-f1-black">
+    <View className="flex-1 bg-background">
       {/* ── Toolbar: player count + race filter ── */}
       <View className="flex-row items-center justify-between border-b border-f1-white/10 px-4 py-3">
         <View className="flex-row items-center gap-2">
-          <Ionicons name="medal" size={16} color="#FFB100" />
+          <Ionicons name="medal" size={16} color={colors.amber} />
           <Text className="text-sm font-semibold text-f1-white">{t.leaderboardPage.title}</Text>
           <View className="rounded-full bg-f1-white/10 px-2 py-0.5">
             <Text className="text-[10px] tabular-nums text-f1-white/50">
@@ -243,11 +246,11 @@ export default function LeaderboardScreen() {
           accessibilityLabel={`${t.leaderboardPage.filterByRace}: ${selectedRaceLabel}`}
           className="min-h-9 flex-row items-center gap-1.5 rounded-lg border border-f1-white/10 px-3 active:bg-f1-white/10"
         >
-          <Ionicons name="filter" size={13} color="#F7F7F7AA" />
+          <Ionicons name="filter" size={13} color={colors.foregroundMuted} />
           <Text className="max-w-32 text-xs font-medium text-f1-white/70" numberOfLines={1}>
             {selectedRaceLabel}
           </Text>
-          <Ionicons name="chevron-down" size={12} color="#F7F7F766" />
+          <Ionicons name="chevron-down" size={12} color={colors.muted} />
         </Pressable>
       </View>
 
@@ -269,7 +272,7 @@ export default function LeaderboardScreen() {
         data={ranked}
         keyExtractor={(entry) => entry.userId}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#CF2637" />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.red} />
         }
         renderItem={({ item: entry }) => {
           const isMe = entry.userId === user?.id;

@@ -41,7 +41,7 @@ export function TeamPickerModal({
           accessibilityLabel={t.predictionsPage.dismiss}
         />
         <View
-          className="max-h-[75%] rounded-t-3xl border-t border-f1-white/10 bg-f1-black"
+          className="max-h-[75%] rounded-t-3xl border-t border-f1-white/10 bg-card"
           style={{ paddingBottom: insets.bottom }}
         >
           <View className="flex-row items-center justify-between border-b border-f1-white/10 px-5 py-4">

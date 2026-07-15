@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import type { UserStats } from "@f1/shared/types";
 
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 
 interface UserSummaryCardProps {
   stats: UserStats;
@@ -20,6 +21,7 @@ interface UserSummaryCardProps {
  */
 export function UserSummaryCard({ stats, earnedCount, totalAchievements }: UserSummaryCardProps) {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const progress = totalAchievements > 0 ? Math.min(earnedCount / totalAchievements, 1) : 0;
 
   return (
@@ -27,7 +29,7 @@ export function UserSummaryCard({ stats, earnedCount, totalAchievements }: UserS
       {/* Left: points + rank */}
       <View className="flex-1 justify-between gap-4">
         <View>
-          <Text className="text-xs font-medium uppercase tracking-wider text-f1-white/50">
+          <Text className="text-xs font-medium uppercase tracking-wider text-f1-white/60">
             {t.userPoints.yourPoints}
           </Text>
           <Text className="mt-1 text-4xl font-bold tabular-nums text-f1-white">
@@ -35,13 +37,13 @@ export function UserSummaryCard({ stats, earnedCount, totalAchievements }: UserS
           </Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <Ionicons name="trending-up" size={14} color="#44AF69" />
+          <Ionicons name="trending-up" size={16} color={colors.green} />
           <View>
-            <Text className="text-lg font-semibold tabular-nums text-f1-white">
+            <Text className="text-xl font-semibold tabular-nums text-f1-white">
               {stats.rank}
-              <Text className="text-xs text-f1-white/50">/{stats.totalUsers}</Text>
+              <Text className="text-sm text-f1-white/60">/{stats.totalUsers}</Text>
             </Text>
-            <Text className="text-[10px] text-f1-white/50">{t.userPoints.rank}</Text>
+            <Text className="text-xs text-f1-white/60">{t.userPoints.rank}</Text>
           </View>
         </View>
       </View>
@@ -49,12 +51,12 @@ export function UserSummaryCard({ stats, earnedCount, totalAchievements }: UserS
       {/* Right: achievements progress */}
       <View className="flex-1 justify-between gap-4">
         <View className="items-end">
-          <Text className="text-right text-xs font-medium uppercase tracking-wider text-f1-white/50">
+          <Text className="text-right text-xs font-medium uppercase tracking-wider text-f1-white/60">
             {t.achievementsCard.achievements}
           </Text>
           <Text className="mt-1 text-2xl font-bold tabular-nums text-f1-white">
             {earnedCount}
-            <Text className="text-sm font-normal text-f1-white/50">/{totalAchievements}</Text>
+            <Text className="text-sm font-normal text-f1-white/60">/{totalAchievements}</Text>
           </Text>
         </View>
 
@@ -70,7 +72,7 @@ export function UserSummaryCard({ stats, earnedCount, totalAchievements }: UserS
             />
           </View>
         ) : (
-          <Text className="text-right text-[10px] text-f1-white/50">
+          <Text className="text-right text-xs text-f1-white/60">
             {t.achievementsCard.noAchievements}
           </Text>
         )}

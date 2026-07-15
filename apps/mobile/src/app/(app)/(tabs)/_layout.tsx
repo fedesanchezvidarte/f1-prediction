@@ -1,63 +1,90 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { View } from "react-native";
 
+import { AppLogo } from "@/components/layout/AppLogo";
 import { HeaderAvatarButton } from "@/components/profile/HeaderAvatarButton";
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
+
+/** Tab icon: outline while inactive, solid once selected (iOS convention). */
+function TabIcon({
+  name,
+  color,
+  focused,
+}: {
+  name: "home" | "flag" | "podium" | "trophy" | "ribbon";
+  color: string;
+  focused: boolean;
+}) {
+  return <Ionicons name={focused ? name : `${name}-outline`} size={22} color={color} />;
+}
 
 /**
  * Bottom tab navigator for the signed-in app: Home, Predictions,
- * Leaderboard, Standings and Achievements. Uses the same F1 dark theme as
- * the previous stack header (Graphite backgrounds, Crimson active tint).
- * Every tab header shows the avatar button that opens the Profile modal.
+ * Leaderboard, Standings and Achievements. Header/tab bar colors come from
+ * the active theme palette (Crimson active tint in both themes). Every tab
+ * header shows the app logo on the left and the avatar button (opens the
+ * profile drawer) on the right.
  */
 export default function TabsLayout() {
   const { t } = useLanguage();
+  const { colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: "#2A2B2A" },
-        headerTintColor: "#F7F7F7",
+        headerStyle: { backgroundColor: colors.background },
+        headerTintColor: colors.foreground,
+        headerLeft: () => (
+          <View className="pl-4">
+            <AppLogo size={26} />
+          </View>
+        ),
         headerRight: () => <HeaderAvatarButton />,
-        sceneStyle: { backgroundColor: "#2A2B2A" },
-        tabBarStyle: { backgroundColor: "#2A2B2A", borderTopColor: "rgba(247,247,247,0.1)" },
-        tabBarActiveTintColor: "#CF2637",
-        tabBarInactiveTintColor: "rgba(247,247,247,0.5)",
+        sceneStyle: { backgroundColor: colors.background },
+        tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
+        tabBarActiveTintColor: colors.red,
+        tabBarInactiveTintColor: colors.foregroundMuted,
+        // Smaller glyphs + label than the defaults so five tabs breathe on a
+        // 4.7" screen and "Achievements" stops truncating.
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
+        tabBarIconStyle: { marginBottom: -2 },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: t.nav.dashboard,
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="home" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="race-prediction"
         options={{
           title: t.nav.predictions,
-          tabBarIcon: ({ color, size }) => <Ionicons name="flag" size={size} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="flag" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="leaderboard"
         options={{
           title: t.nav.leaderboard,
-          tabBarIcon: ({ color, size }) => <Ionicons name="podium" size={size} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="podium" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="standings"
         options={{
           title: t.nav.standings,
-          tabBarIcon: ({ color, size }) => <Ionicons name="trophy" size={size} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="trophy" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="achievements"
         options={{
           title: t.nav.achievements,
-          tabBarIcon: ({ color, size }) => <Ionicons name="ribbon" size={size} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="ribbon" color={color} focused={focused} />,
         }}
       />
     </Tabs>

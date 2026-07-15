@@ -78,7 +78,7 @@ export function DeleteAccountModal({ visible, email, authProvider, onClose }: De
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         className="flex-1 items-center justify-center bg-black/60 p-6"
       >
-        <View className="w-full max-w-sm overflow-hidden rounded-2xl border border-f1-red/40 bg-f1-black">
+        <View className="w-full max-w-sm overflow-hidden rounded-2xl border border-f1-red/40 bg-card">
           {/* Header — red tint */}
           <View className="flex-row items-center gap-3 border-b border-f1-red/20 bg-f1-red/5 px-5 py-4">
             <View className="h-8 w-8 items-center justify-center rounded-full bg-f1-red/20">

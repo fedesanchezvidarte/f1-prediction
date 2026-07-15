@@ -10,7 +10,7 @@ import { AuthLanguageSwitcher } from "@/components/auth/AuthLanguageSwitcher";
  */
 export function AuthScreenShell({ children }: { children: React.ReactNode }) {
   return (
-    <SafeAreaView className="flex-1 bg-f1-black">
+    <SafeAreaView className="flex-1 bg-background">
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}

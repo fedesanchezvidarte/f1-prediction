@@ -1,3 +1,53 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Theme variables consumed by tailwind.config.js as
+ * `rgb(var(--x) / <alpha-value>)`, so every semantic class supports opacity
+ * modifiers (e.g. text-foreground/50). Values are space-separated RGB
+ * triplets and mirror apps/web/app/globals.css and src/theme/palette.ts —
+ * the three must stay in sync (contrast math: docs/palette-audit.md).
+ *
+ * `.dark:root` is activated by NativeWind's colorScheme (driven from
+ * ThemeProvider with darkMode: "class"); the app defaults to dark.
+ */
+@layer base {
+  :root {
+    /* Light theme */
+    --color-background: 244 244 245; /* #f4f4f5 */
+    --color-card: 255 255 255; /* #ffffff */
+    --color-card-hover: 236 236 237; /* #ececed */
+    --color-border: 228 228 231; /* #e4e4e7 */
+    --color-border-hover: 212 212 216; /* #d4d4d8 */
+    --color-muted: 113 113 122; /* #71717a */
+    --color-input-bg: 250 250 250; /* #fafafa */
+    --color-foreground: 9 9 11; /* #09090b */
+    --color-f1-red: 192 32 47; /* #C0202F */
+    --color-f1-red-hover: 168 27 41; /* #A81B29 */
+    --color-f1-purple: 116 67 184; /* #7443B8 */
+    --color-f1-amber: 150 97 10; /* #96610A */
+    --color-f1-green: 37 120 74; /* #25784A */
+    --color-f1-blue: 28 109 189; /* #1C6DBD */
+    --color-on-bright: 255 255 255; /* labels on amber/green fills */
+  }
+
+  .dark:root {
+    /* Dark theme (default) */
+    --color-background: 13 13 13; /* #0d0d0d */
+    --color-card: 26 26 26; /* #1a1a1a */
+    --color-card-hover: 34 34 34; /* #222222 */
+    --color-border: 42 42 42; /* #2a2a2a */
+    --color-border-hover: 58 58 58; /* #3a3a3a */
+    --color-muted: 138 138 138; /* #8a8a8a */
+    --color-input-bg: 20 20 20; /* #141414 */
+    --color-foreground: 247 247 247; /* #F7F7F7 */
+    --color-f1-red: 226 59 76; /* #E23B4C */
+    --color-f1-red-hover: 198 47 63; /* #C62F3F */
+    --color-f1-purple: 160 108 213; /* #A06CD5 */
+    --color-f1-amber: 255 177 0; /* #FFB100 */
+    --color-f1-green: 68 175 105; /* #44AF69 */
+    --color-f1-blue: 60 145 230; /* #3C91E6 */
+    --color-on-bright: 42 43 42; /* graphite labels on amber/green fills */
+  }
+}

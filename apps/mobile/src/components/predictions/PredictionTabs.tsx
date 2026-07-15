@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View } from "react-native";
 
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 
 export type PredictionTab = "race" | "sprint" | "champion";
 
@@ -19,7 +20,10 @@ interface PredictionTabsProps {
 /**
  * Segmented Race / Sprint / Champion control shown under the screen header,
  * mirroring the web's tab row (Sprint disabled with "N/A" on non-sprint
- * rounds; Champion accented amber like the web champion pill).
+ * rounds). Each tab owns a palette color when selected: Race crimson, Sprint
+ * lavender, Champion amber. Crimson takes white labels; the two bright fills
+ * take `on-bright` (graphite in dark, white in light) — see
+ * docs/palette-audit.md.
  */
 export function PredictionTabs({
   tab,
@@ -29,6 +33,7 @@ export function PredictionTabs({
   onChange,
 }: PredictionTabsProps) {
   const { t } = useLanguage();
+  const { colors } = useTheme();
 
   const items: {
     key: PredictionTab;
@@ -36,14 +41,31 @@ export function PredictionTabs({
     icon: keyof typeof Ionicons.glyphMap;
     disabled: boolean;
     dot: boolean;
+    /** Fill + label classes for the selected state. */
+    activeBg: string;
+    activeText: string;
+    /** Icon tint for the selected state. */
+    activeIcon: string;
   }[] = [
-    { key: "race", label: t.predictionsPage.race, icon: "flag", disabled: false, dot: false },
+    {
+      key: "race",
+      label: t.predictionsPage.race,
+      icon: "flag",
+      disabled: false,
+      dot: false,
+      activeBg: "bg-f1-red",
+      activeText: "text-white",
+      activeIcon: "#FFFFFF",
+    },
     {
       key: "sprint",
       label: t.predictionsPage.sprint,
       icon: "flash",
       disabled: !hasSprint,
       dot: hasSprint && sprintNeedsAttention,
+      activeBg: "bg-f1-purple",
+      activeText: "text-on-bright",
+      activeIcon: colors.onBright,
     },
     {
       key: "champion",
@@ -51,6 +73,9 @@ export function PredictionTabs({
       icon: "trophy",
       disabled: false,
       dot: champNeedsAttention,
+      activeBg: "bg-f1-amber",
+      activeText: "text-on-bright",
+      activeIcon: colors.onBright,
     },
   ];
 
@@ -58,7 +83,6 @@ export function PredictionTabs({
     <View className="flex-row rounded-xl border border-f1-white/10 bg-f1-white/5 p-1">
       {items.map((item) => {
         const active = tab === item.key;
-        const isChampion = item.key === "champion";
         return (
           <Pressable
             key={item.key}
@@ -67,30 +91,32 @@ export function PredictionTabs({
             accessibilityRole="tab"
             accessibilityLabel={item.label}
             accessibilityState={{ selected: active, disabled: item.disabled }}
+            // A disabled tab is dimmed through foreground-derived colors rather
+            // than a flat gray, so it stays clearly "off" in both themes: the
+            // label and "N/A" drop to 30% of the foreground, and the icon takes
+            // half of the already-50% muted tint.
             className={`min-h-10 flex-1 flex-row items-center justify-center gap-1.5 rounded-lg px-2 ${
-              active
-                ? isChampion
-                  ? "bg-f1-amber"
-                  : "bg-f1-red"
-                : item.disabled
-                  ? "opacity-30"
-                  : "active:bg-f1-white/10"
+              active ? item.activeBg : !item.disabled ? "active:bg-f1-white/10" : ""
             }`}
           >
-            <Ionicons
-              name={item.icon}
-              size={13}
-              color={active ? (isChampion ? "#2A2B2A" : "#FFFFFF") : "#F7F7F799"}
-            />
+            <View className={item.disabled ? "opacity-50" : ""}>
+              <Ionicons
+                name={item.icon}
+                size={13}
+                color={active ? item.activeIcon : colors.foregroundMuted}
+              />
+            </View>
             <Text
               className={`text-xs font-semibold ${
-                active ? (isChampion ? "text-black" : "text-white") : "text-f1-white/60"
+                active ? item.activeText : item.disabled ? "text-f1-white/30" : "text-f1-white/60"
               }`}
             >
               {item.label}
             </Text>
             {item.disabled && (
-              <Text className="text-[9px] text-f1-white/40">{t.predictionsPage.na}</Text>
+              <Text className="text-[10px] font-semibold uppercase tracking-wide text-f1-white/30">
+                {t.predictionsPage.na}
+              </Text>
             )}
             {item.dot && !active && (
               <View className="h-1.5 w-1.5 rounded-full bg-f1-amber" accessible={false} />

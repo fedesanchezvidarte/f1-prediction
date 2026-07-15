@@ -71,7 +71,7 @@ export function ChangePasswordModal({ visible, onClose, onSuccess }: ChangePassw
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         className="flex-1 items-center justify-center bg-black/60 p-6"
       >
-        <View className="w-full max-w-sm overflow-hidden rounded-2xl border border-f1-white/10 bg-f1-black">
+        <View className="w-full max-w-sm overflow-hidden rounded-2xl border border-f1-white/10 bg-card">
           {/* Header */}
           <View className="flex-row items-center gap-3 border-b border-f1-white/10 px-5 py-4">
             <View className="h-8 w-8 items-center justify-center rounded-full bg-f1-blue/10">

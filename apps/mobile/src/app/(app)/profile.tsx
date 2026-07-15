@@ -183,7 +183,7 @@ export default function ProfileScreen() {
 
   if (profileQuery.isPending || !profileQuery.data) {
     return (
-      <View className="flex-1 items-center justify-center bg-f1-black" style={{ paddingTop: insets.top }}>
+      <View className="flex-1 items-center justify-center bg-background" style={{ paddingTop: insets.top }}>
         <ActivityIndicator color="#CF2637" />
       </View>
     );
@@ -199,7 +199,7 @@ export default function ProfileScreen() {
     : "";
 
   return (
-    <View className="flex-1 bg-f1-black" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* ── Modal header ── */}
       <View className="flex-row items-center justify-between border-b border-f1-white/10 px-5 py-4">
         <View className="flex-row items-center gap-2">
@@ -254,7 +254,7 @@ export default function ProfileScreen() {
               </View>
               {/* Camera badge signalling the avatar is tappable */}
               {!uploadingAvatar ? (
-                <View className="absolute -bottom-0.5 -right-0.5 h-6 w-6 items-center justify-center rounded-full border border-f1-white/20 bg-f1-black">
+                <View className="absolute -bottom-0.5 -right-0.5 h-6 w-6 items-center justify-center rounded-full border border-f1-white/20 bg-card">
                   <Ionicons name="camera" size={12} color="#F7F7F7" />
                 </View>
               ) : null}

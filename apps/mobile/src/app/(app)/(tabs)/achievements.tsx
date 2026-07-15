@@ -55,7 +55,7 @@ export default function AchievementsScreen() {
 
   if (loadError) {
     return (
-      <View className="flex-1 items-center justify-center gap-4 bg-f1-black p-6">
+      <View className="flex-1 items-center justify-center gap-4 bg-background p-6">
         <Text className="text-center text-sm text-f1-white/70">{t.predictionsPage.loadError}</Text>
         <Pressable
           onPress={() => {
@@ -77,7 +77,7 @@ export default function AchievementsScreen() {
 
   if (isPending || !data || !progress) {
     return (
-      <View className="flex-1 items-center justify-center bg-f1-black p-6">
+      <View className="flex-1 items-center justify-center bg-background p-6">
         <ActivityIndicator color="#CF2637" />
       </View>
     );
@@ -110,7 +110,7 @@ export default function AchievementsScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-f1-black"
+      className="flex-1 bg-background"
       contentContainerClassName="gap-4 p-4"
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#CF2637" />

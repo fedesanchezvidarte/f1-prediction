@@ -5,6 +5,7 @@ import { countryCodeToFlag, type RaceCalendarEntry } from "@f1/shared/lib/race-u
 import type { PredictionStatus } from "@f1/shared/types";
 
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 
 interface RaceCalendarModalProps {
   visible: boolean;
@@ -13,7 +14,7 @@ interface RaceCalendarModalProps {
 }
 
 /** Fixed row height so initialScrollIndex can jump straight to the next race. */
-const ROW_HEIGHT = 60;
+const ROW_HEIGHT = 66;
 
 /**
  * Ports the web RaceCalendarModal as a bottom sheet: the full season list with
@@ -21,6 +22,7 @@ const ROW_HEIGHT = 60;
  */
 export function RaceCalendarModal({ visible, entries, onClose }: RaceCalendarModalProps) {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   // First non-completed race: highlighted and used as the initial scroll target.
@@ -43,21 +45,21 @@ export function RaceCalendarModal({ visible, entries, onClose }: RaceCalendarMod
           accessibilityLabel={t.predictionsPage.dismiss}
         />
         <View
-          className="h-[85%] rounded-t-3xl border-t border-f1-white/10 bg-f1-black"
+          className="h-[85%] rounded-t-3xl border-t border-f1-white/10 bg-card"
           style={{ paddingBottom: insets.bottom }}
         >
           {/* Header */}
           <View className="flex-row items-center justify-between border-b border-f1-white/10 px-5 py-4">
-            <Text className="flex-1 text-sm font-bold uppercase tracking-wider text-f1-white">
+            <Text className="flex-1 text-base font-bold uppercase tracking-wider text-f1-white">
               {t.raceCalendar.modalTitle.replace("{{year}}", String(seasonYear))}
             </Text>
             <Pressable
               onPress={onClose}
               accessibilityRole="button"
               accessibilityLabel={t.raceCalendar.closeModal}
-              className="h-8 w-8 items-center justify-center rounded-full bg-f1-white/10 active:bg-f1-white/20"
+              className="h-9 w-9 items-center justify-center rounded-full bg-f1-white/10 active:bg-f1-white/20"
             >
-              <Ionicons name="close" size={16} color="#F7F7F7" />
+              <Ionicons name="close" size={18} color={colors.foreground} />
             </Pressable>
           </View>
 
@@ -84,6 +86,7 @@ export function RaceCalendarModal({ visible, entries, onClose }: RaceCalendarMod
 
 function CalendarRow({ entry, isNext }: { entry: RaceCalendarEntry; isNext: boolean }) {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const { race, raceStatus, predictionStatus } = entry;
   const isCompleted = raceStatus === "completed";
   const isLive = raceStatus === "live";
@@ -97,13 +100,13 @@ function CalendarRow({ entry, isNext }: { entry: RaceCalendarEntry; isNext: bool
     >
       {/* Round number */}
       <View
-        className={`h-7 w-7 items-center justify-center rounded-full ${
+        className={`h-8 w-8 items-center justify-center rounded-full ${
           isLive ? "bg-f1-red" : isNext ? "bg-f1-red/20" : "bg-f1-white/10"
         }`}
       >
         <Text
-          className={`text-[10px] font-bold ${
-            isLive ? "text-white" : isNext ? "text-f1-red" : "text-f1-white/50"
+          className={`text-xs font-bold ${
+            isLive ? "text-white" : isNext ? "text-f1-red" : "text-f1-white/60"
           }`}
         >
           {race.round}
@@ -113,12 +116,12 @@ function CalendarRow({ entry, isNext }: { entry: RaceCalendarEntry; isNext: bool
       {/* Race info */}
       <View className="flex-1">
         <View className="flex-row items-center gap-1.5">
-          <Text className="text-xs">{countryCodeToFlag(race.countryCode)}</Text>
-          <Text className="flex-1 text-xs font-medium text-f1-white" numberOfLines={1}>
+          <Text className="text-sm">{countryCodeToFlag(race.countryCode)}</Text>
+          <Text className="flex-1 text-sm font-medium text-f1-white" numberOfLines={1}>
             {race.raceName}
           </Text>
         </View>
-        <Text className="mt-0.5 text-[10px] text-f1-white/50" numberOfLines={1}>
+        <Text className="mt-0.5 text-xs text-f1-white/60" numberOfLines={1}>
           {race.circuitShortName} · {formatLocalDate(race.dateStart, race.dateEnd)}
         </Text>
       </View>
@@ -126,18 +129,18 @@ function CalendarRow({ entry, isNext }: { entry: RaceCalendarEntry; isNext: bool
       {/* Badges */}
       <View className="flex-row items-center gap-1.5">
         {race.hasSprint ? (
-          <View className="flex-row items-center gap-0.5 rounded-full bg-f1-purple/10 px-1.5 py-0.5">
-            <Ionicons name="flash" size={10} color="#A06CD5" />
-            <Text className="text-[9px] font-semibold text-f1-purple">
+          <View className="flex-row items-center gap-0.5 rounded-full bg-f1-purple/10 px-1.5 py-1">
+            <Ionicons name="flash" size={11} color={colors.purple} />
+            <Text className="text-[10px] font-semibold text-f1-purple">
               {t.raceCalendar.sprint}
             </Text>
           </View>
         ) : null}
 
         {isLive ? (
-          <View className="flex-row items-center gap-1 rounded-full bg-f1-red/10 px-2 py-0.5">
+          <View className="flex-row items-center gap-1 rounded-full bg-f1-red/10 px-2 py-1">
             <View className="h-1.5 w-1.5 rounded-full bg-f1-red" />
-            <Text className="text-[9px] font-semibold text-f1-red">{t.raceCalendar.live}</Text>
+            <Text className="text-[10px] font-semibold text-f1-red">{t.raceCalendar.live}</Text>
           </View>
         ) : predictionStatus ? (
           <PredictionBadge status={predictionStatus} />
@@ -156,8 +159,8 @@ function PredictionBadge({ status }: { status: PredictionStatus }) {
   } as const;
   const { label, cls, text } = config[status];
   return (
-    <View className={`rounded-full px-2 py-0.5 ${cls}`}>
-      <Text className={`text-[9px] font-semibold ${text}`}>{label}</Text>
+    <View className={`rounded-full px-2 py-1 ${cls}`}>
+      <Text className={`text-[10px] font-semibold ${text}`}>{label}</Text>
     </View>
   );
 }

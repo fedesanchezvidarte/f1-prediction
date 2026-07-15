@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
-/* Dark theme (default) */
+/* Dark theme (default).
+   Brand values are audited per theme — see docs/palette-audit.md for the
+   contrast math behind every hex. Dark keeps the vivid brand set (red is
+   brightened so it no longer washes out on near-black surfaces). */
 :root,
 .dark {
   --background: #0d0d0d;
@@ -9,12 +12,23 @@
   --card-hover: #222222;
   --border: #2a2a2a;
   --border-hover: #3a3a3a;
-  --muted: #737373;
+  --muted: #8a8a8a; /* 5.63:1 on background, 5.04:1 on card (was #737373 → 3.67:1 on card) */
   --input-bg: #141414;
   --fw: oklch(100% 0 0);
+  /* #E23B4C — 4.59:1 on background; max-min compromise between red-as-text and white-on-red */
+  --f1-red: oklch(60.8% 0.202 20.4);
+  /* #C62F3F — pressed/hover state */
+  --f1-red-hover: oklch(54.7% 0.186 20.6);
+  --f1-purple: oklch(63% 0.159 305.1); /* #A06CD5 — 5.18:1 */
+  --f1-amber: oklch(81.4% 0.17 76.9); /* #FFB100 — 10.68:1 */
+  --f1-green: oklch(67.4% 0.143 151.9); /* #44AF69 — 7.02:1 */
+  --f1-blue: oklch(64.6% 0.151 251.4); /* #3C91E6 — 5.91:1 */
+  /* Label color on bright brand fills (amber, green): graphite on #FFB100 = 7.81:1, on #44AF69 = 5.13:1 */
+  --on-bright: oklch(25.4% 0.004 145.7);
 }
 
-/* Light theme */
+/* Light theme — darkened same-hue brand variants; every one passes AA (4.5:1)
+   as text on both light surfaces and under white fill labels. */
 .light {
   --background: #f4f4f5;
   --foreground: #09090b;
@@ -25,6 +39,14 @@
   --muted: #71717a;
   --input-bg: #fafafa;
   --fw: oklch(9.4% 0.005 264);
+  --f1-red: oklch(52.3% 0.193 23.2); /* #C0202F — 5.48:1 on background */
+  --f1-red-hover: oklch(47.4% 0.174 22.8); /* #A81B29 */
+  --f1-purple: oklch(50.1% 0.177 299.2); /* #7443B8 — 5.90:1 (old #A06CD5 was 3.41:1) */
+  --f1-amber: oklch(53.8% 0.112 71.2); /* #96610A — 4.76:1 (old #FFB100 was 1.66:1) */
+  --f1-green: oklch(51.1% 0.108 155); /* #25784A — 4.94:1 (old #44AF69 was 2.52:1) */
+  --f1-blue: oklch(53.1% 0.146 252.6); /* #1C6DBD — 4.81:1 (old #3C91E6 was 2.99:1) */
+  /* Light amber/green are dark enough that fills need white labels (5.24:1 / 5.43:1), not graphite */
+  --on-bright: oklch(100% 0 0);
 }
 
 @theme inline {
@@ -36,16 +58,19 @@
   --color-border-hover: var(--border-hover);
   --color-muted: var(--muted);
   --color-input-bg: var(--input-bg);
-  /* oklch values enable opacity modifiers (e.g. bg-f1-red/10) to work correctly */
-  --color-f1-red: oklch(44.7% 0.183 20.5);
-  --color-f1-red-hover: oklch(39.8% 0.172 20.5);
+  /* Brand tokens are per-theme variables (see :root/.dark and .light above).
+     oklch values keep opacity modifiers (e.g. bg-f1-red/10) working correctly. */
+  --color-f1-red: var(--f1-red);
+  --color-f1-red-hover: var(--f1-red-hover);
+  /* Static graphite — surface/label tone, never a page background */
   --color-f1-black: oklch(25.4% 0.004 145.7);
   /* --fw is overridden per theme so text-f1-white adapts in light mode */
   --color-f1-white: var(--fw);
-  --color-f1-purple: oklch(57.8% 0.152 302.1);
-  --color-f1-amber: oklch(76.5% 0.167 72.4);
-  --color-f1-green: oklch(63.4% 0.152 152.8);
-  --color-f1-blue: oklch(60.7% 0.148 240.4);
+  --color-f1-purple: var(--f1-purple);
+  --color-f1-amber: var(--f1-amber);
+  --color-f1-green: var(--f1-green);
+  --color-f1-blue: var(--f1-blue);
+  --color-on-bright: var(--on-bright);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
