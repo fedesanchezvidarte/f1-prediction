@@ -4,11 +4,13 @@ import { Pressable, Text, View } from "react-native";
 import type { RaceCalendarEntry } from "@f1/shared/lib/race-utils";
 
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 import { RaceCalendarModal } from "./RaceCalendarModal";
 
 /** Ports the web RaceCalendarCard: tap to open the season calendar bottom sheet. */
 export function RaceCalendarCard({ entries }: { entries: RaceCalendarEntry[] }) {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
@@ -19,14 +21,14 @@ export function RaceCalendarCard({ entries }: { entries: RaceCalendarEntry[] }) 
         accessibilityLabel={`${t.raceCalendar.title} — ${t.raceCalendar.tapToView}`}
         className="flex-1 items-center justify-center gap-3 rounded-2xl border border-f1-white/10 bg-f1-white/5 p-5 active:bg-f1-white/10"
       >
-        <View className="h-10 w-10 items-center justify-center rounded-xl bg-f1-red/10">
-          <Ionicons name="calendar-outline" size={20} color="#CF2637" />
+        <View className="h-11 w-11 items-center justify-center rounded-xl bg-f1-red/10">
+          <Ionicons name="calendar-outline" size={22} color={colors.red} />
         </View>
         <View>
-          <Text className="text-center text-xs font-medium text-f1-white">
+          <Text className="text-center text-sm font-medium text-f1-white">
             {t.raceCalendar.title}
           </Text>
-          <Text className="mt-0.5 text-center text-[10px] text-f1-white/50">
+          <Text className="mt-0.5 text-center text-xs text-f1-white/60">
             {t.raceCalendar.tapToView}
           </Text>
         </View>

@@ -6,6 +6,7 @@ import type { Race } from "@f1/shared/types";
 
 import { RaceStatusBadge } from "@/components/predictions/StatusBadges";
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 
 interface RoundSelectorModalProps {
   visible: boolean;
@@ -28,6 +29,7 @@ export function RoundSelectorModal({
   onClose,
 }: RoundSelectorModalProps) {
   const { t, language } = useLanguage();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   const formatDate = (dateStr: string) =>
@@ -46,7 +48,7 @@ export function RoundSelectorModal({
           accessibilityLabel={t.predictionsPage.dismiss}
         />
         <View
-          className="max-h-[80%] rounded-t-3xl border-t border-f1-white/10 bg-f1-black"
+          className="max-h-[80%] rounded-t-3xl border-t border-f1-white/10 bg-card"
           style={{ paddingBottom: insets.bottom }}
         >
           <View className="flex-row items-center justify-between border-b border-f1-white/10 px-5 py-4">
@@ -59,7 +61,7 @@ export function RoundSelectorModal({
               accessibilityLabel={t.predictionsPage.dismiss}
               className="h-8 w-8 items-center justify-center rounded-full bg-f1-white/10 active:bg-f1-white/20"
             >
-              <Ionicons name="close" size={16} color="#F7F7F7" />
+              <Ionicons name="close" size={18} color={colors.foreground} />
             </Pressable>
           </View>
 

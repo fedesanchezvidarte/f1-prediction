@@ -15,6 +15,7 @@ import type { ConstructorStanding, DriverStanding, StatLeader } from "@f1/shared
 
 import { supabase } from "@/lib/supabase";
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 
 type StandingsTab = "wdc" | "wcc" | "stats";
 
@@ -24,20 +25,20 @@ const TABS: readonly StandingsTab[] = ["wdc", "wcc", "stats"] as const;
 function ListHeader({ nameLabel }: { nameLabel: string }) {
   const { t } = useLanguage();
   return (
-    <View className="flex-row items-center gap-2 border-b border-f1-white/10 bg-f1-white/5 px-4 py-2">
-      <Text className="w-8 text-[10px] font-semibold uppercase tracking-wider text-f1-white/50">
+    <View className="flex-row items-center gap-2 border-b border-f1-white/10 bg-f1-white/5 px-4 py-2.5">
+      <Text className="w-8 text-[11px] font-semibold uppercase tracking-wider text-f1-white/60">
         {t.standingsModal.rank}
       </Text>
-      <Text className="flex-1 text-[10px] font-semibold uppercase tracking-wider text-f1-white/50">
+      <Text className="flex-1 text-[11px] font-semibold uppercase tracking-wider text-f1-white/60">
         {nameLabel}
       </Text>
-      <Text className="w-10 text-right text-[10px] font-semibold uppercase tracking-wider text-f1-white/50">
+      <Text className="w-10 text-right text-[11px] font-semibold uppercase tracking-wider text-f1-white/60">
         {t.standingsModal.wins}
       </Text>
-      <Text className="w-10 text-right text-[10px] font-semibold uppercase tracking-wider text-f1-white/50">
+      <Text className="w-10 text-right text-[11px] font-semibold uppercase tracking-wider text-f1-white/60">
         {t.standingsModal.podiums}
       </Text>
-      <Text className="w-12 text-right text-[10px] font-semibold uppercase tracking-wider text-f1-white/50">
+      <Text className="w-12 text-right text-[11px] font-semibold uppercase tracking-wider text-f1-white/60">
         {t.standingsModal.points}
       </Text>
     </View>
@@ -63,22 +64,22 @@ function StandingRow({
   points: number;
 }) {
   return (
-    <View className="min-h-12 flex-row items-center gap-2 border-b border-f1-white/10 px-4 py-2.5">
-      <Text className="w-8 text-xs font-bold tabular-nums text-f1-white">{rank}</Text>
-      <View className="h-6 w-1 rounded-sm" style={{ backgroundColor: `#${color}` }} />
+    <View className="min-h-14 flex-row items-center gap-2 border-b border-f1-white/10 px-4 py-3">
+      <Text className="w-8 text-sm font-bold tabular-nums text-f1-white">{rank}</Text>
+      <View className="h-7 w-1 rounded-sm" style={{ backgroundColor: `#${color}` }} />
       <View className="flex-1">
-        <Text className="text-xs font-medium text-f1-white" numberOfLines={1}>
+        <Text className="text-sm font-medium text-f1-white" numberOfLines={1}>
           {name}
         </Text>
         {subtitle ? (
-          <Text className="text-[10px] text-f1-white/50" numberOfLines={1}>
+          <Text className="text-xs text-f1-white/60" numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}
       </View>
-      <Text className="w-10 text-right text-xs tabular-nums text-f1-white/50">{wins}</Text>
-      <Text className="w-10 text-right text-xs tabular-nums text-f1-white/50">{podiums}</Text>
-      <Text className="w-12 text-right text-xs font-semibold tabular-nums text-f1-white">
+      <Text className="w-10 text-right text-sm tabular-nums text-f1-white/60">{wins}</Text>
+      <Text className="w-10 text-right text-sm tabular-nums text-f1-white/60">{podiums}</Text>
+      <Text className="w-12 text-right text-sm font-semibold tabular-nums text-f1-white">
         {points}
       </Text>
     </View>
@@ -98,29 +99,29 @@ function StatRow({
   const { t } = useLanguage();
 
   return (
-    <View className="flex-row items-center justify-between rounded-xl border border-f1-white/10 bg-f1-white/5 px-4 py-3">
+    <View className="flex-row items-center justify-between rounded-xl border border-f1-white/10 bg-f1-white/5 px-4 py-3.5">
       <View className="flex-row items-center gap-2">
         {icon}
-        <Text className="text-xs font-medium uppercase tracking-wider text-f1-white/50">
+        <Text className="text-xs font-medium uppercase tracking-wider text-f1-white/60">
           {label}
         </Text>
       </View>
       {leader ? (
         <View className="flex-row items-center gap-3">
           <View className="items-end">
-            <Text className="text-xs font-semibold text-f1-white">
+            <Text className="text-sm font-semibold text-f1-white">
               {leader.driver.firstName} {leader.driver.lastName}
             </Text>
-            <Text className="text-[10px]" style={{ color: `#${leader.driver.teamColor}` }}>
+            <Text className="text-xs" style={{ color: `#${leader.driver.teamColor}` }}>
               {leader.driver.teamName}
             </Text>
           </View>
-          <View className="rounded-full bg-f1-red/10 px-2.5 py-0.5">
-            <Text className="text-xs font-bold tabular-nums text-f1-red">{leader.count}</Text>
+          <View className="rounded-full bg-f1-red/10 px-2.5 py-1">
+            <Text className="text-sm font-bold tabular-nums text-f1-red">{leader.count}</Text>
           </View>
         </View>
       ) : (
-        <Text className="text-xs text-f1-white/50">{t.standingsModal.empty}</Text>
+        <Text className="text-sm text-f1-white/60">{t.standingsModal.empty}</Text>
       )}
     </View>
   );
@@ -128,6 +129,7 @@ function StatRow({
 
 export default function StandingsScreen() {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<StandingsTab>("wdc");
   const [refreshing, setRefreshing] = useState(false);
 
@@ -148,7 +150,7 @@ export default function StandingsScreen() {
 
   if (standingsQuery.error) {
     return (
-      <View className="flex-1 items-center justify-center gap-4 bg-f1-black p-6">
+      <View className="flex-1 items-center justify-center gap-4 bg-background p-6">
         <Text className="text-center text-sm text-f1-white/70">{t.predictionsPage.loadError}</Text>
         <Pressable
           onPress={() => standingsQuery.refetch()}
@@ -164,14 +166,14 @@ export default function StandingsScreen() {
 
   if (standingsQuery.isPending || !standings) {
     return (
-      <View className="flex-1 items-center justify-center bg-f1-black p-6">
-        <ActivityIndicator color="#CF2637" />
+      <View className="flex-1 items-center justify-center bg-background p-6">
+        <ActivityIndicator color={colors.red} />
       </View>
     );
   }
 
   const refreshControl = (
-    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#CF2637" />
+    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.red} />
   );
 
   const isEmpty =
@@ -182,7 +184,7 @@ export default function StandingsScreen() {
         : !standings.stats.mostWins && !standings.stats.mostPodiums && !standings.stats.mostDnfs;
 
   return (
-    <View className="flex-1 bg-f1-black">
+    <View className="flex-1 bg-background">
       {/* ── Segmented tabs: Drivers / Constructors / Stats ── */}
       <View className="flex-row border-b border-f1-white/10">
         {TABS.map((tab) => {
@@ -194,12 +196,14 @@ export default function StandingsScreen() {
               accessibilityRole="tab"
               accessibilityLabel={t.standingsModal.tabs[tab]}
               accessibilityState={{ selected: isActive }}
-              className={`min-h-11 flex-1 items-center justify-center border-b-2 ${
+              className={`min-h-12 flex-1 items-center justify-center border-b-2 ${
                 isActive ? "border-f1-red" : "border-transparent active:bg-f1-white/5"
               }`}
             >
               <Text
-                className={`text-xs font-medium ${isActive ? "text-f1-white" : "text-f1-white/50"}`}
+                className={`text-sm font-medium ${
+                  isActive ? "text-f1-white" : "text-f1-white/60"
+                }`}
               >
                 {t.standingsModal.tabs[tab]}
               </Text>
@@ -250,17 +254,17 @@ export default function StandingsScreen() {
       ) : (
         <ScrollView contentContainerClassName="gap-3 p-4" refreshControl={refreshControl}>
           <StatRow
-            icon={<Ionicons name="trophy" size={14} color="#FFB100" />}
+            icon={<Ionicons name="trophy" size={14} color={colors.amber} />}
             label={t.standingsModal.mostWins}
             leader={standings.stats.mostWins}
           />
           <StatRow
-            icon={<Ionicons name="trending-up" size={14} color="#44AF69" />}
+            icon={<Ionicons name="trending-up" size={14} color={colors.green} />}
             label={t.standingsModal.mostPodiums}
             leader={standings.stats.mostPodiums}
           />
           <StatRow
-            icon={<Ionicons name="warning" size={14} color="#CF2637" />}
+            icon={<Ionicons name="warning" size={14} color={colors.red} />}
             label={t.standingsModal.mostDnfs}
             leader={standings.stats.mostDnfs}
           />

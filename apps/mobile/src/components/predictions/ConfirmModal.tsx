@@ -1,6 +1,7 @@
 import { ActivityIndicator, Modal, Pressable, Text, View } from "react-native";
 
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 
 interface ConfirmModalProps {
   visible: boolean;
@@ -35,19 +36,20 @@ export function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const confirmBg =
     tone === "red"
       ? "bg-f1-red active:bg-f1-red-hover"
       : tone === "amber"
         ? "bg-f1-amber active:bg-f1-amber/80"
         : "bg-f1-blue active:bg-f1-blue/80";
-  const confirmText = tone === "amber" ? "text-black" : "text-white";
-  const spinnerColor = tone === "amber" ? "#2A2B2A" : "#FFFFFF";
+  const confirmText = tone === "amber" ? "text-on-bright" : "text-white";
+  const spinnerColor = tone === "amber" ? colors.onBright : "#FFFFFF";
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View className="flex-1 items-center justify-center bg-black/60 p-6">
-        <View className="w-full max-w-sm overflow-hidden rounded-2xl border border-f1-white/10 bg-f1-black">
+        <View className="w-full max-w-sm overflow-hidden rounded-2xl border border-f1-white/10 bg-card">
           <View className="border-b border-f1-white/10 px-5 py-4">
             <Text className="text-base font-semibold text-f1-white">{title}</Text>
             {subtitle ? <Text className="mt-0.5 text-xs text-f1-white/50">{subtitle}</Text> : null}

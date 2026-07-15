@@ -16,6 +16,7 @@ import { UserSummaryCard } from "@/components/dashboard/UserSummaryCard";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 
 /**
  * Home dashboard (Phase 4a): ports the web dashboard cards — user summary,
@@ -24,6 +25,7 @@ import { useLanguage } from "@/providers/LanguageProvider";
  */
 export default function HomeScreen() {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -77,8 +79,8 @@ export default function HomeScreen() {
 
   if (loadError) {
     return (
-      <View className="flex-1 items-center justify-center gap-4 bg-f1-black p-6">
-        <Text className="text-center text-sm text-f1-white/70">{t.predictionsPage.loadError}</Text>
+      <View className="flex-1 items-center justify-center gap-4 bg-background p-6">
+        <Text className="text-center text-base text-f1-white/70">{t.predictionsPage.loadError}</Text>
         <Pressable
           onPress={() => {
             racesQuery.refetch();
@@ -102,18 +104,18 @@ export default function HomeScreen() {
 
   if (isPending || !dashboard || !achievements || !standings) {
     return (
-      <View className="flex-1 items-center justify-center bg-f1-black p-6">
-        <ActivityIndicator color="#CF2637" />
+      <View className="flex-1 items-center justify-center bg-background p-6">
+        <ActivityIndicator color={colors.red} />
       </View>
     );
   }
 
   return (
     <ScrollView
-      className="flex-1 bg-f1-black"
+      className="flex-1 bg-background"
       contentContainerClassName="gap-4 p-4"
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#CF2637" />
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.red} />
       }
     >
       <UserSummaryCard

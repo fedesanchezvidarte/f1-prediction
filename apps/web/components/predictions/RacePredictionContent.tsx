@@ -227,8 +227,8 @@ export function RacePredictionContent({
 
     if (status === "scored") return { color: "bg-muted/20 text-muted cursor-not-allowed", label: t.predictionsPage.scored };
     if (status === "submitted" && !hasEdits) return { color: "bg-f1-blue text-white", label: t.predictionsPage.submitted };
-    if (status === "submitted") return { color: "bg-f1-amber text-black", label: t.predictionsPage.updatePrediction };
-    return { color: "bg-f1-green text-black hover:bg-f1-green/80", label: t.predictionsPage.submitPrediction };
+    if (status === "submitted") return { color: "bg-f1-amber text-on-bright", label: t.predictionsPage.updatePrediction };
+    return { color: "bg-f1-green text-on-bright hover:bg-f1-green/80", label: t.predictionsPage.submitPrediction };
   }, [isChampionTab, tab, champPred, currentSprintPred, currentPrediction, hasEdits, t]);
 
   const submitConfig = getSubmitButtonConfig();
@@ -1071,7 +1071,7 @@ function SubmitConfirmModal({
             disabled={isSaving}
             className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[11px] font-semibold text-white transition-colors disabled:opacity-50 ${
               isChampionModal
-                ? "bg-f1-amber text-black hover:bg-f1-amber/80"
+                ? "bg-f1-amber text-on-bright hover:bg-f1-amber/80"
                 : "bg-f1-blue hover:bg-f1-blue/80"
             }`}
           >
@@ -1361,7 +1361,7 @@ function RoundSelectorBar({
           aria-label={t.predictionsPage.championPrediction}
           className={`relative flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-[10px] font-medium transition-colors sm:px-2.5 ${
             isChampionTab
-              ? "bg-f1-amber text-black"
+              ? "bg-f1-amber text-on-bright"
               : champNeedsAttention
                 ? "bg-f1-amber/15 text-f1-amber ring-1 ring-f1-amber/40"
                 : "border border-border text-muted hover:border-border-hover hover:text-f1-white"

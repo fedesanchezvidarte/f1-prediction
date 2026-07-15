@@ -49,7 +49,7 @@ export function DriverPickerModal({
           accessibilityLabel={t.predictionsPage.dismiss}
         />
         <View
-          className="max-h-[75%] rounded-t-3xl border-t border-f1-white/10 bg-f1-black"
+          className="max-h-[75%] rounded-t-3xl border-t border-f1-white/10 bg-card"
           style={{ paddingBottom: insets.bottom }}
         >
           {/* Header */}

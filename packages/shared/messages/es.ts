@@ -397,6 +397,8 @@ const es: Messages = {
     account: "Cuenta",
     theme: "Tema",
     themeDark: "Oscuro",
+    themeLight: "Claro",
+    themeSystem: "Sistema",
     changePassword: "Cambiar Contraseña",
     signOut: "Cerrar Sesión",
     deleteAccount: "Eliminar Cuenta",

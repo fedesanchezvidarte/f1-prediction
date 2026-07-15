@@ -57,6 +57,7 @@ import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 
 /** Which prediction slot the driver picker is currently editing. */
 type SlotTarget =
@@ -77,6 +78,7 @@ type SlotTarget =
 
 export default function RacePredictionScreen() {
   const { t, language } = useLanguage();
+  const { colors } = useTheme();
   const { user } = useAuth();
   const userId = user?.id;
   const queryClient = useQueryClient();
@@ -217,7 +219,7 @@ export default function RacePredictionScreen() {
       <ScreenShell>
         <View className="flex-1 items-center justify-center p-6">
           {isPending ? (
-            <ActivityIndicator color="#CF2637" />
+            <ActivityIndicator color={colors.red} />
           ) : (
             <Text className="text-sm text-f1-white/50">{t.predictionsPage.noPredictions}</Text>
           )}
@@ -771,8 +773,8 @@ export default function RacePredictionScreen() {
       : status === "submitted" && !hasEdits
         ? { className: "bg-f1-blue active:bg-f1-blue/80", textClassName: "text-white", label: t.predictionsPage.submitted, disabled: false }
         : status === "submitted"
-          ? { className: "bg-f1-amber active:bg-f1-amber/80", textClassName: "text-black", label: t.predictionsPage.updatePrediction, disabled: false }
-          : { className: "bg-f1-green active:bg-f1-green/80", textClassName: "text-black", label: t.predictionsPage.submitPrediction, disabled: false };
+          ? { className: "bg-f1-amber active:bg-f1-amber/80", textClassName: "text-on-bright", label: t.predictionsPage.updatePrediction, disabled: false }
+          : { className: "bg-f1-green active:bg-f1-green/80", textClassName: "text-on-bright", label: t.predictionsPage.submitPrediction, disabled: false };
 
   // Points shown in the actions bar: the combined weekend total on race/sprint
   // tabs of a sprint round (so both tabs agree), champion total on champion.
@@ -814,7 +816,7 @@ export default function RacePredictionScreen() {
         className="flex-1"
         contentContainerClassName="p-4 gap-4 pb-8"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#CF2637" />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.red} />
         }
       >
         {/* ── Tabs ── */}
@@ -828,7 +830,7 @@ export default function RacePredictionScreen() {
 
         {/* ── Round selector (race + sprint tabs) / champion header ── */}
         {!isChampionTab ? (
-          <View className="flex-row items-center gap-2">
+          <View className="mt-2 flex-row items-center gap-2">
             <Pressable
               onPress={() => selectRound(Math.max(0, raceIndex - 1))}
               disabled={raceIndex === 0}
@@ -838,7 +840,7 @@ export default function RacePredictionScreen() {
                 raceIndex === 0 ? "opacity-30" : ""
               }`}
             >
-              <Ionicons name="chevron-back" size={18} color="#F7F7F7" />
+              <Ionicons name="chevron-back" size={18} color={colors.foreground} />
             </Pressable>
 
             <Pressable
@@ -859,7 +861,7 @@ export default function RacePredictionScreen() {
                   {formatDate(currentRace.dateStart)} – {formatDate(currentRace.dateEnd)}
                 </Text>
               </View>
-              <Ionicons name="chevron-down" size={16} color="#F7F7F766" />
+              <Ionicons name="chevron-down" size={16} color={colors.muted} />
             </Pressable>
 
             <Pressable
@@ -871,12 +873,12 @@ export default function RacePredictionScreen() {
                 raceIndex === races.length - 1 ? "opacity-30" : ""
               }`}
             >
-              <Ionicons name="chevron-forward" size={18} color="#F7F7F7" />
+              <Ionicons name="chevron-forward" size={18} color={colors.foreground} />
             </Pressable>
           </View>
         ) : (
-          <View className="flex-row items-center gap-2 rounded-xl border border-f1-white/10 bg-f1-white/5 px-3 py-3">
-            <Ionicons name="trophy" size={16} color="#FFB100" />
+          <View className="mt-2 flex-row items-center gap-2 rounded-xl border border-f1-white/10 bg-f1-white/5 px-3 py-3">
+            <Ionicons name="trophy" size={16} color={colors.amber} />
             <Text className="flex-1 text-sm font-semibold text-f1-white">
               {t.predictionsPage.championshipPredictions}
             </Text>
@@ -897,8 +899,9 @@ export default function RacePredictionScreen() {
           </View>
         )}
 
-        {/* ── Status row: badges + countdown / closed banner / results toggle ── */}
-        <View className="gap-2">
+        {/* ── Status row: badges + countdown / closed banner / results toggle.
+            Closed by a divider, mirroring the one above the actions bar. ── */}
+        <View className="mt-2 gap-2 border-b border-f1-white/10 pb-5">
           <View className="flex-row items-center gap-2">
             {!isChampionTab && <RaceStatusBadge status={raceStatus} />}
             <PredictionStatusBadge status={status} />
@@ -911,7 +914,7 @@ export default function RacePredictionScreen() {
                 }
                 className="ml-auto min-h-8 flex-row items-center gap-1.5 px-1"
               >
-                <Ionicons name={showResults ? "eye-off" : "eye"} size={13} color="#3C91E6" />
+                <Ionicons name={showResults ? "eye-off" : "eye"} size={13} color={colors.blue} />
                 <Text className="text-xs font-medium text-f1-blue">
                   {showResults ? t.predictionsPage.hideResults : t.predictionsPage.showResults}
                 </Text>
@@ -929,7 +932,7 @@ export default function RacePredictionScreen() {
               />
             ) : (
               <View className="flex-row items-center gap-2 rounded-lg border border-f1-red/30 bg-f1-red/10 px-3 py-2">
-                <Ionicons name="time-outline" size={14} color="#CF2637" />
+                <Ionicons name="time-outline" size={14} color={colors.red} />
                 <Text className="text-xs font-semibold text-f1-red">
                   {t.predictionsPage.predictionsClosed}
                 </Text>
@@ -966,7 +969,7 @@ export default function RacePredictionScreen() {
             </View>
           ) : championPending || !champPred || !teamBestPreds || !teamsWithDrivers ? (
             <View className="items-center py-8">
-              <ActivityIndicator color="#CF2637" />
+              <ActivityIndicator color={colors.red} />
             </View>
           ) : (
             <ChampionForm
@@ -991,7 +994,7 @@ export default function RacePredictionScreen() {
         ) : tab === "sprint" ? (
           sprintPending ? (
             <View className="items-center py-8">
-              <ActivityIndicator color="#CF2637" />
+              <ActivityIndicator color={colors.red} />
             </View>
           ) : currentSprintPred ? (
             <View className="gap-5">
@@ -1164,7 +1167,7 @@ export default function RacePredictionScreen() {
           <View className="flex-row items-center gap-2">
             {pointsEarned !== null && (
               <View className="flex-row items-center gap-1.5">
-                <Ionicons name="trophy" size={16} color="#FFB100" />
+                <Ionicons name="trophy" size={16} color={colors.amber} />
                 <Text className="text-base font-bold tabular-nums text-f1-amber">
                   {pointsEarned}
                 </Text>
@@ -1184,7 +1187,7 @@ export default function RacePredictionScreen() {
                   isSaving ? "opacity-50" : ""
                 }`}
               >
-                <Ionicons name="refresh" size={14} color="#F7F7F7AA" />
+                <Ionicons name="refresh" size={14} color={colors.foregroundMuted} />
                 <Text className="text-sm font-medium text-f1-white/70">
                   {t.predictionsPage.reset}
                 </Text>
@@ -1192,7 +1195,7 @@ export default function RacePredictionScreen() {
             )}
             {actionsLocked ? (
               <View className="min-h-11 flex-row items-center gap-1.5 rounded-lg bg-f1-red/15 px-4">
-                <Ionicons name="time-outline" size={14} color="#CF2637" />
+                <Ionicons name="time-outline" size={14} color={colors.red} />
                 <Text className="text-sm font-semibold text-f1-red">
                   {t.predictionsPage.deadlinePassed}
                 </Text>
@@ -1214,7 +1217,7 @@ export default function RacePredictionScreen() {
                   isSaving || !isEditable ? "opacity-70" : ""
                 }`}
               >
-                {isSaving ? <ActivityIndicator size="small" color="#2A2B2A" /> : null}
+                {isSaving ? <ActivityIndicator size="small" color={colors.onBright} /> : null}
                 <Text className={`text-sm font-semibold ${submitConfig.textClassName}`}>
                   {isSaving ? t.predictionsPage.saving : submitConfig.label}
                 </Text>
@@ -1328,5 +1331,5 @@ function buildBonusBadges(
 /** Shared wrapper: dark background behind every screen state. The header
  * title comes from the tab navigator config in `(app)/_layout.tsx`. */
 function ScreenShell({ children }: { children: React.ReactNode }) {
-  return <View className="flex-1 bg-f1-black">{children}</View>;
+  return <View className="flex-1 bg-background">{children}</View>;
 }

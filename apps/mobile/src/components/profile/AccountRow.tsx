@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text } from "react-native";
 
+import { useTheme } from "@/providers/ThemeProvider";
+
 interface AccountRowProps {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -22,7 +24,8 @@ export function AccountRow({
   chevron = false,
   last = false,
 }: AccountRowProps) {
-  const color = tone === "danger" ? "rgba(207,38,55,0.7)" : "rgba(247,247,247,0.5)";
+  const { colors } = useTheme();
+  const color = tone === "danger" ? "rgba(207,38,55,0.7)" : colors.foregroundMuted;
 
   return (
     <Pressable
@@ -37,7 +40,9 @@ export function AccountRow({
       <Text className={`flex-1 text-sm ${tone === "danger" ? "text-f1-red/70" : "text-f1-white"}`}>
         {label}
       </Text>
-      {chevron ? <Ionicons name="chevron-forward" size={15} color="rgba(247,247,247,0.5)" /> : null}
+      {chevron ? (
+        <Ionicons name="chevron-forward" size={15} color={colors.foregroundMuted} />
+      ) : null}
     </Pressable>
   );
 }

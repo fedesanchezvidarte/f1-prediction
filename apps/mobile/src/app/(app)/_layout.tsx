@@ -1,6 +1,7 @@
 import { Drawer } from "expo-router/drawer";
 
 import { ProfileDrawerContent } from "@/components/profile/ProfileDrawerContent";
+import { useTheme } from "@/providers/ThemeProvider";
 
 /**
  * Signed-in group wrapped in a right-side Drawer whose content is a compact
@@ -11,6 +12,8 @@ import { ProfileDrawerContent } from "@/components/profile/ProfileDrawerContent"
  * guard in the root layout.
  */
 export default function AppLayout() {
+  const { colors } = useTheme();
+
   return (
     <Drawer
       drawerContent={(props) => <ProfileDrawerContent {...props} />}
@@ -20,9 +23,9 @@ export default function AppLayout() {
         drawerType: "front",
         swipeEnabled: true,
         swipeEdgeWidth: 60,
-        drawerStyle: { backgroundColor: "#2A2B2A", width: 300 },
+        drawerStyle: { backgroundColor: colors.background, width: 300 },
         overlayColor: "rgba(0,0,0,0.6)",
-        sceneStyle: { backgroundColor: "#2A2B2A" },
+        sceneStyle: { backgroundColor: colors.background },
       }}
     >
       <Drawer.Screen name="(tabs)" />

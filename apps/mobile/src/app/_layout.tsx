@@ -9,12 +9,14 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { createSessionFromUrl } from "@/lib/auth";
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { LanguageProvider } from "@/providers/LanguageProvider";
+import { ThemeProvider, useTheme } from "@/providers/ThemeProvider";
 import "../global.css";
 
 const queryClient = new QueryClient();
 
 function RootNavigator() {
   const { session, isLoading } = useAuth();
+  const { colors } = useTheme();
 
   // Safety net for auth deep links that arrive outside the
   // openAuthSessionAsync round-trip (e.g. some Android browsers deliver the
@@ -30,14 +32,14 @@ function RootNavigator() {
   // to show — render a plain spinner instead of flashing the login screen.
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-f1-black">
-        <ActivityIndicator color="#CF2637" />
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator color={colors.red} />
       </View>
     );
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#2A2B2A" } }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Protected guard={!!session}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
@@ -48,17 +50,25 @@ function RootNavigator() {
   );
 }
 
+function ThemedStatusBar() {
+  const { resolvedTheme } = useTheme();
+  // StatusBar style names the icon color, so it's the inverse of the theme.
+  return <StatusBar style={resolvedTheme === "dark" ? "light" : "dark"} />;
+}
+
 export default function RootLayout() {
   return (
     // GestureHandlerRootView is required by the profile drawer's gestures.
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <LanguageProvider>
-          <AuthProvider>
-            <StatusBar style="light" />
-            <RootNavigator />
-          </AuthProvider>
-        </LanguageProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <ThemedStatusBar />
+              <RootNavigator />
+            </AuthProvider>
+          </LanguageProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

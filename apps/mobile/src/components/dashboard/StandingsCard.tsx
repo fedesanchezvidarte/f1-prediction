@@ -4,6 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import type { ChampionshipStandings } from "@f1/shared/types";
 
 import { useLanguage } from "@/providers/LanguageProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 import { RankBadge } from "./RankBadge";
 
 /**
@@ -13,6 +14,7 @@ import { RankBadge } from "./RankBadge";
  */
 export function StandingsCard({ standings }: { standings: ChampionshipStandings }) {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const router = useRouter();
 
   const topFive = standings.wdc.slice(0, 5);
@@ -27,16 +29,14 @@ export function StandingsCard({ standings }: { standings: ChampionshipStandings 
     >
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
-          <Ionicons name="trophy" size={16} color="#FFB100" />
-          <Text className="text-xs font-medium uppercase tracking-wider text-f1-white/50">
+          <Ionicons name="trophy" size={16} color={colors.amber} />
+          <Text className="text-xs font-medium uppercase tracking-wider text-f1-white/60">
             {t.standingsCard.title}
           </Text>
         </View>
         <View className="flex-row items-center gap-0.5">
-          <Text className="text-[10px] font-medium text-f1-white/50">
-            {t.standingsCard.viewAll}
-          </Text>
-          <Ionicons name="chevron-forward" size={12} color="#F7F7F780" />
+          <Text className="text-xs font-medium text-f1-white/60">{t.standingsCard.viewAll}</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.foregroundMuted} />
         </View>
       </View>
 
@@ -45,26 +45,26 @@ export function StandingsCard({ standings }: { standings: ChampionshipStandings 
           {topFive.map((entry) => (
             <View
               key={entry.driverId}
-              className="flex-row items-center justify-between rounded-md px-2 py-1.5"
+              className="flex-row items-center justify-between rounded-md px-2 py-2"
             >
               <View className="flex-1 flex-row items-center gap-2">
                 <RankBadge rank={entry.rank} />
                 <View
-                  className="h-6 w-1 rounded-sm"
+                  className="h-7 w-1 rounded-sm"
                   style={{ backgroundColor: `#${entry.driver.teamColor}` }}
                 />
                 <View className="flex-1">
-                  <Text className="text-xs font-medium text-f1-white" numberOfLines={1}>
+                  <Text className="text-sm font-medium text-f1-white" numberOfLines={1}>
                     {entry.driver.firstName.charAt(0)}. {entry.driver.lastName}
                   </Text>
-                  <Text className="text-[10px] text-f1-white/50" numberOfLines={1}>
+                  <Text className="text-xs text-f1-white/60" numberOfLines={1}>
                     {entry.driver.teamName}
                   </Text>
                 </View>
               </View>
-              <Text className="ml-2 text-xs font-semibold tabular-nums text-f1-white">
+              <Text className="ml-2 text-sm font-semibold tabular-nums text-f1-white">
                 {entry.points}
-                <Text className="text-[10px] font-normal text-f1-white/50">
+                <Text className="text-xs font-normal text-f1-white/60">
                   {" "}
                   {t.standingsCard.pts}
                 </Text>
@@ -74,9 +74,7 @@ export function StandingsCard({ standings }: { standings: ChampionshipStandings 
         </View>
       ) : (
         <View className="mt-3 items-center justify-center rounded-lg border border-dashed border-f1-white/10 p-4">
-          <Text className="text-center text-[11px] text-f1-white/50">
-            {t.standingsCard.noData}
-          </Text>
+          <Text className="text-center text-xs text-f1-white/60">{t.standingsCard.noData}</Text>
         </View>
       )}
     </Pressable>

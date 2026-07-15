@@ -28,7 +28,7 @@ export default function AuthCallbackScreen() {
   }, [session, isLoading, router]);
 
   return (
-    <View className="flex-1 items-center justify-center bg-f1-black">
+    <View className="flex-1 items-center justify-center bg-background">
       <ActivityIndicator color="#CF2637" />
     </View>
   );
