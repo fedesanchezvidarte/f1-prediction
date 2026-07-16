@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { isRegistrationConsentValid } from "@f1/shared/lib/privacy";
 import { F1Logo } from "@/components/F1Logo";
 import { AuthFooter } from "@/components/AuthFooter";
 import { GoogleIcon } from "@/components/GoogleIcon";
@@ -22,11 +23,18 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
   const { t } = useLanguage();
 
   async function handleRegister(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    if (!isRegistrationConsentValid(agreedToPrivacy)) {
+      setError(t.register.consentRequired);
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createClient();
@@ -53,6 +61,12 @@ export default function RegisterPage() {
 
   async function handleGoogleSignUp() {
     setError(null);
+
+    if (!isRegistrationConsentValid(agreedToPrivacy)) {
+      setError(t.register.consentRequired);
+      return;
+    }
+
     setIsRedirecting(true);
     const supabase = createClient();
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
@@ -138,6 +152,30 @@ export default function RegisterPage() {
               {" — "}
               <strong className="font-black">{t.login.disclaimerLine2Suffix}</strong>
             </p>
+          </div>
+
+          <div className="flex items-start gap-2.5">
+            <input
+              id="privacy-consent"
+              type="checkbox"
+              checked={agreedToPrivacy}
+              onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-f1-red"
+            />
+            <label
+              htmlFor="privacy-consent"
+              className="text-xs leading-relaxed text-muted"
+            >
+              {t.register.agreePrivacyPrefix}{" "}
+              <Link
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-f1-white underline underline-offset-2 transition-colors hover:text-f1-red"
+              >
+                {t.register.agreePrivacyLink}
+              </Link>
+            </label>
           </div>
 
           <button

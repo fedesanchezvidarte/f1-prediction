@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export function AuthFooter() {
@@ -28,6 +29,14 @@ export function AuthFooter() {
         >
           LinkedIn
         </a>
+      </p>
+      <p className="mt-1">
+        <Link
+          href="/privacy"
+          className="underline underline-offset-2 transition-colors hover:text-f1-white"
+        >
+          {t.authFooter.privacyPolicy}
+        </Link>
       </p>
     </footer>
   );

@@ -24,6 +24,7 @@ import {
   EyeOff,
   Loader2,
   Camera,
+  ShieldCheck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
@@ -443,6 +444,17 @@ export function ProfileContent({ profile, stats, authProvider }: ProfileContentP
         </div>
 
         {/* ── Account actions ── */}
+        <Link
+          href="/privacy"
+          className="flex items-center justify-between border-b border-border px-5 py-3.5 transition-colors hover:bg-card-hover"
+        >
+          <div className="flex items-center gap-3">
+            <ShieldCheck size={15} className="text-muted" />
+            <span className="text-sm text-f1-white">{t.profilePage.privacyPolicy}</span>
+          </div>
+          <ChevronRight size={15} className="text-muted" />
+        </Link>
+
         {authProvider === "email" && (
           <button
             onClick={() => {
