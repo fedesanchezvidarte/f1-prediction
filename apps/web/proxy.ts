@@ -45,7 +45,12 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/forgot-password") ||
     request.nextUrl.pathname.startsWith("/auth");
 
-  if (!user && !isAuthPage) {
+  // Public pages are reachable by everyone — signed in or not — and are never
+  // redirected. The privacy policy must be publicly accessible (GDPR art. 13)
+  // and is also linked from the authenticated profile page.
+  const isPublicPage = request.nextUrl.pathname.startsWith("/privacy");
+
+  if (!user && !isAuthPage && !isPublicPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
