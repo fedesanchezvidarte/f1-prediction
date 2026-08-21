@@ -208,3 +208,71 @@ describe("fetchSprintResults", () => {
     expect(await fetchSprintResults(supabase)).toEqual({});
   });
 });
+
+/* ── fetchRaceResults: deactivated-driver regression ────────────────────── */
+
+/**
+ * Regression guard for the per-race lineup feature.
+ *
+ * `fetchRaceResults` maps `top_10` through `findDriver` and then drops the
+ * nulls (`.filter(d => d !== null)`). If `findDriver` cannot resolve a driver
+ * who was deactivated after the race, that position is silently removed and
+ * every position below it shifts up a place — P6 would be reported as P5.
+ * `findDriver` resolves against the full roster, so the array must stay
+ * full-length and correctly ordered.
+ */
+describe("fetchRaceResults with a deactivated driver", () => {
+  const COMPLETE_ROW = {
+    race_id: 501,
+    pole_position_driver_id: null,
+    qualifying_top_3: [102, 101, 103],
+    qualifying_p4_driver_id: 104,
+    top_10: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110],
+    p11_driver_id: 111,
+    fastest_lap_driver_id: 105,
+    fastest_pit_stop_driver_id: 106,
+    driver_of_the_day_driver_id: 107,
+  };
+
+  /** id 105 / #5 finished P5 and was deactivated later in the season. */
+  const ID_ROWS_WITH_INACTIVE = Array.from({ length: 12 }, (_, i) => ({
+    id: 101 + i,
+    driver_number: i + 1,
+    is_active: 101 + i !== 105,
+  }));
+
+  function setupWithInactiveDriver() {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("seasons", { data: { id: SEASON_ID }, error: null });
+    mockTable(
+      "drivers",
+      { data: ID_ROWS_WITH_INACTIVE, error: null },
+      { data: FULL_DRIVER_ROWS, error: null }
+    );
+    mockTable("races", { data: DB_RACES, error: null });
+    mockTable("race_results", { data: [COMPLETE_ROW], error: null });
+    return supabase;
+  }
+
+  it("keeps top_10 full-length and in order when one finisher is now inactive", async () => {
+    const result = (await fetchRaceResults(setupWithInactiveDriver()))[9001];
+
+    expect(result).toBeDefined();
+    expect(result.top10).toHaveLength(10);
+    expect(result.top10.map((d) => d.driverNumber)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
+  it("does not shift the positions below the inactive driver up a place", async () => {
+    const result = (await fetchRaceResults(setupWithInactiveDriver()))[9001];
+
+    // P5 is the deactivated driver; P6 must still be #6, not #6-shifted-to-P5.
+    expect(result.top10[4].driverNumber).toBe(5);
+    expect(result.top10[5].driverNumber).toBe(6);
+  });
+
+  it("still resolves the deactivated driver in the single-driver result slots", async () => {
+    const result = (await fetchRaceResults(setupWithInactiveDriver()))[9001];
+
+    expect(result.fastestLap.driverNumber).toBe(5);
+  });
+});

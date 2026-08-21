@@ -18,11 +18,13 @@ import {
   Trash2,
   Crown,
   BarChart3,
+  Users,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { ManualResultForm } from "@/components/admin/ManualResultForm";
 import { DatetimeManager } from "@/components/admin/DatetimeManager";
 import { ChampionResultForm } from "@/components/admin/ChampionResultForm";
+import { LineupManager } from "@/components/admin/LineupManager";
 import type { DriverStatsMap, DriverStatsLeaders } from "@f1/shared/lib/driver-stats";
 
 interface AdminDriver {
@@ -125,6 +127,7 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
   const [globalRescoreState, setGlobalRescoreState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [globalRescoreMsg, setGlobalRescoreMsg] = useState("");
   const [showChampionForm, setShowChampionForm] = useState(false);
+  const [showLineup, setShowLineup] = useState(false);
   const [championRescoreState, setChampionRescoreState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [championResetState, setChampionResetState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [championResetMessage, setChampionResetMessage] = useState("");
@@ -665,6 +668,47 @@ export function AdminPanel({ races, drivers, teams, championResult, teamBestDriv
             />
           )}
         </div>
+      </div>
+
+      {/* Lineup section — per-race overrides + season availability */}
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <button
+          type="button"
+          onClick={() => setShowLineup((prev) => !prev)}
+          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-card-hover"
+          aria-expanded={showLineup}
+          aria-controls={showLineup ? "admin-lineup-panel" : undefined}
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            <Users size={16} aria-hidden="true" className="shrink-0 text-f1-blue" />
+            <div className="min-w-0">
+              <span className="block text-sm font-semibold text-f1-white">
+                {admin.lineupSection}
+              </span>
+              <span className="block text-[10px] text-muted">
+                {admin.lineupSubtitle}
+              </span>
+            </div>
+          </div>
+          {showLineup ? (
+            <ChevronUp size={16} aria-hidden="true" className="shrink-0 text-muted" />
+          ) : (
+            <ChevronDown size={16} aria-hidden="true" className="shrink-0 text-muted" />
+          )}
+        </button>
+
+        {showLineup && (
+          <div id="admin-lineup-panel" className="border-t border-border px-4 py-4">
+            <LineupManager
+              races={races.map((r) => ({
+                id: r.id,
+                round: r.round,
+                raceName: r.raceName,
+              }))}
+              teams={teams}
+            />
+          </div>
+        )}
       </div>
 
       {/* Race list */}

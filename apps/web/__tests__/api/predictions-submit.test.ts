@@ -164,8 +164,9 @@ describe("POST /api/predictions/submit", () => {
     mockFrom.mockImplementation(() => {
       callIdx++;
       if (callIdx === 1) return chain({ id: 42 }); // races lookup
-      if (callIdx === 2) return chain({ id: 1 }); // seasons
-      if (callIdx === 3) {
+      if (callIdx === 2) return chain([]); // race_lineup_overrides — nobody benched
+      if (callIdx === 3) return chain({ id: 1 }); // seasons
+      if (callIdx === 4) {
         // drivers
         return {
           select: () => ({

@@ -34,6 +34,7 @@ import type {
   RaceStatus,
   TeamBestDriverPrediction,
   TeamWithDrivers,
+  RaceLineupEntry,
 } from "@f1/shared/types";
 import { getRaceStatus, getChampionPredictionPhase } from "@f1/shared/lib/race-utils";
 import type { ChampionPredictionPhase } from "@f1/shared/lib/race-utils";
@@ -50,6 +51,7 @@ import {
   type RaceMatchStatuses,
   type SprintMatchStatuses,
 } from "@f1/shared/lib/prediction-status";
+import { applyLineupOverrides } from "@f1/shared/lib/lineup";
 import { DriverSelect } from "./DriverSelect";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
@@ -57,7 +59,14 @@ type TabMode = "race" | "sprint" | "champion";
 
 interface RacePredictionContentProps {
   races: Race[];
+  /** The season's selectable grid, with no per-race overrides applied. */
   drivers: Driver[];
+  /**
+   * Per-race lineup overrides for every round, keyed by `meetingKey`. Rounds
+   * with no overrides are absent. Resolved against the round currently being
+   * viewed, because switching rounds never returns to the server.
+   */
+  lineupByMeetingKey?: Record<number, RaceLineupEntry[]>;
   teams: string[];
   teamsWithDrivers: TeamWithDrivers[];
   predictions: FullRacePrediction[];
@@ -107,6 +116,7 @@ function RaceStatusBadge({ status }: { status: RaceStatus }) {
 export function RacePredictionContent({
   races,
   drivers,
+  lineupByMeetingKey = {},
   teams,
   teamsWithDrivers,
   predictions: initialPredictions,
@@ -233,10 +243,24 @@ export function RacePredictionContent({
 
   const submitConfig = getSubmitButtonConfig();
 
+  // The grid as it stands for the round being viewed: benched drivers flagged,
+  // and anyone on loan to another team wearing that team's name and colour.
+  const roundDrivers = useMemo(
+    () => applyLineupOverrides(drivers, lineupByMeetingKey[currentRace.meetingKey] ?? []),
+    [drivers, lineupByMeetingKey, currentRace.meetingKey]
+  );
+
+  // Drivers benched for this round. Seeded into every per-field disabled set
+  // below so "already picked elsewhere" and "not on the grid" share one path.
+  const unavailableDrivers = useMemo(
+    () => roundDrivers.filter((d) => d.isUnavailable === true),
+    [roundDrivers]
+  );
+
   const getDisabledForPosition = useCallback(
     (posIndex: number, mode: "race" | "sprint") => {
       if (mode === "race" && currentPrediction) {
-        const used: Driver[] = [];
+        const used: Driver[] = [...unavailableDrivers];
         if (currentPrediction.raceWinner) used.push(currentPrediction.raceWinner);
         currentPrediction.restOfTop10.forEach((d, i) => {
           if (d && i !== posIndex) used.push(d);
@@ -244,29 +268,35 @@ export function RacePredictionContent({
         return used;
       }
       if (mode === "sprint" && currentSprintPred) {
-        const used: Driver[] = [];
+        const used: Driver[] = [...unavailableDrivers];
         if (currentSprintPred.sprintWinner) used.push(currentSprintPred.sprintWinner);
         currentSprintPred.restOfTop8.forEach((d, i) => {
           if (d && i !== posIndex) used.push(d);
         });
         return used;
       }
-      return [];
+      return unavailableDrivers;
     },
-    [currentPrediction, currentSprintPred]
+    [currentPrediction, currentSprintPred, unavailableDrivers]
   );
 
   const getDisabledForWinner = useCallback(
     (mode: "race" | "sprint") => {
       if (mode === "race" && currentPrediction) {
-        return currentPrediction.restOfTop10.filter((d): d is Driver => d !== null);
+        return [
+          ...unavailableDrivers,
+          ...currentPrediction.restOfTop10.filter((d): d is Driver => d !== null),
+        ];
       }
       if (mode === "sprint" && currentSprintPred) {
-        return currentSprintPred.restOfTop8.filter((d): d is Driver => d !== null);
+        return [
+          ...unavailableDrivers,
+          ...currentSprintPred.restOfTop8.filter((d): d is Driver => d !== null),
+        ];
       }
-      return [];
+      return unavailableDrivers;
     },
-    [currentPrediction, currentSprintPred]
+    [currentPrediction, currentSprintPred, unavailableDrivers]
   );
 
   function updateRacePrediction(update: Partial<FullRacePrediction>) {
@@ -476,6 +506,8 @@ export function RacePredictionContent({
 
   const teamColors = useMemo(() => {
     const map: Record<string, string> = {};
+    // Season teams, not this round's overrides — these colour the champion
+    // (season-long) team fields.
     drivers.forEach((d) => {
       if (!map[d.teamName]) map[d.teamName] = d.teamColor;
     });
@@ -733,7 +765,7 @@ export function RacePredictionContent({
           currentSprintPred ? (
             <SprintForm
               prediction={currentSprintPred}
-              drivers={drivers}
+              drivers={roundDrivers}
               isEditable={isEditable}
               getDisabledForPosition={(i) => getDisabledForPosition(i, "sprint")}
               getDisabledForWinner={() => getDisabledForWinner("sprint")}
@@ -749,7 +781,7 @@ export function RacePredictionContent({
         ) : currentPrediction ? (
           <RaceForm
             prediction={currentPrediction}
-            drivers={drivers}
+            drivers={roundDrivers}
             isEditable={isEditable}
             getDisabledForPosition={(i) => getDisabledForPosition(i, "race")}
             getDisabledForWinner={() => getDisabledForWinner("race")}

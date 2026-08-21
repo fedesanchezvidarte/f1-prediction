@@ -8,6 +8,8 @@ import type {
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { buildTeamAtRace, fetchLineupOverrides } from "./lineup";
+
 /** Official F1 race points by finishing position (P1..P10). */
 export const RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1] as const;
 
@@ -18,13 +20,24 @@ export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
 const COUNTBACK_LENGTH = RACE_POINTS.length;
 
 export interface RaceResultRow {
+  /** `races.id` — needed to attribute constructor points to the team the driver raced for. */
+  race_id: number;
   top_10: number[];
   dnf_driver_ids: number[] | null;
 }
 
 export interface SprintResultRow {
+  /** `races.id` — see `RaceResultRow.race_id`. */
+  race_id: number;
   top_8: number[];
 }
+
+/**
+ * Resolves the team a driver scored for at a given race: the per-race lineup
+ * override when one exists, otherwise their season team. Built by
+ * `buildTeamAtRace` in `./lineup`.
+ */
+export type TeamAtRace = (driverId: number, raceId: number) => number | null;
 
 /**
  * Driver lookup metadata used to project standings into renderable rows.
@@ -156,7 +169,7 @@ export function buildDriverStandings(
   }));
 }
 
-interface ConstructorAggregate {
+export interface ConstructorAggregate {
   teamId: number;
   points: number;
   wins: number;
@@ -165,23 +178,24 @@ interface ConstructorAggregate {
 }
 
 /**
- * Aggregates driver standings into constructor standings by summing each driver's
- * points/wins/podiums/raceFinishCounts into their team. Every team in the lookup
- * appears in the output, even those without any scoring drivers.
+ * Aggregates race + sprint results into per-constructor totals, attributing each
+ * result to the team the driver raced for **at that race** — so a one-weekend
+ * seat swap moves only that weekend's points, and the rest of the season stays
+ * where it was scored.
  *
- * Tie-breaking follows F1's official rules:
- *  1. Higher points wins.
- *  2. Countback: the team with more P1 finishes wins, then P2s, then P3s, ...
- *     (raceFinishCounts is the per-position sum across both team drivers).
- *  3. Final fallback: ascending teamId for deterministic ordering.
+ * Mirrors `computeDriverAggregates` exactly on what counts: races contribute
+ * points, wins, podiums and countback weight; sprints contribute points only.
+ * Drivers whose team cannot be resolved are skipped.
  *
- * Pure function.
+ * Every team in `teamLookup` appears in the result, even ones that never scored.
+ * Pure function — no I/O.
  */
-export function buildConstructorStandings(
-  driverStandings: DriverStanding[],
-  driverLookup: DriverLookup,
+export function computeConstructorAggregates(
+  raceResults: RaceResultRow[],
+  sprintResults: SprintResultRow[],
+  teamAtRace: TeamAtRace,
   teamLookup: TeamLookup
-): ConstructorStanding[] {
+): Map<number, ConstructorAggregate> {
   const map = new Map<number, ConstructorAggregate>();
 
   for (const teamIdStr of Object.keys(teamLookup)) {
@@ -195,21 +209,52 @@ export function buildConstructorStandings(
     });
   }
 
-  for (const ds of driverStandings) {
-    const teamId = driverLookup[ds.driverId]?.teamId;
-    if (teamId == null) continue;
-    const existing = map.get(teamId);
-    if (!existing) continue;
+  function entry(driverId: number, raceId: number): ConstructorAggregate | null {
+    const teamId = teamAtRace(driverId, raceId);
+    if (teamId == null) return null;
+    return map.get(teamId) ?? null;
+  }
 
-    existing.points += ds.points;
-    existing.wins += ds.wins;
-    existing.podiums += ds.podiums;
-    for (let i = 0; i < COUNTBACK_LENGTH; i++) {
-      existing.raceFinishCounts[i] += ds.raceFinishCounts[i] ?? 0;
+  for (const result of raceResults) {
+    const top10 = result.top_10 ?? [];
+    for (let i = 0; i < Math.min(RACE_POINTS.length, top10.length); i++) {
+      const agg = entry(top10[i], result.race_id);
+      if (!agg) continue;
+      agg.points += RACE_POINTS[i];
+      agg.raceFinishCounts[i] += 1;
+      if (i === 0) agg.wins += 1;
+      if (i < 3) agg.podiums += 1;
     }
   }
 
-  const items = Array.from(map.values());
+  for (const result of sprintResults) {
+    const top8 = result.top_8 ?? [];
+    for (let i = 0; i < Math.min(SPRINT_POINTS.length, top8.length); i++) {
+      const agg = entry(top8[i], result.race_id);
+      if (!agg) continue;
+      agg.points += SPRINT_POINTS[i];
+    }
+  }
+
+  return map;
+}
+
+/**
+ * Projects constructor aggregates into ranked `ConstructorStanding` rows.
+ *
+ * Tie-breaking follows F1's official rules:
+ *  1. Higher points wins.
+ *  2. Countback: the team with more P1 finishes wins, then P2s, then P3s, ...
+ *     (raceFinishCounts is the per-position sum across the team's drivers).
+ *  3. Final fallback: ascending teamId for deterministic ordering.
+ *
+ * Pure function.
+ */
+export function buildConstructorStandings(
+  aggregates: Map<number, ConstructorAggregate>,
+  teamLookup: TeamLookup
+): ConstructorStanding[] {
+  const items = Array.from(aggregates.values()).filter((item) => teamLookup[item.teamId]);
 
   items.sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
@@ -311,20 +356,38 @@ export async function fetchChampionshipStandings(
     teamLookup[t.id as number] = { name: t.name, color: t.color };
   }
 
-  const [{ data: raceResults }, { data: sprintResults }] = await Promise.all([
+  const [{ data: raceResults }, { data: sprintResults }, lineupOverrides] = await Promise.all([
     supabase
       .from("race_results")
-      .select("top_10, dnf_driver_ids")
+      .select("race_id, top_10, dnf_driver_ids")
       .in("race_id", raceIds),
-    supabase.from("sprint_results").select("top_8").in("race_id", raceIds),
+    supabase.from("sprint_results").select("race_id, top_8").in("race_id", raceIds),
+    // Standings are display-only, so fall back to season-team attribution
+    // rather than failing the whole page if the overrides cannot be read.
+    fetchLineupOverrides(supabase, raceIds).catch((err) => {
+      console.error("[championship-standings] Could not read race lineup overrides:", err);
+      return [];
+    }),
   ]);
 
   const raceRows = (raceResults ?? []) as RaceResultRow[];
   const sprintRows = (sprintResults ?? []) as SprintResultRow[];
 
+  // Constructor points follow the team the driver raced for at each race, so a
+  // one-weekend seat swap does not re-attribute the rest of the season.
+  const seasonTeamByDriverId = new Map<number, number | null>();
+  for (const driverIdStr of Object.keys(driverLookup)) {
+    const driverId = Number(driverIdStr);
+    seasonTeamByDriverId.set(driverId, driverLookup[driverId].teamId);
+  }
+  const teamAtRace = buildTeamAtRace(lineupOverrides, seasonTeamByDriverId);
+
   const aggregates = computeDriverAggregates(raceRows, sprintRows);
   const wdc = buildDriverStandings(aggregates, driverLookup);
-  const wcc = buildConstructorStandings(wdc, driverLookup, teamLookup);
+  const wcc = buildConstructorStandings(
+    computeConstructorAggregates(raceRows, sprintRows, teamAtRace, teamLookup),
+    teamLookup
+  );
 
   // Stats: reuse driver-stats library for parity with Champion-prediction scoring.
   const { computeDriverStats, getStatsLeaders } = await import("./driver-stats");

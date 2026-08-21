@@ -6,6 +6,8 @@ import { Footer } from "@/components/layout/Footer";
 import { RacePredictionContent } from "@/components/predictions/RacePredictionContent";
 import { fetchRacesFromDb } from "@/lib/races";
 import { fetchTeamsFromDb, fetchTeamsWithDrivers } from "@/lib/teams";
+import { fetchRaceLineupsFromDb } from "@/lib/lineup";
+import type { RaceLineupEntry } from "@f1/shared/types";
 import {
   createPredictionContext,
   fetchUserRacePredictions,
@@ -92,7 +94,51 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
     );
   }
 
-  // Fetch drivers (already resolved inside the shared context) and teams
+  // Determine initial race index: use round param if provided, otherwise next
+  // upcoming race.
+  const now = new Date();
+  let initialRaceIndex = 0;
+  if (roundParam !== null) {
+    const roundIndex = RACES.findIndex((r) => r.round === roundParam);
+    if (roundIndex !== -1) initialRaceIndex = roundIndex;
+  } else {
+    for (let i = 0; i < RACES.length; i++) {
+      if (new Date(RACES[i].dateEnd) > now) {
+        initialRaceIndex = i;
+        break;
+      }
+    }
+  }
+
+  // Per-race lineup overrides for EVERY round, keyed by meeting key. A driver
+  // can be benched for a weekend (unselectable in every picker) and/or racing
+  // for a different team that weekend (badge shows the team they actually drive
+  // for). All rounds are sent because the round switcher is client-side state
+  // and never returns to the server — fetching only the initially viewed round
+  // would leave its overrides applied after arrowing to a different one.
+  //
+  // The shared fetcher keys on `races.id`; the UI keys on `meetingKey`, so
+  // re-key using the context's id -> meetingKey map.
+  // Degrade rather than 500 the whole page if the overrides cannot be read:
+  // the pickers fall back to the season grid, and the server-side guard in
+  // /api/predictions/submit still refuses a benched driver, so a bad pick
+  // cannot be saved even while this page is showing stale availability.
+  let lineupsByRaceId: Record<number, RaceLineupEntry[]> = {};
+  try {
+    lineupsByRaceId = await fetchRaceLineupsFromDb([
+      ...predictionContext.raceIdToMeetingKey.keys(),
+    ]);
+  } catch (err) {
+    console.error("[race-prediction] Could not read race lineup overrides:", err);
+  }
+  const lineupByMeetingKey: Record<number, RaceLineupEntry[]> = {};
+  for (const [raceId, entries] of Object.entries(lineupsByRaceId)) {
+    const meetingKey = predictionContext.raceIdToMeetingKey.get(Number(raceId));
+    if (meetingKey !== undefined) lineupByMeetingKey[meetingKey] = entries;
+  }
+
+  // Fetch drivers (already resolved inside the shared context) and teams.
+  // Passed through untouched: overrides are applied per round on the client.
   const allDrivers = predictionContext.allDrivers;
   const allTeams = await fetchTeamsFromDb();
   const teamsWithDrivers = await fetchTeamsWithDrivers();
@@ -120,21 +166,6 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
   const raceResults = await fetchRaceResults(supabase, predictionContext);
   const sprintResults = await fetchSprintResults(supabase, predictionContext);
 
-  // Determine initial race index: use round param if provided, otherwise next upcoming race
-  const now = new Date();
-  let initialRaceIndex = 0;
-  if (roundParam !== null) {
-    const roundIndex = RACES.findIndex((r) => r.round === roundParam);
-    if (roundIndex !== -1) initialRaceIndex = roundIndex;
-  } else {
-    for (let i = 0; i < RACES.length; i++) {
-      if (new Date(RACES[i].dateEnd) > now) {
-        initialRaceIndex = i;
-        break;
-      }
-    }
-  }
-
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar displayName={displayName} avatarUrl={avatarUrl ?? undefined} isAdmin={isAdminUser(user)} />
@@ -144,6 +175,7 @@ export default async function RacePredictionPage({ searchParams }: PageProps) {
           <RacePredictionContent
             races={RACES}
             drivers={allDrivers}
+            lineupByMeetingKey={lineupByMeetingKey}
             teams={allTeams}
             teamsWithDrivers={teamsWithDrivers}
             predictions={predictions}

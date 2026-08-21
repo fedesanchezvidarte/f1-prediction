@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getChampionPredictionPhase } from "@f1/shared/lib/race-utils";
+import { fetchRaceLineup, getUnavailableDriverNumbers } from "@f1/shared/lib/lineup";
 import type { Race } from "@f1/shared/types";
 
 /**
@@ -61,6 +62,48 @@ async function getDriverNumberToIdMap(
   return map;
 }
 
+/**
+ * Rejects a submission that names a driver who is not on the grid for this race.
+ *
+ * The pickers already grey these drivers out, but the API is reachable directly,
+ * so the availability rule is enforced here too. Returns a 400 response naming
+ * the offending driver numbers, or `null` when every pick is on the grid.
+ */
+async function rejectUnavailableDrivers(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  raceDbId: number,
+  pickedDriverNumbers: (number | null)[]
+) {
+  // Fail closed: if availability cannot be determined, refuse the write rather
+  // than assume everyone is on the grid.
+  let lineup;
+  try {
+    lineup = await fetchRaceLineup(supabase, raceDbId);
+  } catch (err) {
+    console.error("[predictions/submit] Could not read race lineup overrides:", err);
+    return NextResponse.json(
+      { error: "Could not verify driver availability for this race" },
+      { status: 500 }
+    );
+  }
+
+  const unavailable = new Set(getUnavailableDriverNumbers(lineup));
+  if (unavailable.size === 0) return null;
+
+  const benched = [
+    ...new Set(pickedDriverNumbers.filter((n): n is number => n !== null && unavailable.has(n))),
+  ];
+  if (benched.length === 0) return null;
+
+  return NextResponse.json(
+    {
+      error: "One or more selected drivers are not racing this weekend",
+      unavailableDriverNumbers: benched,
+    },
+    { status: 400 }
+  );
+}
+
 async function getRaceDbId(
   supabase: Awaited<ReturnType<typeof createClient>>,
   meetingKey: number
@@ -107,6 +150,15 @@ async function handleRacePrediction(
   if (!raceDbId) {
     return NextResponse.json({ error: "Race not found" }, { status: 404 });
   }
+
+  const unavailableResponse = await rejectUnavailableDrivers(supabase, raceDbId, [
+    ...qualifyingTop3,
+    ...top10,
+    fastestLapDriverNumber,
+    fastestPitStopDriverNumber,
+    driverOfTheDayDriverNumber,
+  ]);
+  if (unavailableResponse) return unavailableResponse;
 
   const driverMap = await getDriverNumberToIdMap(supabase);
   function mapDriver(num: number | null): number | null {
@@ -191,6 +243,13 @@ async function handleSprintPrediction(
   if (!raceDbId) {
     return NextResponse.json({ error: "Race not found" }, { status: 404 });
   }
+
+  const unavailableResponse = await rejectUnavailableDrivers(supabase, raceDbId, [
+    ...qualifyingTop3,
+    ...top8,
+    fastestLapDriverNumber,
+  ]);
+  if (unavailableResponse) return unavailableResponse;
 
   const driverMap = await getDriverNumberToIdMap(supabase);
   function mapDriver(num: number | null): number | null {

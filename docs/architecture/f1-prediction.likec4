@@ -97,8 +97,13 @@ model {
     }
 
     driverData = libComponent 'Driver & Team Data' {
-      description 'Static driver roster and team metadata used for display and validation throughout the app.'
+      description 'Driver roster and team metadata. fetchDrivers() defaults to the SELECTABLE grid (is_active = true); { includeInactive: true } returns the full season roster, which the prediction context uses to resolve stored driver ids — a driver deactivated mid-season must still render in the predictions and results already recorded against them. setDriverActive() toggles season-wide availability (service-role only).'
       technology 'TypeScript · lib/drivers.ts · lib/teams.ts'
+    }
+
+    raceLineup = libComponent 'Race Lineup Overrides' {
+      description 'Per-race deviations from the season lineup. Pure applyLineupOverrides() folds a race\'s overrides onto a Driver[] (benched drivers flagged isUnavailable, loaned drivers wearing the team they actually race for); pure buildTeamAtRace() resolves (driverId, raceId) to the team that scores that race. Service fetchers read race_lineup_overrides and THROW on failure rather than returning an empty lineup, so a broken read cannot silently un-bench a driver.'
+      technology 'TypeScript · lib/lineup.ts'
     }
 
     driverStats = libComponent 'Driver Stats' {
@@ -107,7 +112,7 @@ model {
     }
 
     championshipStandings = libComponent 'Championship Standings' {
-      description 'Pure aggregators + service that compute the WDC + WCC standings and stat leaders from race_results and sprint_results using official F1 points (25-18-15-12-10-8-6-4-2-1 + FL bonus / 8-7-6-5-4-3-2-1). Includes countback tiebreaks on race-only finishes.'
+      description 'Pure aggregators + service that compute the WDC + WCC standings and stat leaders from race_results and sprint_results using official F1 points (25-18-15-12-10-8-6-4-2-1 + FL bonus / 8-7-6-5-4-3-2-1). Includes countback tiebreaks on race-only finishes. WCC points are attributed PER RACE via computeConstructorAggregates(): each result is credited to the team the driver raced for at that race, so a one-weekend seat swap moves only that weekend. WDC is never re-attributed.'
       technology 'TypeScript · lib/championship-standings.ts'
     }
 
@@ -119,7 +124,7 @@ model {
     // ── API Routes Layer (app/api/) ─────────────────────────────
 
     predictionsApi = apiRoute 'Predictions API' {
-      description 'POST /api/predictions/submit — save race, sprint, or season award prediction (driver number to DB ID mapping applied internally)\nPOST /api/predictions/reset — clear a prediction for a given race'
+      description 'POST /api/predictions/submit — save race, sprint, or season award prediction (driver number to DB ID mapping applied internally). Rejects with 400 any pick naming a driver benched for that race, and fails CLOSED with 500 if availability cannot be read — the pickers grey these drivers out, but the API is reachable directly.\nPOST /api/predictions/reset — clear a prediction for a given race'
       technology 'Next.js Route Handler · app/api/predictions/'
     }
 
@@ -136,6 +141,11 @@ model {
     racesApi = apiRoute 'Races API' {
       description 'POST /api/races/update-datetime — manually update race datetimes (Practice 1 start and Qualifying deadline)'
       technology 'Next.js Route Handler · app/api/races/'
+    }
+
+    adminLineupApi = apiRoute 'Admin Lineup API' {
+      description 'GET /api/admin/lineup?raceId= — season roster plus that race\'s overrides\nPUT /api/admin/lineup — upsert one (race, driver) override; an override that neither benches nor moves the driver is deleted instead\nDELETE /api/admin/lineup — remove one override\nPATCH /api/admin/drivers — toggle season-wide drivers.is_active\nAll admin-guarded; writes use the service-role client because race_lineup_overrides and drivers are read-only under RLS.'
+      technology 'Next.js Route Handler · app/api/admin/'
     }
 
     achievementsApi = apiRoute 'Achievements API' {
@@ -223,12 +233,17 @@ model {
 
     // Championship Standings
     championshipStandings -> driverStats 're-uses computeDriverStats() + getStatsLeaders() for stat leaders parity'
-    championshipStandings -> supabaseClient 'reads seasons, races, drivers (with teams), teams, race_results, sprint_results'
+    championshipStandings -> raceLineup 'buildTeamAtRace() — per-race constructor attribution; degrades to season teams if overrides cannot be read'
+    championshipStandings -> supabaseClient 'reads seasons, races, drivers (with teams), teams, race_results, sprint_results, race_lineup_overrides'
 
     // Driver Stats
     driverStats -> supabaseClient 'reads seasons, races, race_results for the active season'
 
     // Race Prediction
+    racePredictionPage -> raceLineup 'fetchRaceLineups() for every round, then applyLineupOverrides() for the round being viewed — all rounds are sent because the round switcher is client-side state'
+    predictionsApi -> raceLineup 'fetchRaceLineup() — rejects a pick naming a driver benched for that race'
+    adminLineupApi -> raceLineup 'fetchLineupRoster(), upsertLineupOverride(), deleteLineupOverride(), setDriverActive()'
+    adminPage -> adminLineupApi 'Lineup panel: bench a driver for one race, or move them to another team for that race only'
     racePredictionPage -> supabaseClient 'browser client: reads drivers, teams, existing predictions'
     racePredictionPage -> raceUtils 'getChampionPredictionPhase()'
     racePredictionPage -> predictionsApi 'POST prediction on submit'
@@ -297,6 +312,7 @@ views {
     include f1prediction.webapp.pointSystem
     include f1prediction.webapp.driverData
     include f1prediction.webapp.driverStats
+    include f1prediction.webapp.raceLineup
     include f1prediction.webapp.championshipStandings
     include f1prediction.webapp.supabaseClient
     include f1prediction.supabase
@@ -317,6 +333,7 @@ views {
     include f1prediction.webapp.championApi
     include f1prediction.webapp.racesApi
     include f1prediction.webapp.achievementsApi
+    include f1prediction.webapp.adminLineupApi
     include f1prediction.webapp.scoringService
     include f1prediction.webapp.achievementCalculator
     include f1prediction.webapp.raceUtils
