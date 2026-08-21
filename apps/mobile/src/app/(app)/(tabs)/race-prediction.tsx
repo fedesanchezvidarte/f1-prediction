@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { fetchChampionPredictionData } from "@f1/shared/lib/champion-predictions";
 import { fetchDrivers } from "@f1/shared/lib/drivers";
+import { applyLineupOverrides } from "@f1/shared/lib/lineup";
 import {
   computeRaceMatchStatuses,
   computeSprintMatchStatuses,
@@ -53,6 +54,7 @@ import { RaceResultsPanel, SprintResultsPanel } from "@/components/predictions/R
 import { RoundSelectorModal } from "@/components/predictions/RoundSelectorModal";
 import { PredictionStatusBadge, RaceStatusBadge } from "@/components/predictions/StatusBadges";
 import { TeamPickerModal } from "@/components/predictions/TeamPickerModal";
+import { useRaceLineupsQuery } from "@/hooks/useRaceLineupsQuery";
 import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/AuthProvider";
@@ -125,6 +127,9 @@ export default function RacePredictionScreen() {
     queryKey: ["sprintResults"],
     queryFn: () => fetchSprintResults(supabase),
   });
+  // Per-race lineup overrides for every round, keyed by meeting key. Never
+  // errors: a failed read degrades to "no overrides" (see the hook).
+  const lineupsQuery = useRaceLineupsQuery();
 
   /* ── Local edit state (mirrors the web: edits live locally until submit) ── */
 
@@ -233,6 +238,17 @@ export default function RacePredictionScreen() {
   const currentRace = races[Math.min(raceIndex, races.length - 1)];
   const raceStatus = getRaceStatus(currentRace);
   const drivers = driversQuery.data ?? [];
+  // The grid as it stands for the round being viewed: benched drivers flagged
+  // `isUnavailable`, and anyone on loan wearing that team's name and colour.
+  // Feeds the race and sprint pickers only — a one-race bench must not make a
+  // driver unpickable for the season-long champion awards, which keep using
+  // the un-overridden `drivers`. `applyLineupOverrides` returns the input array
+  // itself when the round has no overrides, so this stays referentially stable
+  // in the common case.
+  const roundDrivers = applyLineupOverrides(
+    drivers,
+    lineupsQuery.data?.[currentRace.meetingKey] ?? []
+  );
   const currentPrediction =
     (predictions ?? []).find((p) => p.raceId === currentRace.meetingKey) ?? null;
   const currentSprintPred =
@@ -753,6 +769,7 @@ export default function RacePredictionScreen() {
         championQuery.refetch(),
         raceResultsQuery.refetch(),
         sprintResultsQuery.refetch(),
+        lineupsQuery.refetch(),
       ]);
     } finally {
       setRefreshing(false);
@@ -1242,7 +1259,9 @@ export default function RacePredictionScreen() {
       <DriverPickerModal
         visible={pickerTarget !== null}
         label={pickerTarget ? getSlotLabel(pickerTarget) : ""}
-        drivers={drivers}
+        // Champion awards run over the whole season, so they ignore a
+        // single-race bench; race and sprint slots get the round's grid.
+        drivers={pickerTarget?.kind === "champion" ? drivers : roundDrivers}
         value={pickerValue}
         disabledDrivers={pickerTarget ? getDisabledForSlot(pickerTarget) : []}
         onSelect={(driver) => {

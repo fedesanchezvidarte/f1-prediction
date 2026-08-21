@@ -30,7 +30,7 @@ npx expo export --platform android   # Verify the app bundles end-to-end
 
 ```
 apps/web/                       — Next.js app (web-only, includes the admin panel)
-    app/                        — Pages + the 11 API routes (shared backend for the future mobile app)
+    app/                        — Pages + the 14 API routes (shared backend for the future mobile app)
     components/                 — React DOM components; fetch no data, receive props from Server Component pages
     lib/supabase/               — Supabase clients (server.ts, client.ts, admin.ts) — SSR/cookies, web-only
     lib/                        — Web glue: wrappers (drivers.ts, teams.ts, races.ts) that inject the server
@@ -46,7 +46,7 @@ packages/shared/  (@f1/shared)  — framework-agnostic code, shared by both apps
     lib/                        — Pure functions (scoring.ts, race-utils.ts, point-system.ts, admin.ts,
                                   championship-standings.ts, driver-stats.ts, achievements.ts) and service
                                   functions (scoring-service.ts, achievement-calculator.ts, drivers.ts,
-                                  teams.ts, races.ts) taking an injected SupabaseClient
+                                  teams.ts, races.ts, lineup.ts) taking an injected SupabaseClient
     types/index.ts              — all shared interfaces
     messages/                   — en.ts (source of truth + Messages type) and es.ts
 ```
@@ -82,6 +82,10 @@ Import shared code as `@f1/shared/lib/*`, `@f1/shared/types`, `@f1/shared/messag
 - Use `IF NOT EXISTS` / `IF EXISTS` for idempotent migrations.
 - JSONB arrays for ordered position data (e.g. `top_10`, `top_8`).
 - After any schema change, update `packages/shared/types/index.ts`.
+- Per-race lineup deviations (driver benched for one race, or loaned to another
+  team for one race) go in `race_lineup_overrides` — never by editing
+  `drivers.team_id` or `drivers.is_active`, which are season-wide and rewrite
+  history retroactively. See [docs/f1/race-lineup-overrides.md](docs/f1/race-lineup-overrides.md).
 
 ### Testing
 - Pure functions: test directly, no mocks needed.

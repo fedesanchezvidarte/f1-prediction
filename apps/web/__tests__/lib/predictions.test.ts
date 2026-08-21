@@ -1,7 +1,7 @@
 /**
  * Tests for packages/shared/lib/predictions.ts — service layer with mocked Supabase.
  *
- * Covers: fetchUserRacePredictions
+ * Covers: createPredictionContext, fetchUserRacePredictions
  *
  * Query order inside fetchUserRacePredictions (matters for the mock queues):
  *   1. seasons (is_current)              — also re-queried inside fetchDrivers (sticky)
@@ -11,7 +11,10 @@
  *   5. race_predictions (user rows)
  */
 import { createMockSupabase } from "../helpers/mockSupabase";
-import { fetchUserRacePredictions } from "@f1/shared/lib/predictions";
+import {
+  createPredictionContext,
+  fetchUserRacePredictions,
+} from "@f1/shared/lib/predictions";
 import type { Race } from "@f1/shared/types";
 
 const USER_ID = "user-123";
@@ -390,5 +393,154 @@ describe("fetchUserRacePredictions", () => {
     expect(result[0].raceWinner).toBeNull();
     expect(result[1].status).toBe("submitted");
     expect(result[1].raceWinner?.driverNumber).toBe(4);
+  });
+});
+
+/* ── createPredictionContext: deactivated-driver regression ─────────────── */
+
+/**
+ * Regression guard for the per-race lineup feature.
+ *
+ * `createPredictionContext` keeps two driver lists: `allDrivers` (the
+ * selectable grid, active only) and `rosterDrivers` (everyone on the season
+ * roster). `findDriver` must resolve against the *roster* — if it ever
+ * resolves against `allDrivers` again, every stored prediction naming a driver
+ * who was later deactivated renders blank.
+ */
+describe("createPredictionContext", () => {
+  /** id 112 / #12 was deactivated mid-season; the other 11 are on the grid. */
+  const ID_ROWS_WITH_INACTIVE = [
+    ...Array.from({ length: 11 }, (_, i) => ({
+      id: 101 + i,
+      driver_number: i + 1,
+      is_active: true,
+    })),
+    { id: 112, driver_number: 12, is_active: false },
+  ];
+
+  function setupWithIdRows(idRows: unknown) {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("seasons", { data: { id: SEASON_ID }, error: null });
+    mockTable(
+      "drivers",
+      { data: idRows, error: null },
+      { data: FULL_DRIVER_ROWS, error: null }
+    );
+    mockTable("races", { data: DB_RACES, error: null });
+    return supabase;
+  }
+
+  it("returns null when there is no current season", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("seasons", { data: null, error: null });
+
+    expect(await createPredictionContext(supabase)).toBeNull();
+  });
+
+  it("excludes a deactivated driver from allDrivers", async () => {
+    const ctx = await createPredictionContext(setupWithIdRows(ID_ROWS_WITH_INACTIVE));
+
+    expect(ctx).not.toBeNull();
+    expect(ctx!.allDrivers).toHaveLength(11);
+    expect(ctx!.allDrivers.map((d) => d.driverNumber)).not.toContain(12);
+  });
+
+  it("keeps a deactivated driver in rosterDrivers", async () => {
+    const ctx = await createPredictionContext(setupWithIdRows(ID_ROWS_WITH_INACTIVE));
+
+    expect(ctx!.rosterDrivers).toHaveLength(12);
+    expect(ctx!.rosterDrivers.map((d) => d.driverNumber)).toContain(12);
+  });
+
+  it("still resolves a deactivated driver through findDriver", async () => {
+    // If this regresses, every past prediction naming a deactivated driver
+    // renders blank instead of showing their name.
+    const ctx = await createPredictionContext(setupWithIdRows(ID_ROWS_WITH_INACTIVE));
+
+    const resolved = ctx!.findDriver(112);
+    expect(resolved).not.toBeNull();
+    expect(resolved!.driverNumber).toBe(12);
+    expect(resolved!.nameAcronym).toBe("D12");
+  });
+
+  it("treats a driver row with is_active missing as active", async () => {
+    // `drivers.is_active` is NOT NULL DEFAULT TRUE, so only an explicit
+    // `false` may remove a driver from the selectable grid.
+    const ctx = await createPredictionContext(
+      setupWithIdRows([
+        { id: 101, driver_number: 1 },
+        { id: 102, driver_number: 2, is_active: undefined },
+        { id: 103, driver_number: 3, is_active: true },
+      ])
+    );
+
+    expect(ctx!.allDrivers.map((d) => d.driverNumber)).toEqual([1, 2, 3]);
+  });
+
+  it("resolves an active driver through findDriver as well", async () => {
+    const ctx = await createPredictionContext(setupWithIdRows(ID_ROWS_WITH_INACTIVE));
+    expect(ctx!.findDriver(101)?.driverNumber).toBe(1);
+  });
+
+  it("returns null from findDriver for a null id and for an unmapped id", async () => {
+    const ctx = await createPredictionContext(setupWithIdRows(ID_ROWS_WITH_INACTIVE));
+
+    expect(ctx!.findDriver(null)).toBeNull();
+    expect(ctx!.findDriver(9999)).toBeNull();
+  });
+
+  it("maps race ids to meeting keys for the current season", async () => {
+    const ctx = await createPredictionContext(setupWithIdRows(ID_ROWS_WITH_INACTIVE));
+
+    expect(ctx!.seasonId).toBe(SEASON_ID);
+    expect(ctx!.raceIdToMeetingKey.get(501)).toBe(9001);
+    expect(ctx!.raceIdToMeetingKey.get(502)).toBe(9002);
+  });
+});
+
+/* ── fetchUserRacePredictions: deactivated-driver regression ────────────── */
+
+describe("fetchUserRacePredictions with a deactivated driver", () => {
+  it("still renders a stored prediction naming a driver who was deactivated", async () => {
+    const { supabase, mockTable } = createMockSupabase();
+    mockTable("seasons", { data: { id: SEASON_ID }, error: null });
+    mockTable(
+      "drivers",
+      {
+        data: [
+          ...Array.from({ length: 11 }, (_, i) => ({
+            id: 101 + i,
+            driver_number: i + 1,
+            is_active: true,
+          })),
+          { id: 112, driver_number: 12, is_active: false },
+        ],
+        error: null,
+      },
+      { data: FULL_DRIVER_ROWS, error: null }
+    );
+    mockTable("races", { data: DB_RACES, error: null });
+    mockTable("race_predictions", {
+      data: [
+        {
+          race_id: 501,
+          status: "scored",
+          pole_position_driver_id: null,
+          qualifying_top_3: [112, 101, 102],
+          top_10: [112, 101],
+          fastest_lap_driver_id: 112,
+          fastest_pit_stop_driver_id: null,
+          driver_of_the_day_driver_id: null,
+          points_earned: 7,
+        },
+      ],
+      error: null,
+    });
+
+    const [prediction] = await fetchUserRacePredictions(supabase, USER_ID, [makeRace(9001, 1)]);
+
+    expect(prediction.qualifyingTop3.map((d) => d?.driverNumber ?? null)).toEqual([12, 1, 2]);
+    expect(prediction.raceWinner?.driverNumber).toBe(12);
+    expect(prediction.fastestLap?.driverNumber).toBe(12);
   });
 });

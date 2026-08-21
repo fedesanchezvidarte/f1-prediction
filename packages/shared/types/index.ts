@@ -7,6 +7,12 @@ export interface Driver {
   teamColor: string;
   teamId?: number;
   headshotUrl?: string;
+  /**
+   * Set by `applyLineupOverrides` when the driver is not on the grid for the
+   * race being viewed. Shown but unselectable in the prediction pickers.
+   * Absent means "no per-race lineup information applied".
+   */
+  isUnavailable?: boolean;
 }
 
 export interface Race {
@@ -260,4 +266,56 @@ export interface ChampionshipStandings {
     mostPodiums: StatLeader | null;
     mostDnfs: StatLeader | null;
   };
+}
+
+/* ── Per-race lineup overrides ──────────────────────────────────────── */
+
+/**
+ * A recorded deviation from the season lineup for a single race.
+ * Mirrors one `race_lineup_overrides` row. Ids are DB primary keys
+ * (`drivers.id`, `races.id`, `teams.id`), NOT driver numbers.
+ */
+export interface RaceLineupOverride {
+  raceId: number;
+  driverId: number;
+  /** Driver is not on the grid for this race. */
+  isUnavailable: boolean;
+  /** Team the driver races for at this race; null = no override. */
+  teamId: number | null;
+  /** Free-text reason shown in the admin panel. */
+  note: string | null;
+}
+
+/**
+ * An override resolved against the `drivers` and `teams` tables, ready to be
+ * folded onto a `Driver[]` for one race. `driverNumber` is what the pickers
+ * key on; `teamName`/`teamColor` are null when there is no team override.
+ */
+export interface RaceLineupEntry {
+  driverId: number;
+  driverNumber: number;
+  isUnavailable: boolean;
+  teamId: number | null;
+  teamName: string | null;
+  teamColor: string | null;
+  note: string | null;
+}
+
+/**
+ * A driver row as shown in the admin Lineup panel: the season roster
+ * entry plus whatever override applies to the selected race.
+ */
+export interface LineupRosterEntry {
+  driverId: number;
+  driverNumber: number;
+  firstName: string;
+  lastName: string;
+  nameAcronym: string;
+  /** Season team (`drivers.team_id`), independent of any override. */
+  seasonTeamId: number | null;
+  seasonTeamName: string;
+  /** Season-wide availability (`drivers.is_active`). */
+  isActive: boolean;
+  /** Override applying to the selected race, if any. */
+  override: RaceLineupOverride | null;
 }

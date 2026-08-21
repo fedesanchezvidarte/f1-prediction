@@ -40,7 +40,22 @@ interface SprintPredictionRow {
 export interface PredictionContext {
   seasonId: number;
   raceIdToMeetingKey: Map<number, number>;
+  /**
+   * The selectable grid: active drivers only. This is what the prediction
+   * pickers render.
+   */
   allDrivers: Driver[];
+  /**
+   * The full season roster, including drivers deactivated mid-season. Used only
+   * to resolve stored driver ids — see `findDriver`.
+   */
+  rosterDrivers: Driver[];
+  /**
+   * Resolves a stored `drivers.id` against the full roster, so a prediction or
+   * result naming a since-deactivated driver still renders their name instead
+   * of collapsing to `null` (which would blank the slot, and shift every
+   * position below it in the results arrays).
+   */
   findDriver: (dbDriverId: number | null) => Driver | null;
 }
 
@@ -63,12 +78,16 @@ export async function createPredictionContext(
   // Mapping: DB driver ID -> driver number (season-scoped)
   const { data: dbDrivers } = await supabase
     .from("drivers")
-    .select("id, driver_number")
+    .select("id, driver_number, is_active")
     .eq("season_id", seasonId);
 
   const driverIdToNumber = new Map<number, number>();
+  const activeDriverNumbers = new Set<number>();
   for (const d of dbDrivers ?? []) {
     driverIdToNumber.set(d.id, d.driver_number);
+    // `drivers.is_active` is NOT NULL DEFAULT TRUE, so treat anything other than
+    // an explicit `false` as on the grid.
+    if (d.is_active !== false) activeDriverNumbers.add(d.driver_number);
   }
 
   // Mapping: DB race ID -> meeting key (season-scoped)
@@ -82,17 +101,19 @@ export async function createPredictionContext(
     raceIdToMeetingKey.set(r.id, r.meeting_key);
   }
 
-  // Full driver objects, matched by driver number
-  const allDrivers = await fetchDrivers(supabase);
+  // Full driver objects, matched by driver number. Two lists: the selectable
+  // grid for the pickers, and the whole roster for resolving stored ids.
+  const rosterDrivers = await fetchDrivers(supabase, { includeInactive: true });
+  const allDrivers = rosterDrivers.filter((d) => activeDriverNumbers.has(d.driverNumber));
 
   function findDriver(dbDriverId: number | null): Driver | null {
     if (!dbDriverId) return null;
     const driverNumber = driverIdToNumber.get(dbDriverId);
     if (driverNumber === undefined) return null;
-    return allDrivers.find((d) => d.driverNumber === driverNumber) ?? null;
+    return rosterDrivers.find((d) => d.driverNumber === driverNumber) ?? null;
   }
 
-  return { seasonId, raceIdToMeetingKey, allDrivers, findDriver };
+  return { seasonId, raceIdToMeetingKey, allDrivers, rosterDrivers, findDriver };
 }
 
 /**

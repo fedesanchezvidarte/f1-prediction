@@ -1,13 +1,14 @@
 /**
  * Tests for lib/championship-standings.ts
  *
- * Covers: computeDriverAggregates, buildDriverStandings, buildConstructorStandings,
- * projectStatLeader, fetchChampionshipStandings.
+ * Covers: computeDriverAggregates, buildDriverStandings, computeConstructorAggregates,
+ * buildConstructorStandings, projectStatLeader, fetchChampionshipStandings.
  */
 import {
   computeDriverAggregates,
   buildDriverStandings,
   buildConstructorStandings,
+  computeConstructorAggregates,
   projectStatLeader,
   fetchChampionshipStandings,
   RACE_POINTS,
@@ -16,7 +17,10 @@ import {
   type RaceResultRow,
   type SprintResultRow,
   type TeamLookup,
+  type ConstructorAggregate,
+  type TeamAtRace,
 } from "@f1/shared/lib/championship-standings";
+import { buildTeamAtRace } from "@f1/shared/lib/lineup";
 import type { Driver } from "@f1/shared/types";
 import { createMockSupabase } from "../helpers/mockSupabase";
 
@@ -51,6 +55,7 @@ function makeLookup(
 
 function makeRaceRow(overrides: Partial<RaceResultRow> = {}): RaceResultRow {
   return {
+    race_id: 1,
     top_10: [],
     dnf_driver_ids: null,
     ...overrides,
@@ -59,9 +64,25 @@ function makeRaceRow(overrides: Partial<RaceResultRow> = {}): RaceResultRow {
 
 function makeSprintRow(overrides: Partial<SprintResultRow> = {}): SprintResultRow {
   return {
+    race_id: 1,
     top_8: [],
     ...overrides,
   };
+}
+
+/** A `TeamAtRace` with no per-race overrides — every driver scores for their season team. */
+function seasonTeams(lookup: DriverLookup): TeamAtRace {
+  const seasonTeamByDriverId = new Map<number, number | null>();
+  for (const idStr of Object.keys(lookup)) {
+    seasonTeamByDriverId.set(Number(idStr), lookup[Number(idStr)].teamId);
+  }
+  return buildTeamAtRace([], seasonTeamByDriverId);
+}
+
+function makeConstructorAggregates(
+  entries: ConstructorAggregate[]
+): Map<number, ConstructorAggregate> {
+  return new Map(entries.map((e) => [e.teamId, e]));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -253,104 +274,236 @@ describe("buildDriverStandings", () => {
 });
 
 /* ═══════════════════════════════════════════════════════════════════════
+   computeConstructorAggregates
+   ═══════════════════════════════════════════════════════════════════════ */
+describe("computeConstructorAggregates", () => {
+  const teamLookup: TeamLookup = {
+    100: { name: "Team A", color: "FF0000" },
+    200: { name: "Team B", color: "0000FF" },
+  };
+
+  it("returns a zeroed entry for every team when there are no results", () => {
+    const agg = computeConstructorAggregates([], [], () => null, teamLookup);
+    expect([...agg.keys()].sort()).toEqual([100, 200]);
+    expect(agg.get(100)).toEqual({
+      teamId: 100,
+      points: 0,
+      wins: 0,
+      podiums: 0,
+      raceFinishCounts: new Array(RACE_POINTS.length).fill(0),
+    });
+  });
+
+  it("sums race points, wins, podiums and countback into the driver's season team", () => {
+    const driverLookup = makeLookup([
+      { id: 1, teamId: 100 },
+      { id: 2, teamId: 100 },
+      { id: 3, teamId: 200 },
+      { id: 4, teamId: 200 },
+    ]);
+    const agg = computeConstructorAggregates(
+      [
+        makeRaceRow({ race_id: 1, top_10: [1, 2, 3, 4] }),
+        makeRaceRow({ race_id: 2, top_10: [2, 1, 4, 3] }),
+      ],
+      [],
+      seasonTeams(driverLookup),
+      teamLookup
+    );
+
+    // Team A: (25 + 18) x 2 = 86, both wins, all four podium slots.
+    expect(agg.get(100)?.points).toBe((RACE_POINTS[0] + RACE_POINTS[1]) * 2);
+    expect(agg.get(100)?.wins).toBe(2);
+    expect(agg.get(100)?.podiums).toBe(4);
+    expect(agg.get(100)?.raceFinishCounts[0]).toBe(2);
+    // Team B: (15 + 12) x 2 = 54, no wins, one podium (P3) per race.
+    expect(agg.get(200)?.points).toBe((RACE_POINTS[2] + RACE_POINTS[3]) * 2);
+    expect(agg.get(200)?.wins).toBe(0);
+    expect(agg.get(200)?.podiums).toBe(2);
+  });
+
+  it("counts sprint results as points only — no wins, podiums or countback weight", () => {
+    const driverLookup = makeLookup([{ id: 1, teamId: 100 }]);
+    const agg = computeConstructorAggregates(
+      [],
+      [makeSprintRow({ race_id: 1, top_8: [1] })],
+      seasonTeams(driverLookup),
+      teamLookup
+    );
+
+    expect(agg.get(100)?.points).toBe(SPRINT_POINTS[0]);
+    expect(agg.get(100)?.wins).toBe(0);
+    expect(agg.get(100)?.podiums).toBe(0);
+    expect(agg.get(100)?.raceFinishCounts.every((c) => c === 0)).toBe(true);
+  });
+
+  it("skips results whose driver has no resolvable team", () => {
+    const driverLookup = makeLookup([
+      { id: 1, teamId: null },
+      { id: 2, teamId: 100 },
+    ]);
+    const agg = computeConstructorAggregates(
+      [makeRaceRow({ top_10: [1, 2] })],
+      [],
+      seasonTeams(driverLookup),
+      teamLookup
+    );
+
+    // Driver 1's P1 is dropped; only driver 2's P2 lands on Team A.
+    expect(agg.get(100)?.points).toBe(RACE_POINTS[1]);
+    expect(agg.get(100)?.wins).toBe(0);
+  });
+
+  it("ignores results attributed to a team missing from the lookup", () => {
+    const driverLookup = makeLookup([{ id: 1, teamId: 999 }]);
+    const agg = computeConstructorAggregates(
+      [makeRaceRow({ top_10: [1] })],
+      [],
+      seasonTeams(driverLookup),
+      teamLookup
+    );
+
+    expect(agg.get(100)?.points).toBe(0);
+    expect(agg.get(200)?.points).toBe(0);
+    expect(agg.has(999)).toBe(false);
+  });
+
+  /**
+   * The scenario this whole mechanism exists for: Lawson (driver 30) is a Racing
+   * Bulls (200) driver all season, but races for Red Bull (100) at round 14 only.
+   * That weekend's points must land on Red Bull; every other round stays with
+   * Racing Bulls; his own WDC total is untouched.
+   */
+  it("attributes a one-race seat swap to the override team, leaving other races alone", () => {
+    const LAWSON = 30;
+    const RACING_BULLS = 200;
+    const RED_BULL = 100;
+    const ROUND_13 = 13;
+    const ROUND_14 = 14;
+
+    const driverLookup = makeLookup([{ id: LAWSON, teamId: RACING_BULLS }]);
+    const teamAtRace = buildTeamAtRace(
+      [
+        {
+          raceId: ROUND_14,
+          driverId: LAWSON,
+          isUnavailable: false,
+          teamId: RED_BULL,
+          note: "Racing for Red Bull",
+        },
+      ],
+      new Map<number, number | null>([[LAWSON, RACING_BULLS]])
+    );
+
+    const raceRows = [
+      makeRaceRow({ race_id: ROUND_13, top_10: [LAWSON] }), // P1 for Racing Bulls
+      makeRaceRow({ race_id: ROUND_14, top_10: [LAWSON] }), // P1 for Red Bull
+    ];
+
+    const agg = computeConstructorAggregates(raceRows, [], teamAtRace, teamLookup);
+
+    expect(agg.get(RED_BULL)?.points).toBe(RACE_POINTS[0]);
+    expect(agg.get(RED_BULL)?.wins).toBe(1);
+    expect(agg.get(RACING_BULLS)?.points).toBe(RACE_POINTS[0]);
+    expect(agg.get(RACING_BULLS)?.wins).toBe(1);
+
+    // The driver keeps both wins — WDC is never re-attributed.
+    const wdc = buildDriverStandings(computeDriverAggregates(raceRows, []), driverLookup);
+    expect(wdc[0].driverId).toBe(LAWSON);
+    expect(wdc[0].points).toBe(RACE_POINTS[0] * 2);
+    expect(wdc[0].wins).toBe(2);
+  });
+
+  it("leaves attribution on the season team when an override only marks the driver unavailable", () => {
+    const teamAtRace = buildTeamAtRace(
+      [{ raceId: 1, driverId: 1, isUnavailable: true, teamId: null, note: "Out" }],
+      new Map<number, number | null>([[1, 100]])
+    );
+    const agg = computeConstructorAggregates(
+      [makeRaceRow({ race_id: 1, top_10: [1] })],
+      [],
+      teamAtRace,
+      teamLookup
+    );
+
+    // No team override → the season team still scores.
+    expect(agg.get(100)?.points).toBe(RACE_POINTS[0]);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
    buildConstructorStandings
    ═══════════════════════════════════════════════════════════════════════ */
 describe("buildConstructorStandings", () => {
-  it("returns an empty array when there are no driver standings", () => {
-    const result = buildConstructorStandings([], {}, {});
-    expect(result).toEqual([]);
+  it("returns an empty array when there are no aggregates", () => {
+    expect(buildConstructorStandings(new Map(), {})).toEqual([]);
   });
 
-  it("sums per-driver points/wins/podiums into team totals", () => {
-    const agg = computeDriverAggregates(
-      [
-        makeRaceRow({ top_10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }),
-        makeRaceRow({ top_10: [2, 1, 4, 3, 5, 6, 7, 8, 9, 10] }),
-      ],
-      []
-    );
-
-    const driverLookup = makeLookup([
-      { id: 1, teamId: 100 }, // 25 + 18 = 43 pts, 1 win, 2 podiums
-      { id: 2, teamId: 100 }, // 18 + 25 = 43 pts, 1 win, 2 podiums
-      { id: 3, teamId: 200 }, // 15 + 12 = 27 pts, 0 wins, 1 podium
-      { id: 4, teamId: 200 }, // 12 + 15 = 27 pts, 0 wins, 1 podium
-    ]);
+  it("ranks teams by points and projects name/colour from the lookup", () => {
     const teamLookup: TeamLookup = {
       100: { name: "Team A", color: "FF0000" },
       200: { name: "Team B", color: "0000FF" },
     };
+    const driverLookup = makeLookup([
+      { id: 1, teamId: 100 },
+      { id: 2, teamId: 100 },
+      { id: 3, teamId: 200 },
+      { id: 4, teamId: 200 },
+    ]);
 
-    const wdc = buildDriverStandings(agg, driverLookup);
-    const wcc = buildConstructorStandings(wdc, driverLookup, teamLookup);
+    const wcc = buildConstructorStandings(
+      computeConstructorAggregates(
+        [
+          makeRaceRow({ race_id: 1, top_10: [1, 2, 3, 4] }),
+          makeRaceRow({ race_id: 2, top_10: [2, 1, 4, 3] }),
+        ],
+        [],
+        seasonTeams(driverLookup),
+        teamLookup
+      ),
+      teamLookup
+    );
 
     expect(wcc[0].teamId).toBe(100);
     expect(wcc[0].teamName).toBe("Team A");
-    expect(wcc[0].points).toBe(43 + 43);
+    expect(wcc[0].teamColor).toBe("FF0000");
+    expect(wcc[0].points).toBe((RACE_POINTS[0] + RACE_POINTS[1]) * 2);
     expect(wcc[0].wins).toBe(2);
     expect(wcc[0].podiums).toBe(4);
     expect(wcc[0].rank).toBe(1);
 
     expect(wcc[1].teamId).toBe(200);
-    expect(wcc[1].points).toBe(27 + 27);
+    expect(wcc[1].points).toBe((RACE_POINTS[2] + RACE_POINTS[3]) * 2);
     expect(wcc[1].rank).toBe(2);
   });
 
-  it("skips drivers without a team", () => {
-    const agg = computeDriverAggregates(
-      [makeRaceRow({ top_10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] })],
-      []
-    );
-    const driverLookup = makeLookup([
-      { id: 1, teamId: null },
-      { id: 2, teamId: 100 },
-    ]);
-    const teamLookup: TeamLookup = { 100: { name: "Team A", color: "FFFFFF" } };
-
-    const wdc = buildDriverStandings(agg, driverLookup);
-    const wcc = buildConstructorStandings(wdc, driverLookup, teamLookup);
-
-    expect(wcc).toHaveLength(1);
-    expect(wcc[0].teamId).toBe(100);
-  });
-
   it("breaks team ties using F1 countback on summed race finishes", () => {
-    // Both teams finish on 25 points. Team 100's driver took P1; Team 200's driver
-    // took two P5s (10+10) plus their teammate had a P9 (... wait, 25 != 20 here).
-    // Use a synthetic aggregate to keep the case deterministic.
-    const agg = new Map<number, ReturnType<typeof computeDriverAggregates> extends Map<number, infer V> ? V : never>();
-    // Team 100 driver: 1 win, no other finishes
-    agg.set(1, {
-      driverId: 1,
-      points: 25,
-      wins: 1,
-      podiums: 1,
-      raceFinishCounts: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    });
-    // Team 200 driver: P2 + P9 = 18 + 2 = 20... let's use raceFinishCounts that produce 25 pts.
-    // Easier: 1 P1 vs 1 P2 + 1 P3 = 25 vs 33. Use synthetic equal points instead.
-    agg.set(2, {
-      driverId: 2,
-      points: 25,
-      wins: 0,
-      podiums: 2,
-      raceFinishCounts: [0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-    });
-
-    const driverLookup = makeLookup([
-      { id: 1, teamId: 100 },
-      { id: 2, teamId: 200 },
-    ]);
     const teamLookup: TeamLookup = {
       100: { name: "A", color: "F" },
       200: { name: "B", color: "F" },
     };
+    // Both teams on 25 points: Team 100 took a P1, Team 200 a P2 + P3.
+    const wcc = buildConstructorStandings(
+      makeConstructorAggregates([
+        {
+          teamId: 100,
+          points: 25,
+          wins: 1,
+          podiums: 1,
+          raceFinishCounts: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        },
+        {
+          teamId: 200,
+          points: 25,
+          wins: 0,
+          podiums: 2,
+          raceFinishCounts: [0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+        },
+      ]),
+      teamLookup
+    );
 
-    const wdc = buildDriverStandings(agg, driverLookup);
-    const wcc = buildConstructorStandings(wdc, driverLookup, teamLookup);
-
-    // Both teams have 25 points. Team 100 has 1 P1, Team 200 has 0 P1s →
-    // Team 100 wins on countback at the very first comparison.
+    // Team 100 has 1 P1, Team 200 has 0 → Team 100 wins at the first comparison.
     expect(wcc[0].teamId).toBe(100);
     expect(wcc[0].raceFinishCounts[0]).toBe(1);
     expect(wcc[1].teamId).toBe(200);
@@ -358,32 +511,49 @@ describe("buildConstructorStandings", () => {
   });
 
   it("includes every team in the lookup, even those with no scoring drivers (full grid)", () => {
-    // Only team 100 has scoring drivers. Teams 200 and 300 have no points.
-    // All three teams must appear in the constructor standings.
-    const agg = computeDriverAggregates([makeRaceRow({ top_10: [1] })], []);
-    const driverLookup = makeLookup([
-      { id: 1, teamId: 100 },
-      { id: 2, teamId: 200 },
-      { id: 3, teamId: 300 },
-    ]);
     const teamLookup: TeamLookup = {
       100: { name: "A", color: "F" },
       200: { name: "B", color: "F" },
       300: { name: "C", color: "F" },
     };
+    const driverLookup = makeLookup([
+      { id: 1, teamId: 100 },
+      { id: 2, teamId: 200 },
+      { id: 3, teamId: 300 },
+    ]);
 
-    const wdc = buildDriverStandings(agg, driverLookup);
-    const wcc = buildConstructorStandings(wdc, driverLookup, teamLookup);
+    const wcc = buildConstructorStandings(
+      computeConstructorAggregates(
+        [makeRaceRow({ top_10: [1] })],
+        [],
+        seasonTeams(driverLookup),
+        teamLookup
+      ),
+      teamLookup
+    );
 
     expect(wcc).toHaveLength(3);
     expect(wcc[0].teamId).toBe(100);
     expect(wcc[0].points).toBe(RACE_POINTS[0]);
-    // Teams 200 and 300 tied at zero → driverId-equivalent fallback is teamId ASC.
+    // Teams 200 and 300 tied at zero → fallback is teamId ASC.
     expect(wcc[1].teamId).toBe(200);
     expect(wcc[1].points).toBe(0);
     expect(wcc[1].raceFinishCounts.every((c) => c === 0)).toBe(true);
     expect(wcc[2].teamId).toBe(300);
     expect(wcc[2].points).toBe(0);
+  });
+
+  it("drops aggregates for teams missing from the lookup", () => {
+    const wcc = buildConstructorStandings(
+      makeConstructorAggregates([
+        { teamId: 100, points: 10, wins: 0, podiums: 0, raceFinishCounts: [] },
+        { teamId: 999, points: 99, wins: 0, podiums: 0, raceFinishCounts: [] },
+      ]),
+      { 100: { name: "A", color: "F" } }
+    );
+
+    expect(wcc).toHaveLength(1);
+    expect(wcc[0].teamId).toBe(100);
   });
 });
 

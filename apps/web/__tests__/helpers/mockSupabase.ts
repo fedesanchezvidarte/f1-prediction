@@ -53,6 +53,7 @@ export function createMockSupabase() {
   const updateCalls: CallRecord[] = [];
   const insertCalls: CallRecord[] = [];
   const deleteCalls: CallRecord[] = [];
+  const selectCalls: CallRecord[] = [];
 
   // ── Chain builders ───────────────────────────────────────────────────────────
 
@@ -65,12 +66,16 @@ export function createMockSupabase() {
       order(_col: string, _opts?: unknown) { return chain; },
       not(_col: string, _op: string, _val: unknown) { return chain; },
       /** Terminal: resolves immediately (for .single() call style) */
-      single(): MockResponse { return consume(table); },
+      single(): MockResponse {
+        selectCalls.push({ table, filters: { ...filters } });
+        return consume(table);
+      },
       /** Thenable: called exactly once by `await` */
       then(
         resolve: ((v: MockResponse) => unknown) | null | undefined,
         reject?: ((e: unknown) => unknown) | null | undefined,
       ) {
+        selectCalls.push({ table, filters: { ...filters } });
         return Promise.resolve(consume(table)).then(resolve ?? undefined, reject ?? undefined);
       },
     };
@@ -162,6 +167,12 @@ export function createMockSupabase() {
     getUpdateCalls: () => updateCalls,
     getInsertCalls: () => insertCalls,
     getDeleteCalls: () => deleteCalls,
+    /**
+     * Read (`select`) calls, recorded when the chain resolves — one record per
+     * `await`/`.single()`, carrying the `.eq()` / `.in()` filters that were
+     * applied. Use it to assert *which* filters a fetcher put on a query.
+     */
+    getSelectCalls: () => selectCalls,
   };
 }
 
