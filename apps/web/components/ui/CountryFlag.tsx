@@ -1,5 +1,6 @@
 "use client";
 
+import type { ComponentType, SVGProps } from "react";
 import * as Flags from "country-flag-icons/react/3x2";
 import { hasFlag } from "country-flag-icons";
 
@@ -32,10 +33,22 @@ export function CountryFlag({ countryCode, className = "inline-block h-3 w-4 rou
     return <span className={className} aria-hidden>🏁</span>;
   }
 
-  const FlagComponent = Flags[alpha2 as keyof typeof Flags];
+  // `country-flag-icons` types each flag as `(props: Props) => JSX.Element`,
+  // where `Props` is its own intersection of React's HTML and SVG attribute
+  // interfaces. That resolved inconsistently between a local build and Vercel's
+  // (Vercel rejected a prop the local toolchain accepted), so pin the component
+  // to React's standard SVG props instead of depending on the package's shape.
+  const FlagComponent = Flags[alpha2 as keyof typeof Flags] as
+    | ComponentType<SVGProps<SVGSVGElement>>
+    | undefined;
+
   if (!FlagComponent) {
     return <span className={className} aria-hidden>🏁</span>;
   }
 
-  return <FlagComponent title={countryCode} className={className} />;
+  // Decorative: every call site renders the race/country name immediately
+  // beside the flag, so naming it here would just repeat that. This also drops
+  // the old `title` attribute, which is not a reliable accessible name on an
+  // <svg> anyway — SVG needs a <title> child element.
+  return <FlagComponent className={className} aria-hidden focusable="false" />;
 }
