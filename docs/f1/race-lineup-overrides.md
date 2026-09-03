@@ -104,6 +104,26 @@ panel if that matters.
 To drop the table entirely, `supabase/migrations/revert-race-lineup-overrides.sql`
 — but that discards every recorded deviation, not just one weekend's.
 
+## Runbook: 2026 Round 13, Italian GP / Monza — Hadjar out again
+
+F1 announced Hadjar out for Monza too, repeating the Dutch GP swap for one more
+weekend: Lawson races for Red Bull, Hadjar is out, Tsunoda is back at Racing
+Bulls. This does not touch the Dutch GP (meeting_key 1293) overrides, which
+stay exactly as scored.
+
+```bash
+#    supabase/scripts/lineup-2026-round13-monza-hadjar-out-apply.sql
+```
+
+To put the grid back:
+
+```bash
+#    supabase/scripts/lineup-2026-round13-monza-hadjar-out-revert.sql
+```
+
+Same Tsunoda caveat as the Dutch GP runbook: the revert does not deactivate
+him — do that separately once you know he isn't racing.
+
 ## Related
 
 - Schema: `supabase/migrations/migration-race-lineup-overrides.sql`
