@@ -124,6 +124,26 @@ To put the grid back:
 Same Tsunoda caveat as the Dutch GP runbook: the revert does not deactivate
 him — do that separately once you know he isn't racing.
 
+## Runbook: 2026 Round 16, Spanish GP / Madrid — Hadjar out again
+
+F1 announced Hadjar out for Madrid too, repeating the same swap for one more
+weekend: Lawson races for Red Bull, Hadjar is out, Tsunoda is back at Racing
+Bulls. This does not touch the Dutch GP (meeting_key 1293) or Monza
+(meeting_key 1294) overrides, which stay exactly as scored.
+
+```bash
+#    supabase/scripts/lineup-2026-round16-madrid-hadjar-out-apply.sql
+```
+
+To put the grid back:
+
+```bash
+#    supabase/scripts/lineup-2026-round16-madrid-hadjar-out-revert.sql
+```
+
+Same Tsunoda caveat as the earlier runbooks: the revert does not deactivate
+him — do that separately once you know he isn't racing.
+
 ## Related
 
 - Schema: `supabase/migrations/migration-race-lineup-overrides.sql`
