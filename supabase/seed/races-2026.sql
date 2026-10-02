@@ -8,6 +8,12 @@
 --              Qualifying datetimes sourced from qualifying-datetime.md (Spain/Barcelona → UTC).
 -- ============================================================
 --
+-- NOTE: this seed is the ORIGINAL 24-round calendar and no longer matches the
+-- live DB (Bahrain/Saudi were removed; the Bahrain GP was later re-added as
+-- round 16 in Sepang, Malaysia, shifting later rounds). Do not re-run it against
+-- a live database. See docs/f1/calendar-changes.md and
+-- supabase/scripts/calendar-2026-round16-bahrain-sepang-apply.sql.
+--
 -- If races were previously seeded, clear them first:
 DELETE FROM races WHERE season_id = (SELECT id FROM seasons WHERE year = 2026);
 

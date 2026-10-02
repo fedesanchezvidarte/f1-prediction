@@ -415,6 +415,11 @@ describe("countryCodeToFlag", () => {
     expect(countryCodeToFlag("")).toBe("🏁");
   });
 
+  it("maps Malaysia (MYS) to its flag, e.g. the Bahrain GP relocated to Sepang", () => {
+    expect(countryCodeToFlag("MYS")).toBe("🇲🇾");
+    expect(countryCodeToFlag("mys")).toBe("🇲🇾");
+  });
+
   it("handles USA-related codes", () => {
     expect(countryCodeToFlag("USA")).toBe("🇺🇸");
     expect(countryCodeToFlag("MIA")).toBe("🇺🇸");

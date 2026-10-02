@@ -8,6 +8,12 @@ This datetime is set manually by the admin and stored in the database, and can b
 
 ### Currently qualifying datetime
 
+> [!WARNING]
+> This table is the original 24-round calendar and is out of date: the live
+> database has since diverged (Bahrain and Saudi Arabia removed, Bahrain GP added
+> back in Malaysia as round 16). The `races` table is the source of truth. See
+> [calendar-changes.md](calendar-changes.md).
+
 > [!NOTE]
 > This datetime are detailed based on Spain, Barcelona timezone.
 
