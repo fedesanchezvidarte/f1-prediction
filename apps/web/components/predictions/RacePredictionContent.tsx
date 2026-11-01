@@ -1464,7 +1464,6 @@ function DeadlineCountdown({ deadline }: { deadline: string }) {
 
   useEffect(() => {
     // Reset immediately when the deadline prop changes, then tick every second.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTimeLeft(computeTimeLeft(deadline));
     const timer = setInterval(() => {
       setTimeLeft(computeTimeLeft(deadline));
