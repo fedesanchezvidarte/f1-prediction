@@ -8,6 +8,7 @@
 --     tyres carried over). He scored P10 on his debut; those WCC
 --     points go to Haas through drivers.team_id.
 --   Esteban Ocon  (#31) — OUT from Mexico City to the end of the season.
+--   Yuki Tsunoda  (#22) — OUT for Mexico City (not on the grid).
 --
 -- Ocon is benched with one override per race rather than
 -- drivers.is_active = FALSE: is_active is season-wide and would also
@@ -52,6 +53,23 @@ SELECT r.id,
        'Out - dropped by Haas from Mexico City GP 2026 onwards'
   FROM races r
  WHERE r.meeting_key IN (1299, 1300, 1301, 1302, 1303)
+ON CONFLICT (race_id, driver_id) DO UPDATE
+  SET is_unavailable = EXCLUDED.is_unavailable,
+      team_id        = EXCLUDED.team_id,
+      note           = EXCLUDED.note;
+
+-- ── 3. Tsunoda out for Mexico City ───────────────────────────
+-- He was reactivated season-wide for Madrid and never benched again,
+-- so he showed as selectable here. Mexico City only.
+INSERT INTO race_lineup_overrides (race_id, driver_id, is_unavailable, team_id, note)
+VALUES (
+  (SELECT id FROM races   WHERE meeting_key = 1299),
+  (SELECT id FROM drivers WHERE driver_number = 22
+                            AND season_id = (SELECT id FROM seasons WHERE year = 2026)),
+  TRUE,
+  NULL,
+  'Out - Mexico City GP 2026'
+)
 ON CONFLICT (race_id, driver_id) DO UPDATE
   SET is_unavailable = EXCLUDED.is_unavailable,
       team_id        = EXCLUDED.team_id,
