@@ -3,7 +3,7 @@
 -- ============================================================
 -- Undoes lineup-2026-round19-mexico-hirakawa-apply.sql:
 --   * Ocon (#31) selectable again for meeting_keys 1299-1303.
---   * Tsunoda (#22) selectable again for meeting_key 1299.
+--   * Tsunoda (#22) selectable again for meeting_keys 1299-1303.
 --
 -- Ryo Hirakawa (#50) is deliberately NOT deleted — a DELETE would
 -- cascade into any predictions and results referencing him (he is in
@@ -23,7 +23,7 @@ DELETE FROM race_lineup_overrides
    );
 
 DELETE FROM race_lineup_overrides
- WHERE race_id = (SELECT id FROM races WHERE meeting_key = 1299)
+ WHERE race_id IN (SELECT id FROM races WHERE meeting_key IN (1299, 1300, 1301, 1302, 1303))
    AND driver_id = (
      SELECT id FROM drivers
       WHERE driver_number = 22
