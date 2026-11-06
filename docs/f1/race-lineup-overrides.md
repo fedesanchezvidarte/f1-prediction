@@ -144,6 +144,28 @@ To put the grid back:
 Same Tsunoda caveat as the earlier runbooks: the revert does not deactivate
 him — do that separately once you know he isn't racing.
 
+## Runbook: 2026 Round 19, Mexico City GP — Ocon out, Hirakawa in
+
+Haas dropped Esteban Ocon on the Mexico City weekend and put reserve Ryo
+Hirakawa in the car (FIA-approved as car #50). Ocon does not return for the
+rest of the season, so he is benched with one override per remaining race
+(meeting_keys 1299–1303) instead of `is_active = FALSE`, which would also grey
+him out of the rounds he did race. Hirakawa gets a new permanent Haas row.
+
+```bash
+#    supabase/scripts/lineup-2026-round19-mexico-hirakawa-apply.sql
+```
+
+To put the grid back:
+
+```bash
+#    supabase/scripts/lineup-2026-round19-mexico-hirakawa-revert.sql
+```
+
+Same caveat as Tsunoda: the revert does not delete Hirakawa (he is in the
+Mexico City top 10). If Haas fields someone else in a later round, bench him
+for that race from the admin panel.
+
 ## Related
 
 - Schema: `supabase/migrations/migration-race-lineup-overrides.sql`
