@@ -1,0 +1,30 @@
+-- ============================================================
+-- REVERT LINEUP CHANGE — 2026 Round 20, São Paulo GP onwards
+-- ============================================================
+-- Undoes lineup-2026-round20-saopaulo-camara-apply.sql:
+--   * Hirakawa (#50) selectable again for meeting_keys 1300–1303.
+--
+-- Rafael Câmara (#51) is deliberately NOT deleted — a DELETE would
+-- cascade into any predictions and results referencing him. To take
+-- him off the grid, toggle `is_active` from the admin Lineup panel,
+-- or uncomment the statement at the bottom of this file.
+--
+-- Do NOT run this for a round that is already scored — un-benching
+-- Hirakawa there rewrites that round retroactively. Narrow the
+-- meeting_key list instead.
+--
+-- Run in the Supabase SQL editor. Safe to re-run.
+-- ============================================================
+
+DELETE FROM race_lineup_overrides
+ WHERE race_id IN (SELECT id FROM races WHERE meeting_key IN (1300, 1301, 1302, 1303))
+   AND driver_id = (
+     SELECT id FROM drivers
+      WHERE driver_number = 50
+        AND season_id = (SELECT id FROM seasons WHERE year = 2026)
+   );
+
+-- Optional: take Câmara off the grid without deleting his row.
+-- UPDATE drivers SET is_active = FALSE
+--  WHERE driver_number = 51
+--    AND season_id = (SELECT id FROM seasons WHERE year = 2026);
