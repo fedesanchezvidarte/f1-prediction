@@ -166,6 +166,32 @@ Same caveat as Tsunoda: the revert does not delete Hirakawa (he is in the
 Mexico City top 10). If Haas fields someone else in a later round, bench him
 for that race from the admin panel.
 
+## Runbook: 2026 Round 20, São Paulo GP — Câmara in, Hirakawa out
+
+Haas put Rafael Câmara in Ocon's old seat for his home race; Hirakawa steps
+aside for his WEC finale. Câmara gets a new permanent Haas row as **#51** — a
+placeholder, because Hirakawa keeps #50 (he raced it in Mexico City) and
+`(driver_number, season_id)` is unique. Hirakawa is benched for São Paulo and
+every remaining round (meeting_keys 1300–1303). Mexico City is untouched.
+
+Haas had not announced Las Vegas onwards when this ran. If someone other than
+Câmara drives a later round, flip that race's overrides from the admin panel.
+
+No prediction for 1300–1303 had picked Hirakawa, so none needed rewriting.
+
+```bash
+#    supabase/scripts/lineup-2026-round20-saopaulo-camara-apply.sql
+```
+
+To put the grid back:
+
+```bash
+#    supabase/scripts/lineup-2026-round20-saopaulo-camara-revert.sql
+```
+
+The revert does not delete Câmara; deactivate him from the admin panel if
+needed.
+
 ## Related
 
 - Schema: `supabase/migrations/migration-race-lineup-overrides.sql`
