@@ -15,7 +15,7 @@
     "test": "npm run test --workspace apps/web",
     "test:watch": "npm run test:watch --workspace apps/web",
     "test:coverage": "npm run test:coverage --workspace apps/web",
-    "prepare": "husky",
+    "prepare": "node .husky/install.mjs",
     "typecheck:mobile": "npm run typecheck --workspace apps/mobile"
   },
   "devDependencies": {
