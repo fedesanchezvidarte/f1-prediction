@@ -11,7 +11,8 @@ npm test                 # Run Jest once
 npm run test:watch       # Jest in watch mode
 npm run test:coverage    # Jest with coverage report
 npm run lint             # ESLint
-npm run typecheck        # Type-check without emitting (or: npx tsc --noEmit inside apps/web)
+npm run typecheck        # Type-check the web app (or: npx tsc --noEmit inside apps/web)
+npm run typecheck:mobile # Type-check the mobile app
 ```
 
 All root scripts proxy to the `apps/web` workspace. Run a single test file: `npm test -- --testPathPattern="scoring"`
@@ -72,13 +73,14 @@ Import shared code as `@f1/shared/lib/*`, `@f1/shared/types`, `@f1/shared/messag
 
 ### Styling
 - Tailwind CSS only — no inline styles, no CSS modules.
-- Use `cn()` for conditional class composition.
+- Compose conditional classes with template literals (there is no `cn()` helper).
 - F1 color palette: Crimson Red `#CF2637`, Graphite Black `#2A2B2A`, Lavender Purple `#A06CD5`, Amber Flame `#FFB100`, Jungle Green `#44AF69`, Ocean Blue `#3C91E6`.
 - `#FFB100` and `#A06CD5` fail WCAG AA on white — use on dark backgrounds only.
 
 ### Database
+- **The dev environment never touches production.** All DB work runs against the local Supabase stack (Docker). No production credentials live in the repo, `.env.local`, CI, or the agent tooling; the remote Supabase MCP is docs-only. Applying a merged migration to production is a manual step the maintainer does.
 - RLS enabled on every table in `public`.
-- Migrations go in `supabase/migrations/` with descriptive SQL filenames.
+- Create migrations with `supabase migration new <name>`. Migrations already on `main` are immutable — a schema change is always a new migration (enforced by a Claude Code hook).
 - Use `IF NOT EXISTS` / `IF EXISTS` for idempotent migrations.
 - JSONB arrays for ordered position data (e.g. `top_10`, `top_8`).
 - After any schema change, update `packages/shared/types/index.ts`.
@@ -92,57 +94,58 @@ Import shared code as `@f1/shared/lib/*`, `@f1/shared/types`, `@f1/shared/messag
 - Service functions: use `createMockSupabase()` from `apps/web/__tests__/helpers/mockSupabase.ts`.
 - API routes: use `createMockRequest()` from `apps/web/__tests__/helpers/mockApiRoute.ts`; always cover 401, 400, 200 flows; admin routes also need 403.
 - Coverage targets: >85% lines for `packages/shared/lib/`, >65% for `apps/web/app/api/`.
+- Definition of Done per ticket (which test levels are required): see the `testing-patterns` skill.
 
 ## Quality Gates
 
 Every change should pass:
-1. `npm run typecheck` — zero type errors
+1. `npm run typecheck` (and `npm run typecheck:mobile`) — zero type errors. This also enforces translation parity: `es.ts` is typed as `Messages = typeof en`.
 2. `npm test` — all tests pass
 3. `npm run lint` — zero errors
-4. Translation parity: matching key counts in both locale files
 
-## Agents & Skills
+Enforced automatically:
+- **Git hooks (Husky):** pre-commit runs `eslint --fix` on staged files (lint-staged); commit-msg runs commitlint (Conventional Commits); pre-push runs both typechecks and Jest. `--no-verify` exists for emergencies — CI is the real gate.
+- **Claude Code hooks** (`.claude/settings.json`, scripts in `scripts/claude-hooks/`): block destructive git commands and pushes to `main`; block edits to migrations already on `main`; lint every edited file and report errors back.
 
-Specialized subagents live in `.claude/agents/`. Invoke them via the `Agent` tool or by name:
+## Development Workflow (spec-driven)
 
-| Agent | When to use |
+Built on the `mattpocock-skills` plugin. Typical path for a feature:
+
+1. `/grill-with-docs` (or `/grill-me`) — align on the design; maintains `GLOSSARY.md` and `docs/adr/`.
+   Side tools: `/prototype`, `/research`, `/to-questionnaire` (when the answers are in someone else's head).
+2. `/to-spec` — publish the spec as a GitHub issue (`ready-for-agent`).
+3. `/to-tickets` — vertical-slice tickets with blocking edges.
+4. `/implement-spec` (or `/implement`) — one implementer per ticket, test-first with `/tdd`, then `/code-review`.
+5. UI tickets: `a11y` agent review. Then `/pr`, and optionally `/retro`.
+
+Bugs: `/diagnosing-bugs`. Incoming issues: `/triage`. Work too big for one session: `/wayfinder`.
+
+Implementers load the project skills for the layer they touch:
+
+| Skill | Layer |
 |---|---|
-| `feature-orchestrator` | End-to-end feature development across all layers |
-| `architect` | Feature decomposition, DB schema design, LikeC4 diagrams |
-| `database-expert` | Migrations, RLS policies, query optimization, Supabase MCP |
-| `libs-expert` | `lib/` pure functions and service-layer functions |
-| `api-expert` | `app/api/` route handlers |
-| `ui-ux-expert` | Components, pages, Tailwind, translations |
-| `qa` | Unit tests, API tests, Playwright E2E tests |
-| `a11y` | WCAG 2.1 AA audits, ARIA, keyboard navigation |
+| `lib-patterns` | `packages/shared/lib/` pure and service functions |
+| `api-patterns` | `apps/web/app/api/` route handlers |
+| `ui-ux-patterns` | Components, pages, Tailwind, translations |
+| `database-patterns` | Schema, migrations, RLS (project conventions) |
+| `supabase`, `supabase-postgres-best-practices` | Generic Supabase / Postgres guidance |
+| `testing-patterns` | Jest, API tests, Playwright, Definition of Done |
 
-Domain-knowledge skills live in `.claude/skills/` (Claude Code auto-discovery). Each agent's system prompt points to the relevant `SKILL.md` under `.claude/skills/`.
+The only project subagent is `a11y` (`.claude/agents/a11y.md`): WCAG 2.1 AA audits before a UI PR.
 
-| Skill | Used by |
-|---|---|
-| `architecture` | `architect` |
-| `supabase`, `supabase-postgres-best-practices` | `database-expert` |
-| `lib-patterns` | `libs-expert` |
-| `api-patterns` | `api-expert` |
-| `ui-ux-patterns` | `ui-ux-expert` |
-| `testing-patterns` | `qa` |
+## Agent skills
 
-### Feature Orchestrator Phases
+### Issue tracker
 
-The `feature-orchestrator` coordinates end-to-end feature work through these phases:
+Issues and specs live in GitHub Issues (`gh` CLI). See `docs/agents/issue-tracker.md`.
 
-| # | Phase | Agent | Blocking? |
-|---|---|---|---|
-| 1 | Requirements & Architecture | `architect` | Blocks all |
-| 2 | Database Schema & Types | `architect` → `database-expert` | Blocks 3–6 |
-| 3 | Business Logic (`lib/`) | `libs-expert` | Blocks 4 |
-| 4 | API Routes (`app/api/`) | `api-expert` | ∥ with 5 |
-| 5 | UI/UX Components & Pages | `ui-ux-expert` | ∥ with 4 |
-| 6 | Translations (i18n) | `ui-ux-expert` | Depends on 5 |
-| 7 | Unit & Integration Tests | `qa` | Depends on 3–4 |
-| 8 | E2E Tests (Playwright) | `qa` | Depends on 5–6 |
-| 9 | Accessibility Audit | `a11y` | Depends on 5–6 |
-| 10 | Documentation & LikeC4 Diagrams | `architect` | Depends on all |
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root, created lazily. See `docs/agents/domain.md`.
 
 ## Environment Variables
 

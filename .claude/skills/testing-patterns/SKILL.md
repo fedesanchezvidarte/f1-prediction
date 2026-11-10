@@ -7,8 +7,10 @@ description: "Testing patterns for F1 Prediction: Jest/ts-jest unit tests, Supab
 
 ## Test Organization
 
+Jest tests live in `apps/web/__tests__/` and cover both `packages/shared/lib/` and `apps/web/app/api/`.
+
 ```
-__tests__/
+apps/web/__tests__/
   lib/
     scoring.test.ts              → mirrors lib/scoring.ts
     scoring-service.test.ts      → mirrors lib/scoring-service.ts
@@ -102,9 +104,23 @@ jest.mock("@/lib/admin", () => ({
 
 ## Coverage Target
 
-- **>80% line coverage** for all files in `lib/`
-- Run with: `npx jest --coverage`
-- Coverage reports in `coverage/` directory
+- **>85% lines** for `packages/shared/lib/`, **>65% lines** for `apps/web/app/api/`
+- Run with: `npm run test:coverage`
+
+## Which Tests a Ticket Needs (Definition of Done)
+
+- Pure / service functions: unit tests, always.
+- API routes: 401, 400, 200 flows (plus 403 for admin routes).
+- E2E (Playwright): only when the ticket changes a P0 flow or adds a new critical user-visible flow. Do not add an E2E test per ticket.
+- Migrations: clean `supabase db reset` in CI; RLS tests when policies change.
+- UI: i18n keys in both locales; `a11y` review before the PR.
+
+## E2E Tests (Playwright)
+
+- Run against the local Supabase stack only — never a remote project.
+- Derive locators from a live page snapshot before writing a test; never guess selectors.
+- Prefer role/label locators (`getByRole`, `getByLabel`) over CSS selectors.
+- Tests that mutate shared data (results, scoring) use their own dedicated seed race; prediction tests create their own throwaway user.
 
 ## Test Categories
 
@@ -144,3 +160,4 @@ describe("POST /api/results/score", () => {
 - **Never** skip or comment out tests to make CI pass.
 - **Never** write tautological tests that always pass.
 - **Never** couple tests to implementation details (private methods, internal state).
+- **Never** mark a flaky test as `skip` — fix the root cause.
