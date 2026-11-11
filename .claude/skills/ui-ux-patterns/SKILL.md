@@ -52,9 +52,9 @@ export function MyComponent() {
 
 **Always update both files simultaneously:**
 
-1. Add key to `messages/en.ts`
-2. Add corresponding key to `messages/es.ts`
-3. `messages/es.ts` imports the `Messages` type from `messages/en.ts` for type safety
+1. Add key to `packages/shared/messages/en.ts`
+2. Add corresponding key to `packages/shared/messages/es.ts`
+3. `packages/shared/messages/es.ts` imports the `Messages` type from `packages/shared/messages/en.ts` for type safety
 
 ### When to Load Reference Files
 
@@ -96,16 +96,12 @@ components/
 
 ## Tailwind CSS Patterns
 
-### Conditional Classes with `cn()`
+### Conditional Classes
+
+There is no `cn()` helper in this repo; compose with template literals, matching existing components:
 
 ```typescript
-import { cn } from '@/lib/utils';
-
-<div className={cn(
-  "rounded-lg p-4",
-  isActive && "bg-[#CF2637] text-white",
-  !isActive && "bg-gray-100 text-gray-500"
-)} />
+<div className={`rounded-lg p-4 ${isActive ? "bg-[#CF2637] text-white" : "bg-gray-100 text-gray-500"}`} />
 ```
 
 ### Responsive Design
@@ -131,4 +127,11 @@ Use Tailwind's `dark:` prefix for dark mode variants:
 - **Never** use inline styles — Tailwind utility classes only.
 - **Never** use CSS modules.
 - **Never** create a component without checking if a similar one exists.
-- **Never** skip adding keys to `messages/es.ts` when adding to `messages/en.ts`.
+- **Never** skip adding keys to `packages/shared/messages/es.ts` when adding to `packages/shared/messages/en.ts`.
+- **Never** hardcode `aria-label="English text"` — use `aria-label={t('key')}`.
+- **Never** fetch data in `useEffect` when a Server Component page can fetch it and pass props.
+- **Never** ship a layout that breaks on mobile — design mobile-first with `md:` / `lg:` breakpoints.
+
+## Before Opening a PR
+
+UI changes get an accessibility pass from the `a11y` agent (WCAG 2.1 AA) alongside `/code-review`.

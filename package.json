@@ -14,6 +14,14 @@
     "typecheck": "npm run typecheck --workspace apps/web",
     "test": "npm run test --workspace apps/web",
     "test:watch": "npm run test:watch --workspace apps/web",
-    "test:coverage": "npm run test:coverage --workspace apps/web"
+    "test:coverage": "npm run test:coverage --workspace apps/web",
+    "prepare": "node .husky/install.mjs",
+    "typecheck:mobile": "npm run typecheck --workspace apps/mobile"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0"
   }
 }

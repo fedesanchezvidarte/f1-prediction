@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 ## Admin Guard Pattern
 
 ```typescript
-import { isAdminUser } from "@/lib/admin";
+import { isAdminUser } from "@f1/shared/lib/admin";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -97,23 +97,20 @@ return NextResponse.json({ error: "Internal server error" }, { status: 500 });
 
 ## File Naming Convention
 
-Routes live under `app/api/` and follow Next.js App Router conventions:
+Routes live under `apps/web/app/api/` and follow Next.js App Router conventions. Keep paths flat: `{domain}/{action}`. They are the shared backend for the web app and the mobile app.
 
 ```
-app/api/
-  predictions/
-    submit/route.ts        → POST /api/predictions/submit
-    reset/route.ts         → POST /api/predictions/reset
-  results/
-    manual/route.ts        → POST /api/results/manual
-    score/route.ts         → POST /api/results/score
-    score-all/route.ts     → POST /api/results/score-all
-    reset/route.ts         → POST /api/results/reset
-  races/
-    update-datetime/route.ts      → POST /api/races/update-datetime
-  achievements/
-    calculate/route.ts     → POST /api/achievements/calculate
+apps/web/app/api/
+  predictions/{submit,reset}
+  results/{manual,score,score-all,reset}
+  results/champion/{manual,score,reset}
+  races/update-datetime
+  achievements/calculate
+  admin/{drivers,lineup}
+  cron/keep-alive
 ```
+
+Admin helpers come from `@f1/shared/lib/admin`; server client from `@/lib/supabase/server`.
 
 ## Error Handling in Handlers
 
@@ -137,4 +134,12 @@ try {
 4. Parse and validate request body (try/catch for JSON, field validation → 400)
 5. Call lib/ function with validated input
 6. Return typed response
-7. Add test in `__tests__/api/{domain}-{action}.test.ts`
+7. Add test in `apps/web/__tests__/api/{domain}-{action}.test.ts` covering 401, 400, 200 (and 403 for admin routes)
+
+## Anti-Patterns
+
+- Business logic (scoring, achievement calculation) inside a route handler.
+- `supabase.auth.getSession()` for server-side auth — always `getUser()`.
+- Calling `request.json()` without try/catch.
+- Returning internal error details (DB messages, stack traces) to the client — log them, return a generic message.
+- Forgetting the admin guard on admin-only routes.

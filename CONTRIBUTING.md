@@ -17,7 +17,7 @@ We are always looking for new ideas for achievements, prediction types, and dash
 1. Fork the repository.
 2. Create a new branch: `git checkout -b feature/amazing-feature`.
 3. Make your changes and ensure the code follows the project's style.
-4. Commit your changes: `git commit -m 'Add some amazing feature'`.
+4. Commit your changes: `git commit -m 'feat(scope): add some amazing feature'` (Conventional Commits, checked by commitlint).
 5. Push to the branch: `git push origin feature/amazing-feature`.
 6. Open a Pull Request.
 

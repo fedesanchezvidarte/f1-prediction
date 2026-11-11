@@ -7,50 +7,37 @@ description: "Business logic patterns for F1 Prediction: pure scoring functions,
 
 ## Two-Tier Architecture
 
-All business logic in `lib/` follows a strict two-tier pattern:
+All business logic lives in `packages/shared/lib/` (imported as `@f1/shared/lib/*`) and follows a strict two-tier pattern. Nothing in `packages/shared` may import Next.js, React DOM, or `apps/web` code. `apps/web/lib/` only holds thin wrappers that inject the server Supabase client into shared fetchers.
 
 ### Tier 1: Pure Functions (no I/O)
 
-Files that contain **only** computation — no database calls, no network requests, no side effects.
-
-| File | Purpose |
-|---|---|
-| `lib/scoring.ts` | Score race, sprint, champion, season award predictions |
-| `lib/race-utils.ts` | Race date math, status calculation, scheduling helpers |
-| `lib/point-system.ts` | Point values and rules constants |
-| `lib/admin.ts` | Admin user verification (reads env var, but no async I/O) |
-| `lib/achievements.ts` | Achievement definitions and metadata |
-| `lib/drivers.ts` | Driver roster data |
-| `lib/teams.ts` | Team roster data |
+Files that contain **only** computation — no database calls, no network requests, no side effects. Examples: `scoring.ts`, `race-utils.ts`, `point-system.ts`, `admin.ts`, `championship-standings.ts`, `driver-stats.ts`, `prediction-status.ts`.
 
 **Contract:**
 - Input → Output. No side effects.
-- All inputs and outputs are typed interfaces.
-- No imports from `@supabase/ssr`, `next/server`, or any I/O library.
+- All inputs and outputs are typed interfaces. No `any`, no implicit `unknown`.
+- No imports from `@supabase/*`, `next/*`, or any I/O library.
 - Directly testable without mocks.
+- **Pure first:** if a piece of a service function can be expressed without I/O, extract it into a pure helper.
 
 ### Tier 2: Service Functions (Supabase I/O)
 
-Files that orchestrate database operations around pure functions.
-
-| File | Purpose |
-|---|---|
-| `lib/scoring-service.ts` | Fetch results, score predictions, update leaderboard |
-| `lib/achievement-calculator.ts` | Evaluate and reconcile achievements in the DB |
+Files that orchestrate database operations around pure functions. Examples: `scoring-service.ts`, `achievement-calculator.ts`, `predictions.ts`, `results.ts`, `lineup.ts`, `leaderboard.ts`.
 
 **Contract:**
 - Receives `SupabaseClient` as the **first parameter** (dependency injection).
 - Never imports or calls `createClient` directly — the caller provides the client.
 - Calls pure functions for computation, Supabase client for persistence.
 - Returns typed result objects.
+- Single responsibility: compose focused functions instead of one broad service function.
 
 ## SupabaseClient Type Pattern
 
 ```typescript
-type SupabaseClient = Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>;
+import type { SupabaseClient } from "@supabase/supabase-js";
 ```
 
-This ensures the service function accepts the same client type created by the server utility.
+The framework-agnostic type, so the same function works with the web SSR client and the mobile AsyncStorage client.
 
 ## Pure Function Patterns
 
@@ -127,11 +114,17 @@ export async function scoreRaceForId(
 ### Checklist
 
 1. Decide: pure function or service function?
-2. If pure: add to existing file or create new `lib/{domain}.ts`
-3. If service: add to existing service file or create new `lib/{domain}-service.ts`
-4. Define input/output interfaces in the same file (or `types/index.ts` if shared)
-5. Implement the function
+2. If pure: add to existing file or create new `packages/shared/lib/{domain}.ts`
+3. If service: add to existing service file or create new `packages/shared/lib/{domain}-service.ts`
+4. Define input/output interfaces in the same file (or `packages/shared/types/index.ts` if shared)
+5. Implement the function (test-first via `/tdd`)
 6. Export from the file
-7. Add corresponding test in `__tests__/lib/{domain}.test.ts`
-8. Run `npx tsc --noEmit` to verify types
-9. Run `npx jest` to verify tests pass
+7. Add corresponding test in `apps/web/__tests__/lib/{domain}.test.ts`
+8. Run `npm run typecheck` and `npm test`
+
+## Anti-Patterns
+
+- Importing `createClient` in a service function — the caller provides the client.
+- I/O (fetch, DB calls) in a pure function file.
+- `any` for function inputs or outputs.
+- Business logic in API route handlers — it belongs here.

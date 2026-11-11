@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 // app/api/results/manual/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isAdminUser } from "@/lib/admin";
+import { isAdminUser } from "@f1/shared/lib/admin";
 
 export async function POST(request: NextRequest) {
   // 1. Auth guard
@@ -157,7 +157,7 @@ export async function GET() {
 // app/api/results/score/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isAdminUser } from "@/lib/admin";
+import { isAdminUser } from "@f1/shared/lib/admin";
 import { scoreRaceForId } from "@/lib/scoring-service";
 
 export async function POST(request: NextRequest) {
